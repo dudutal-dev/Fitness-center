@@ -3,3 +3,4 @@ assets/_src/*.png
 node_modules/
 .DS_Store
 assets/_src/voice_tmp/
+assets/_src/voice_orig/

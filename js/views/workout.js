@@ -7,7 +7,7 @@ import { EX, EXERCISES, MUSCLES } from '../data/exercises.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
 import { applyReadiness, blockedSet, LEVEL_NAMES } from '../engine/program.js';
-import { say, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
+import { say, sayNow, resolve, clipDur, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
 import { startRun } from './run.js';
@@ -56,7 +56,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
   try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
   const hrRec = recorder(profile);
   const hrMax = maxHrFor(profile);
-  preload(['go', 'down', 'up', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set', 'next_ex', 'n1', 'n2', 'n3', 'hold_start', 'hold_half', 'hold_done']);
+  // טעינה מראש של כל מה שהמאמן עשוי להגיד באימון הזה (ספירה 1–20, טמפו, סטים, מוטיבציה, שמות התרגילים)
+  preload(['go', 'down', 'up', 'hold', 'pull', 'press', 'release', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set',
+    'next_ex', 'rate_set', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'hr_ready', 'hr_high', `hello_${coach}`,
+    ...Array.from({ length: 20 }, (_, i) => `n${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `set${i + 1}`),
+    ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`)]);
 
   const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
     <div class="stage"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
@@ -189,7 +193,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const it = item(), e = ex(), sl = setLog();
     if (it.unit === 'sec') return runTimed(sl.reps);
     if (!get().settings.tempoCount) { $('#ph').textContent = 'בצע בקצב שלך'; return; }
-    say('go', { priority: true });
+    stop();
+    const goDur = sayNow(['go']) || 2.6;
     const [ecc, hold, con] = e.tempo;
     // שלבי החזרה לפי סדר התרגיל
     const conFirst = e.first === 'con';
@@ -202,14 +207,27 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const segs = segsFor(e.id);
     // לפני ההתחלה: הווידאו עומד בתנוחת המוצא
     if (segs.length) { video.loop = false; video.pause(); vSync = null; try { video.currentTime = segs[0][0]; } catch { /* */ } }
-    const startAt = Date.now() + 2600;
+    // החזרה הראשונה מתחילה בדיוק כשהמאמן מסיים "...יאללה!"
+    const startAt = Date.now() + Math.max(1500, goDur * 1000);
     let lastPhase = '';
+    // בונה רצף קריטי שנכנס בחלון הזמן (שניות) — מה שלא נכנס לא נאמר, כדי שהקול לא "יגרר" אחרי התנועה
+    const fit = (keys, window) => {
+      const out = []; let t = 0;
+      for (const k of keys) {
+        if (!k) continue;
+        // בוחרים מראש את הקליפ שיתנגן בפועל (אולי גרסה עם השם — ארוכה יותר); אם לא נכנס — הגרסה הרגילה
+        let e = resolve(k), d = clipDur(e.clip) + 0.06;
+        if (t + d > window - 0.15 && e.clip.startsWith('names/')) { e = resolve(k, { allowName: false }); d = clipDur(e.clip) + 0.06; }
+        if (t + d <= window - 0.15 || (!out.length && k.startsWith('n'))) { out.push(e); t += d; }
+      }
+      return out;
+    };
     timer = setInterval(() => {
       const t = Date.now() - startAt;
       if (t < 0) return;
       const r = Math.floor(t / rep);
       const within = t - r * rep;
-      if (r >= target) { countedReps = target; say(`n${Math.min(20, target)}`); endSet(); return; }
+      if (r >= target) { countedReps = target; sayNow([`n${Math.min(20, target)}`]); endSet(); return; }
       let acc = 0, pi = 0;
       while (pi < 2 && within >= (acc + P[pi].secs) * 1000) { acc += P[pi].secs; pi++; }
       const ph = P[pi];
@@ -218,19 +236,28 @@ export function startWorkout(workout, { readiness = null } = {}) {
       setRing(ringNode, (r + within / rep) / target);
       if (key !== lastPhase) {
         lastPhase = key;
+        (window.__phaseLog ||= []).push({ t: performance.now(), r, pi, label: LABEL[ph.cue], ct: video.currentTime }); // לבדיקות סנכרון
         if (segs.length) videoPhase(segs[r % segs.length], ph.part, ph.secs);
         const lbl = $('#ph');
         lbl.className = `phase-lbl ${ph.k === 'hold' ? 'hold' : ph.k === 'ecc' ? 'down' : 'up'}`;
         lbl.textContent = LABEL[ph.cue];
-        if (r < 2 && ecc + con >= 3 && ph.secs > 0) say(ph.cue);
-        if (pi === 0 && r > 0) {
-          countedReps = r;
-          ringNode.querySelector('.big').textContent = r;
-          say(`n${Math.min(20, r)}`);
-          if (target - r === 2 && target >= 5) say('two_more');
-          if (target - r === 1) say('last_rep');
-          vibrate(15);
+        // מה המאמן אומר בתחילת כל שלב (חלון = משך השלב):
+        //  • תחילת חזרה: מספר החזרה שהושלמה, "עוד שתיים"/"חזרה אחרונה", ובשתי החזרות הראשונות גם הנחיית התנועה
+        //  • שלב שני: הנחיית התנועה ("עלייה!") בכל חזרה — אם נכנס בזמן
+        //  • החזקה: "החזק" אם ההחזקה ארוכה מספיק
+        let words = [];
+        if (pi === 0) {
+          if (r > 0) {
+            countedReps = r;
+            ringNode.querySelector('.big').textContent = r;
+            vibrate(15);
+          }
+          const extra = target - r === 2 && target >= 5 ? 'two_more' : target - r === 1 && target > 1 ? 'last_rep' : null;
+          words = fit([r > 0 ? `n${Math.min(20, r)}` : null, extra, r < 2 ? ph.cue : null], ph.secs);
+        } else if (ph.secs > 0) {
+          words = fit([ph.cue], ph.secs);
         }
+        if (words.length) sayNow(words);
       }
     }, 40);
   }
@@ -251,9 +278,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (sec !== lastSec) {
         lastSec = sec;
         if (!half && t >= secs / 2 && secs >= 20) { half = true; say('hold_half'); }
-        if (sec <= 3 && sec >= 1) say(`n${sec}`);
+        if (sec <= 3 && sec >= 1) sayNow([`n${sec}`]);
       }
-      if (left <= 0) { countedReps = secs; say('hold_done'); endSet(); }
+      if (left <= 0) { countedReps = secs; sayNow(['hold_done']); endSet(); }
     }, 100);
   }
 
@@ -330,7 +357,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
         lastSec = sec;
         if (sec === 30 && total >= 60) say('rest_30');
         if (sec === 10 && total >= 25) say('rest_10');
-        if (sec <= 3 && sec >= 1) { say(`n${sec}`); vibrate(20); }
+        if (sec <= 3 && sec >= 1) { sayNow([`n${sec}`]); vibrate(20); }
       }
       if (left <= 0) {
         clearInterval(timer); timer = null;

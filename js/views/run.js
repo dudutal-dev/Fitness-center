@@ -4,7 +4,7 @@ import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el } fro
 import { get, set, addXP, XP, pushEvent } from '../store.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { SEG_LABEL, fmtPace, runLevelFrom3k, next3kTarget } from '../engine/running.js';
-import { say, stop, onSpeaking, unlock } from '../coach/voice.js';
+import { say, sayNow, stop, onSpeaking, unlock } from '../coach/voice.js';
 import { gpsTracker } from '../devices/gps.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor, hasRSC } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
@@ -135,7 +135,7 @@ export function startRun(run, { day = null } = {}) {
     if (secLeft !== tick.last) {
       tick.last = secLeft;
       if (secLeft === 60 && sg.sec >= 180) say('run_min');
-      if (secLeft <= 3 && secLeft >= 1) say(`n${secLeft}`);
+      if (secLeft <= 3 && secLeft >= 1) sayNow([`n${secLeft}`]);
       if (!saidHalf && totalPlanned > 600 && elapsed / 1000 >= totalPlanned / 2) { saidHalf = true; say('run_half'); }
     }
     if (left <= 0) nextSeg();

@@ -56,7 +56,7 @@ function route() {
 }
 
 addEventListener('hashchange', route);
-addEventListener('pointerdown', unlock, { once: true });
+addEventListener('pointerdown', unlock, { passive: true }); // כל נגיעה מוודאת שהאודיו פתוח (אייפון משהה אותו ברקע)
 route();
 
 initUpdater();

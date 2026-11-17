@@ -1,0 +1,51 @@
+"""חיתוך שקט בתחילת ובסוף כל קליפ קול — כדי שהמאמן יישמע בדיוק ברגע הנכון (ספירה בזמן החזרה).
+שומר מקור ב-assets/_src/voice_orig (פעם ראשונה) וכותב js/data/voice-timing.js עם משך כל קליפ."""
+import os, subprocess, json, shutil
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+
+ROOT = os.path.join(os.path.dirname(__file__), "..")
+VOICE = os.path.join(ROOT, "assets", "voice")
+ORIG = os.path.join(ROOT, "assets", "_src", "voice_orig")
+SR = 22050
+
+def decode(p):
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", p, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32)
+
+def bounds(x):
+    w = int(SR * 0.01)
+    n = len(x) // w
+    rms = np.sqrt((x[: n * w].reshape(n, w) ** 2).mean(axis=1) + 1e-12)
+    th = max(rms.max() * 0.06, 10 ** (-42 / 20))
+    on = np.where(rms > th)[0]
+    if not len(on):
+        return 0, len(x) / SR
+    return on[0] * 0.01, (on[-1] + 1) * 0.01
+
+def process(rel):
+    src = os.path.join(ORIG, rel)
+    dst = os.path.join(VOICE, rel)
+    if not os.path.exists(src) or os.path.getmtime(dst) > os.path.getmtime(src) + 1:
+        os.makedirs(os.path.dirname(src), exist_ok=True)
+        shutil.copy2(dst, src)  # מקור חדש/עודכן
+    x = decode(src)
+    a, b = bounds(x)
+    a, b = max(0, a - 0.03), min(len(x) / SR, b + 0.08)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{a:.3f}", "-to", f"{b:.3f}", "-i", src,
+                    "-af", "afade=t=in:d=0.01,areverse,afade=t=in:d=0.03,areverse", "-ac", "1", "-b:a", "64k", dst], check=True)
+    os.utime(src, None)
+    return rel, round(b - a, 3), round(a, 3), round(len(x) / SR - b, 3)
+
+if __name__ == "__main__":
+    rels = [os.path.relpath(os.path.join(d, f), VOICE) for d, _, fs in os.walk(VOICE) for f in fs if f.endswith(".mp3")]
+    with ThreadPoolExecutor(8) as ex:
+        res = list(ex.map(process, sorted(rels)))
+    timing = {r[:-4]: d for r, d, _, _ in res}
+    open(os.path.join(ROOT, "js", "data", "voice-timing.js"), "w").write(
+        "// נוצר ע״י tools/trim_voice.py — משך כל קליפ קול (שניות) אחרי חיתוך שקט\nexport const VOICE_TIMING = " + json.dumps(timing, ensure_ascii=False) + ";\n")
+    lead = [r[2] for r in res]; trail = [r[3] for r in res]
+    print(f"{len(res)} clips · removed lead avg {np.mean(lead):.2f}s (max {max(lead):.2f}) · trail avg {np.mean(trail):.2f}s")
+    for r in res:
+        if any(k in r[0] for k in ("/n1.", "/n3.", "/n7.", "/down.", "/up.", "/go.", "/pull.", "/release.")) and r[0].startswith("ori"):
+            print(r)

@@ -116,7 +116,7 @@ export const NAME_LINES = {
 // מתי להחליף משפט רגיל בגרסה עם השם: [מפתח שמי, הסתברות]
 export const NAME_SWAP = {
   hello_ori: ['hello', 1], hello_noa: ['hello', 1], workout_done: ['workout_done', 1], run_done: ['run_done', 1], pr: ['pr', 1],
-  last_set: ['last_set', 0.6], two_more: ['two_more', 0.4], go: ['go', 0.3], hr_ready: ['hr_ready', 0.5],
+  last_set: ['last_set', 0.6], two_more: ['two_more', 0.4], hr_ready: ['hr_ready', 0.5],
   m1: ['push_on', 0.5], m6: ['proud', 0.5], m10: ['proud', 0.7], workout_start: ['welcome', 0.5],
 };
 

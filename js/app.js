@@ -11,6 +11,7 @@ import { startWorkout } from './views/workout.js';
 import { unlock } from './coach/voice.js';
 import { initUpdater } from './updater.js';
 import { openGuide } from './views/guide.js';
+import { applyTheme } from './theme.js';
 
 const ROUTES = { home: renderHome, plan: renderPlan, progress: renderProgress, nutrition: renderNutrition, coach: renderCoach };
 const app = document.getElementById('app');
@@ -28,6 +29,7 @@ function shell() {
 
 function route() {
   const s = get();
+  applyTheme();
   // מדריך: בפתיחה הראשונה (וגם אחרי איפוס), או כשמבקשים #/guide
   if (!s.guideSeen || location.hash === '#/guide') {
     if (!document.querySelector('.guide')) {

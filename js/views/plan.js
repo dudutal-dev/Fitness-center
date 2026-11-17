@@ -53,7 +53,7 @@ export function renderPlan(root) {
     <div class="h2">⚙️ רמת קושי</div>
     <div class="card"><div class="row between"><div><b>רמה ${p.level} — ${LEVEL_NAMES[p.level]}</b><div class="sub" style="font-size:13px">הרמה מתעדכנת אוטומטית בסוף כל בלוק לפי עקביות, התקדמות ומאמץ.</div></div></div>
       <div class="row" style="margin-top:12px"><button class="btn sm" data-lvl="-1" ${p.level <= 1 ? 'disabled' : ''}>− קל יותר</button><span class="spacer"></span>
-        <div class="row" style="gap:4px">${[1, 2, 3, 4, 5].map((l) => `<i style="width:22px;height:8px;border-radius:9px;background:${l <= p.level ? 'var(--lime)' : 'rgba(255,255,255,.1)'}"></i>`).join('')}</div>
+        <div class="row" style="gap:4px">${[1, 2, 3, 4, 5].map((l) => `<i style="width:22px;height:8px;border-radius:9px;background:${l <= p.level ? 'var(--lime)' : 'rgba(var(--fg-rgb),.12)'}"></i>`).join('')}</div>
         <span class="spacer"></span><button class="btn sm" data-lvl="1" ${p.level >= 5 ? 'disabled' : ''}>קשה יותר +</button></div></div>
 
     <div class="h2">📚 ספריית תרגילים <span class="sub" style="font-size:13px">(${EXERCISES.length})</span></div>

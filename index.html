@@ -17,6 +17,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Rubik:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
+  <script>
+    // ערכת נושא לפני הציור הראשון (בלי הבהוב)
+    try {
+      var t = (JSON.parse(localStorage.getItem('golani_fit_v1') || '{}').settings || {}).theme || 'dark';
+      if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f2f4ef');
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <div id="app"></div>

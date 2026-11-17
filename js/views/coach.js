@@ -10,6 +10,7 @@ import { fmtTime } from '../ui/dom.js';
 import { watchCard, bindWatchCard } from './garmin.js';
 import { nameEntry } from '../data/names.js';
 import { APP_VERSION } from '../version.js';
+import { applyTheme } from '../theme.js';
 
 export function renderCoach(root) {
   const s = get();
@@ -20,6 +21,11 @@ export function renderCoach(root) {
       <button class="coach-card ${p.coach === c.id ? 'on' : ''}" data-coach="${c.id}"><img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
         <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
     <p class="sub" style="margin-top:10px">💬 ${esc(COACHES[p.coach].bio)}</p>
+
+    <div class="h2">🎨 מראה</div>
+    <div class="card"><div class="seg" data-theme-seg>
+      ${[['dark', '🌙 כהה'], ['light', '☀️ בהיר'], ['auto', '📱 לפי המכשיר']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'dark') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="sub" style="font-size:12px;margin-top:8px">"לפי המכשיר" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>
 
     <div class="h2">🔊 קול והנחיות</div>
     <div class="card">
@@ -64,6 +70,7 @@ export function renderCoach(root) {
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
   bindWatchCard(root, () => renderCoach(root));
+  on(root, 'click', '[data-th]', (e, b) => { set((s2) => { s2.settings.theme = b.dataset.th; return s2; }); applyTheme(); renderCoach(root); });
   on(root, 'click', '[data-coach]', (e, b) => {
     unlock(); stop();
     set((s2) => { s2.profile.coach = b.dataset.coach; return s2; });
@@ -113,5 +120,5 @@ export function renderCoach(root) {
 }
 
 const toggleRow = (k, t, sub, v) => `<button class="row between" style="width:100%;padding:8px 0;text-align:right" data-toggle="${k}"><div><b>${t}</b><div class="sub" style="font-size:12px">${sub}</div></div>
-  <span style="width:50px;height:30px;border-radius:99px;background:${v ? 'var(--lime)' : 'rgba(255,255,255,.12)'};position:relative;flex:0 0 auto;transition:.2s"><i style="position:absolute;top:3px;${v ? 'left:3px' : 'left:23px'};width:24px;height:24px;border-radius:50%;background:${v ? '#0a0d05' : '#fff'};transition:.2s"></i></span></button>`;
+  <span style="width:50px;height:30px;border-radius:99px;background:${v ? 'var(--lime)' : 'rgba(var(--fg-rgb),.15)'};position:relative;flex:0 0 auto;transition:.2s"><i style="position:absolute;top:3px;${v ? 'left:3px' : 'left:23px'};width:24px;height:24px;border-radius:50%;background:${v ? '#0a0d05' : '#fff'};transition:.2s"></i></span></button>`;
 const field = (n, label, v, type = 'number') => `<label class="field"><span>${label}</span><input class="input ${type === 'number' ? 'num' : ''}" name="${n}" type="${type}" value="${esc(v ?? '')}" ${type === 'number' ? 'inputmode="decimal"' : ''}></label>`;

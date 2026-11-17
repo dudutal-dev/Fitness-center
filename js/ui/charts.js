@@ -1,12 +1,12 @@
 // גרפים קלים ב-SVG (ללא ספריות): טבעת, קו עם מגמה, עמודות, מפת גוף.
 
-export function ring(pct, { size = 150, stroke = 12, color = 'url(#gLime)', track = 'rgba(255,255,255,0.07)', big = '', lbl = '', cls = '' } = {}) {
+export function ring(pct, { size = 150, stroke = 12, color = 'url(#gLime)', track = 'rgba(var(--fg-rgb),0.08)', big = '', lbl = '', cls = '' } = {}) {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const off = c * (1 - Math.max(0, Math.min(1, pct)));
   return `<div class="ring ${cls}" style="width:${size}px;height:${size}px">
     <svg viewBox="0 0 ${size} ${size}"><defs><linearGradient id="gLime" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22e6d0"/><stop offset="1" stop-color="#c8ff3c"/></linearGradient></defs>
-      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${track}" stroke-width="${stroke}"/>
-      <circle class="arc" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" style="stroke:${track}" stroke-width="${stroke}"/>
+      <circle class="arc" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" style="stroke:${color}" stroke-width="${stroke}" stroke-linecap="round"
         stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)"/>
     </svg><div class="center"><div class="big num">${big}</div>${lbl ? `<div class="lbl">${lbl}</div>` : ''}</div></div>`;
 }
@@ -33,7 +33,7 @@ export function lineChart(series, { h = 190, target = null, unit = '' } = {}) {
     <defs><linearGradient id="fillG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8ff3c" stop-opacity=".28"/><stop offset="1" stop-color="#c8ff3c" stop-opacity="0"/></linearGradient></defs>`;
   for (let i = 0; i <= 3; i++) {
     const v = min + ((max - min) * i) / 3, y = Y(v);
-    out += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)"/><text x="2" y="${y + 3}">${Math.round(v * 10) / 10}</text>`;
+    out += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" style="stroke:rgba(var(--fg-rgb),.08)"/><text x="2" y="${y + 3}">${Math.round(v * 10) / 10}</text>`;
   }
   if (target != null) out += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(target)}" y2="${Y(target)}" stroke="#ff8a3d" stroke-dasharray="4 4"/>`;
   for (const s of series) {
@@ -41,8 +41,8 @@ export function lineChart(series, { h = 190, target = null, unit = '' } = {}) {
     const pts = s.values.map((v, i) => [X(i), Y(v.y)]);
     const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
     if (s.fill) out += `<path d="${d}L${pts[pts.length - 1][0]},${H - P.b}L${pts[0][0]},${H - P.b}Z" fill="url(#fillG)"/>`;
-    out += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 2.5}" ${s.dash ? 'stroke-dasharray="5 4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (s.dots !== false) pts.forEach((p) => (out += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${s.color}"/>`));
+    out += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="${s.width || 2.5}" ${s.dash ? 'stroke-dasharray="5 4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (s.dots !== false) pts.forEach((p) => (out += `<circle cx="${p[0]}" cy="${p[1]}" r="3" style="fill:${s.color}"/>`));
   }
   const labels = series[0].values;
   const step = Math.max(1, Math.ceil(labels.length / 5));

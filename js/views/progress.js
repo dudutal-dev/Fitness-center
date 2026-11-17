@@ -39,9 +39,9 @@ const TABS = {
         <div class="kpi ${(p.targetWeight > first) === (diff > 0) && diff ? 'up' : ''}"><b>${diff > 0 ? '+' : ''}${diff}</b><span>שינוי (מגמה)</span></div>
         <div class="kpi"><b>${p.targetWeight}</b><span>יעד (${toGo > 0 ? '+' : ''}${toGo})</span></div></div>
       <div class="card" style="margin-top:12px">${lineChart([
-        { values: W.map((x) => ({ x: fmtDate(x.date), y: x.kg })), color: 'rgba(255,255,255,.35)', width: 1.5 },
+        { values: W.map((x) => ({ x: fmtDate(x.date), y: x.kg })), color: 'rgba(var(--fg-rgb),.35)', width: 1.5 },
         { values: W.map((x) => ({ x: fmtDate(x.date), y: x.trend })), color: '#c8ff3c', fill: true, dots: false, width: 3 }], { target: p.targetWeight })}
-        <div class="legend"><span><i style="background:#c8ff3c"></i>מגמה</span><span><i style="background:rgba(255,255,255,.35)"></i>שקילה</span><span><i style="background:#ff8a3d"></i>יעד</span></div></div>
+        <div class="legend"><span><i style="background:#c8ff3c"></i>מגמה</span><span><i style="background:rgba(var(--fg-rgb),.35)"></i>שקילה</span><span><i style="background:#ff8a3d"></i>יעד</span></div></div>
       <button class="btn primary block" style="margin-top:12px" data-act="weigh">+ שקילה חדשה</button>
       <p class="sub" style="margin-top:10px">💡 המגמה (ממוצע נע) מסננת תנודות של מים ומלח — זה המספר האמיתי. קצב בריא: ${p.goal === 'cut' ? 'ירידה של 0.3–0.7 ק״ג בשבוע' : 'עלייה של 0.2–0.4 ק״ג בשבוע'}.</p>`;
   },

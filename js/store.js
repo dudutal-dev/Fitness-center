@@ -14,7 +14,7 @@ const DEFAULT = {
   daily: {},              // 'YYYY-MM-DD' -> { water, protein, checkin }
   xp: 0,
   events: [],             // התראות/הודעות מאמן אחרונות
-  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, units: 'kg' },
+  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, theme: 'dark', units: 'kg' },
 };
 
 let state = load();

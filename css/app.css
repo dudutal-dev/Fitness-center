@@ -1,7 +1,7 @@
 /* LOHEM — מערכת עיצוב "טקטי-ניאון": שחור עמוק, ירוק-ליים חשמלי, טורקיז הולוגרפי, מסגרות HUD. */
 :root {
-  --bg: #06080b;
-  --bg2: #0b0f14;
+  --bg: #0e1217;
+  --bg2: #151b21;
   --panel: rgba(var(--fg-rgb),0.035);
   --panel2: rgba(var(--fg-rgb),0.06);
   --line: rgba(var(--fg-rgb),0.08);
@@ -24,17 +24,17 @@
   --num: 'Rubik', 'Heebo', system-ui, sans-serif;
   color-scheme: dark;
   /* ערכת נושא כהה (ברירת מחדל) */
-  --bg-rgb: 6, 8, 11;
+  --bg-rgb: 14, 18, 23;
   --fg-rgb: 255, 255, 255;
   --sink-rgb: 0, 0, 0;
-  --card-solid: #0b0f14;
-  --card-rgb: 11, 15, 20;
+  --card-solid: #151b21;
+  --card-rgb: 21, 27, 33;
   --lime-ink: #c8ff3c;
   --teal-ink: #22e6d0;
-  --sheet: #0f141a;
-  --nav-bg: rgba(18, 22, 28, 0.85);
-  --live-bg: #040507;
-  --card-bg: linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+  --sheet: #171e25;
+  --nav-bg: rgba(25, 31, 39, 0.94);
+  --live-bg: #0b0e12;
+  --card-bg: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
   --shadow: none;
 }
 
@@ -128,8 +128,7 @@ a { color: var(--lime-ink); }
 :root[data-theme="light"] .brand-mark { background: var(--ink); color: #c8ff3c; box-shadow: none; }
 :root[data-theme="light"] .bar { background: rgba(18, 26, 31, 0.08); }
 /* עוגן כהה: ניווט תחתון */
-:root[data-theme="light"] .nav { background: linear-gradient(to top, rgba(var(--bg-rgb), 0.98) 55%, rgba(var(--bg-rgb), 0)); }
-:root[data-theme="light"] .nav-inner { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 14px 34px -10px rgba(18, 26, 21, 0.55); }
+:root[data-theme="light"] .nav-inner { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 -10px 28px -6px rgba(18, 26, 21, 0.35); }
 :root[data-theme="light"] .nav a { color: #8d978f; }
 :root[data-theme="light"] .nav a.on { color: #c8ff3c; }
 :root[data-theme="light"] .nav a.go { color: #0a0d05; }
@@ -155,7 +154,7 @@ a { color: var(--lime-ink); }
 
 /* ───── שלד ───── */
 #app { max-width: 560px; margin: 0 auto; min-height: 100%; position: relative; }
-#view { padding: calc(14px + var(--safe-t)) 16px calc(110px + var(--safe-b)); animation: viewIn 0.45s cubic-bezier(.2,.8,.2,1); }
+#view { padding: calc(14px + var(--safe-t)) 16px calc(84px + var(--safe-b)); animation: viewIn 0.45s cubic-bezier(.2,.8,.2,1); }
 @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; min-width: 0; }
@@ -241,15 +240,16 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 /* ───── ניווט תחתון ───── */
 .nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 560px; z-index: 50;
-  padding: 10px 14px calc(10px + var(--safe-b));
-  background: linear-gradient(to top, rgba(var(--bg-rgb),0.98) 55%, rgba(var(--bg-rgb),0));
 }
-.nav-inner { display: flex; align-items: center; justify-content: space-around; background: var(--nav-bg); border: 1px solid var(--line); border-radius: 24px; height: 68px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+/* מעוגן לתחתית: בלי רווח מתחת, אזור הבית של האייפון בתוך הסרגל */
+.nav-inner { display: flex; align-items: center; justify-content: space-around; background: var(--nav-bg); border-top: 1px solid var(--line);
+  border-radius: 22px 22px 0 0; height: calc(58px + var(--safe-b)); padding: 0 8px var(--safe-b); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18); }
 .nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--dim); text-decoration: none; transition: color 0.2s; }
 .nav a svg { width: 24px; height: 24px; }
 .nav a.on { color: var(--lime-ink); }
-.nav a.go { flex: 0 0 auto; width: 62px; height: 62px; margin-top: -30px; border-radius: 20px; background: var(--lime); color: #0a0d05; justify-content: center; box-shadow: 0 10px 34px rgba(200,255,60,0.45); transform: rotate(45deg); }
-.nav a.go svg { transform: rotate(-45deg); width: 28px; height: 28px; }
+.nav a.go { flex: 0 0 auto; width: 54px; height: 54px; margin-top: -24px; border-radius: 20px; background: var(--lime); color: #0a0d05; justify-content: center; box-shadow: 0 10px 34px rgba(200,255,60,0.45); transform: rotate(45deg); }
+.nav a.go svg { transform: rotate(-45deg); width: 26px; height: 26px; }
 
 /* ───── מאמן הולוגרפי ───── */
 .coach-hero { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: center; padding: 14px; overflow: hidden; }

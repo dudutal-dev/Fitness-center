@@ -2,6 +2,8 @@
 
 אפליקציית אימונים אדפטיבית (PWA) עם מאמן אישי וירטואלי בעברית: תוכנית שמשתנה לפי ההתקדמות, ספירת חזרות וטמפו בקול, הדמיית וידאו לכל תרגיל, ריצה, תזונה שמכבדת "לא אוכל", ומעקב מדדים.
 
+⌚ **Garmin:** דופק חי ב-Bluetooth (Broadcast HR / HRM-Pro), מרחק וקצב ב-GPS, וייבוא פעילויות מ-Garmin Connect (FIT/TCX/GPX/ZIP).
+
 📄 **אפיון מלא:** [docs/SPEC.md](docs/SPEC.md)
 
 ## הפעלה מקומית
@@ -17,7 +19,9 @@ npm test             # בדיקות יחידה למנועים
 python3 tools/gen_coaches.py                      # דיוקנאות המאמנים
 python3 tools/gen_demos.py [exercise_id ...]      # פריים + וידאו 4 שנ׳ לכל תרגיל ולכל מאמן (ממשיך מאיפה שעצר)
 python3 tools/build_assets.py                     # כיווץ לווב (mp4 540p, webp, אייקונים)
-NODE_USE_ENV_PROXY=1 node tools/gen_voice.mjs     # 232 קבצי קול (eleven_v3, עברית)
+NODE_USE_ENV_PROXY=1 node tools/gen_voice.mjs     # 246 קבצי קול (eleven_v3, עברית, ניקוד למילים קצרות)
+python3 tools/verify_voice.py lines.json          # בדיקת הגייה: תמלול חוזר והשוואה
+python3 tools/fix_voice.py lines2.json 0.9        # יצירה מחדש של קבצים חלשים (best-of-N)
 ```
 מפתח: משתנה סביבה `XI_API_KEY`.
 
@@ -31,6 +35,7 @@ js/engine/                   program · progression · running · nutrition · s
 js/data/                     exercises · foods · voice-lines · coaches
 js/views/                    onboarding · home · plan · workout · run · progress · nutrition · coach
 js/coach/voice.js            תור השמעת המאמן
+js/devices/                  Garmin: דופק BLE, GPS, מפענח FIT/TCX/GPX/ZIP
 assets/                      coaches · demos/{ori,noa} · voice/{ori,noa} · icons
 tools/                       סקריפטי יצירת נכסים
 tests/                       בדיקות

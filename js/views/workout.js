@@ -10,6 +10,8 @@ import { applyReadiness, blockedSet, LEVEL_NAMES } from '../engine/program.js';
 import { say, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
 import { startRun } from './run.js';
+import { recorder, current as hrNow, zoneOf, maxHrFor } from '../devices/hr.js';
+import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 
 const RPE = [{ v: 6.5, e: '😎', t: 'קל' }, { v: 8, e: '💪', t: 'טוב' }, { v: 9, e: '😤', t: 'קשה' }, { v: 10, e: '🥵', t: 'עד הקצה' }];
 
@@ -51,6 +53,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
   let intraMsg = '';
 
   try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
+  const hrRec = recorder(profile);
+  const hrMax = maxHrFor(profile);
   preload(['go', 'down', 'up', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set', 'next_ex', 'n1', 'n2', 'n3', 'hold_start', 'hold_half', 'hold_done']);
 
   const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
@@ -64,6 +68,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
   document.body.append(root);
   document.body.style.overflow = 'hidden';
   const $ = (q) => root.querySelector(q);
+  const pill = hrPill();
+  $('.clock').after(pill);
   const video = $('video'), poster = $('img.poster');
   video.addEventListener('error', () => { video.style.display = 'none'; });
 
@@ -254,13 +260,25 @@ export function startWorkout(workout, { readiness = null } = {}) {
         <b>${esc(nEx.name)}</b> · <span class="num">${log[nxt.ii].sets[nxt.si].w ? `${log[nxt.ii].sets[nxt.si].w} ק״ג × ` : ''}${log[nxt.ii].sets[nxt.si].reps}</span></div></div>`;
     let end = Date.now() + secs * 1000;
     let lastSec = -1;
-    const total = secs;
+    let total = secs;
+    const restStart = Date.now();
+    let hrReady = false, hrExtended = false;
     root._restAdj = (d) => { end += d * 1000; };
     root._restSkip = () => { end = Date.now(); };
     timer = setInterval(() => {
       const left = Math.max(0, (end - Date.now()) / 1000);
       const node = $('.counter .ring');
       if (node) { setRing(node, left / total); node.querySelector('.big').textContent = fmtTime(left); }
+      // מנוחה חכמה לפי דופק
+      const hr = hrNow().hr;
+      if (hr) {
+        const z = zoneOf(hr, hrMax);
+        if (!hrReady && z.z <= 2 && Date.now() - restStart > 40000 && left > 8) {
+          hrReady = true; say('hr_ready');
+          const n = root.querySelector('.counter .lbl'); if (n) n.textContent = '❤ התאוששת';
+        }
+        if (!hrExtended && left <= 4 && left > 3 && z.pct >= 88) { hrExtended = true; end += 15000; total += 15; say('hr_high'); }
+      }
       const sec = Math.ceil(left);
       if (sec !== lastSec) {
         lastSec = sec;
@@ -299,12 +317,13 @@ export function startWorkout(workout, { readiness = null } = {}) {
     });
     if (!exercises.length) { close(); return; }
     let gained = XP.workout + prs.length * XP.pr;
+    const hr = hrRec.stop();
     set((s2) => {
       for (const e of exercises) {
         if (e.role === 'finisher') continue;
         (s2.history[e.exId] ||= []).push({ date: new Date().toISOString(), sets: e.sets, target: e.target });
       }
-      s2.sessions.push({ date: new Date().toISOString(), name: w.name, day: workout.day ?? null, field: !!workout.field, durationSec: dur, volume: Math.round(volume), setsDone, exercises, prs, readiness: w.readiness ?? null, partial });
+      s2.sessions.push({ date: new Date().toISOString(), name: w.name, day: workout.day ?? null, field: !!workout.field, durationSec: dur, volume: Math.round(volume), setsDone, exercises, prs, readiness: w.readiness ?? null, partial, hr });
       if (workout.day != null && !partial && !s2.plan.completedDays.includes(workout.day)) s2.plan.completedDays.push(workout.day);
       return s2;
     });
@@ -327,6 +346,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
         <div class="kpi"><b>${fmtTime(dur)}</b><span>זמן</span></div>
         <div class="kpi"><b>${setsDone}</b><span>סטים</span></div>
         <div class="kpi up"><b>${Math.round(volume).toLocaleString('he-IL')}</b><span>ק״ג נפח</span></div></div>
+      ${hrSummaryHtml(hr)}
       ${prs.length ? html`<div class="card tight" style="margin-top:12px">${prs.map((id) => `<div class="row" style="padding:4px 0"><span class="pr-badge">PR</span><b>${esc(EX[id].name)}</b><span class="spacer"></span><span class="num">${bestSet(exercises.find((x) => x.exId === id).sets).w} ק״ג</span></div>`)}</div>` : ''}
       <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:26px">⭐</span><div><b>+${gained} XP</b>${rk.rankUp ? `<div class="sub">עלית דרגה: ${rk.rankUp.icon} ${rk.rankUp.name}!</div>` : ''}</div></div>
         ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--lime);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
@@ -336,6 +356,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
 
   function close() {
     clearInterval(timer); clearInterval(clock); offSpeak(); stop();
+    pill._destroy?.(); hrRec.stop();
     try { wakeLock?.release(); } catch { /* */ }
     root.remove();
     document.body.style.overflow = '';

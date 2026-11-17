@@ -7,6 +7,8 @@ import { bestSet } from '../engine/progression.js';
 import { weightTrend, muscleLoad } from '../engine/stats.js';
 import { next3kTarget } from '../engine/running.js';
 import { weightSheet } from './home.js';
+import { pickAndImport, garminHelp } from './garmin.js';
+import { fmtPace } from '../engine/running.js';
 
 let tab = 'weight';
 let liftSel = null;
@@ -18,11 +20,13 @@ export function renderProgress(root) {
   root.innerHTML = html`<div class="eyebrow">מעקב ומדדים</div><div class="h1">ההתקדמות שלך</div>
     <div class="seg" style="margin:14px 0">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`)}</div>
     <div id="tabc">${TABS[tab](s, p)}</div>
-    <div class="h2">🗂️ היסטוריה</div>
+    <div class="h2">🗂️ היסטוריה<span class="more" data-act="garmin">⌚ ייבוא מ-Garmin</span></div>
     <div class="card tight list-hist">${history(s)}</div>`;
   on(root, 'click', '[data-tab]', (e, t) => { tab = t.dataset.tab; renderProgress(root); });
   on(root, 'click', '[data-lift]', (e, t) => { liftSel = t.dataset.lift; renderProgress(root); });
   on(root, 'click', '[data-act="weigh"]', () => weightSheet(() => renderProgress(root)));
+  on(root, 'click', '[data-act="garmin"]', () => pickAndImport(() => renderProgress(root)));
+  on(root, 'click', '[data-act="garmin-help"]', () => garminHelp());
 }
 
 const TABS = {
@@ -62,12 +66,16 @@ const TABS = {
   run(s, p) {
     const tests = s.runs.filter((r) => r.type === 'test' && r.timeSec);
     const best = tests.length ? Math.min(...tests.map((r) => r.timeSec)) : p.run3k;
+    const paced = s.runs.filter((r) => r.distanceKm >= 1 && r.durationSec && ['running', undefined].includes(r.sport) && r.type !== 'cardio').slice(-20);
     const weekly = lastWeeks(8).map((wk) => ({ x: wk.label, y: Math.round(s.runs.filter((r) => inWeek(r.date, wk)).reduce((a, r) => a + r.durationSec, 0) / 60) }));
     return html`<div class="kpis"><div class="kpi up"><b>${best ? fmtTime(best) : '—'}</b><span>3 ק״מ שיא</span></div>
         <div class="kpi"><b>${best ? fmtTime(next3kTarget(best)) : '14:00'}</b><span>יעד הבא</span></div><div class="kpi"><b>${s.runs.length}</b><span>ריצות</span></div></div>
       <div class="card" style="margin-top:12px"><b>מבדקי 3 ק״מ</b>${tests.length ? lineChart([{ values: tests.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.timeSec / 60) * 100) / 100 })), color: '#ff8a3d', fill: false }]) : '<div class="empty">המבדק הראשון יגיע בשבוע הפריקה (שבוע 4)</div>'}
         <div class="sub" style="font-size:12px">זמן בדקות — נמוך יותר = טוב יותר</div></div>
-      <div class="card" style="margin-top:12px"><b>דקות ריצה בשבוע</b>${bars(weekly, { color: '#22e6d0' })}</div>`;
+      ${paced.length ? html`<div class="card" style="margin-top:12px"><b>קצב ממוצע לק״מ</b>${lineChart([{ values: paced.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.durationSec / r.distanceKm / 60) * 100) / 100 })), color: '#22e6d0', fill: true }])}
+        <div class="sub" style="font-size:12px">דקות לק״מ — נמוך יותר = מהיר יותר · אחרון: ${fmtPace(paced[paced.length - 1].durationSec / paced[paced.length - 1].distanceKm)}</div></div>` : ''}
+      <div class="card" style="margin-top:12px"><b>דקות ריצה בשבוע</b>${bars(weekly, { color: '#22e6d0' })}</div>
+      <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:22px">⌚</span><div><b>יש לך שעון Garmin?</b><div class="sub" style="font-size:13px">ייבא ריצות עם דופק ומרחק, או חבר את השעון לדופק חי.</div></div><span class="spacer"></span><button class="btn sm" data-act="garmin-help">איך?</button></div></div>`;
   },
   body(s) {
     const load = muscleLoad(s.sessions);
@@ -85,8 +93,8 @@ const TABS = {
 
 function history(s) {
   const items = [
-    ...s.sessions.map((x) => ({ date: x.date, ico: x.field ? '🎒' : '🏋️', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}` })),
-    ...s.runs.map((r) => ({ date: r.date, ico: '🏃', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}` })),
+    ...s.sessions.map((x) => ({ date: x.date, ico: x.field ? '🎒' : '🏋️', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}${x.hr ? ` · ❤ ${x.hr.avg}` : ''}${x.source === 'garmin' ? ' · ⌚' : ''}` })),
+    ...s.runs.map((r) => ({ date: r.date, ico: '🏃', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}${r.hr ? ` · ❤ ${r.hr.avg}` : ''}${r.source === 'garmin' ? ' · ⌚' : ''}` })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
   if (!items.length) return '<div class="empty"><div class="e">🗓️</div>עוד אין אימונים. הראשון מחכה לך!</div>';
   return items.map((x) => `<div class="it"><div class="ico">${x.ico}</div><div><div style="font-weight:800">${esc(x.t)}</div><div class="sub" style="font-size:12px">${fmtDate(x.date)} · ${esc(x.sub)}</div></div></div>`).join('');

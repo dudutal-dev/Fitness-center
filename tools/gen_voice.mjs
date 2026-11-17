@@ -1,7 +1,7 @@
 // מייצר את כל קבצי הקול של המאמנים ב-ElevenLabs (eleven_v3, עברית).
 // הרצה: node tools/gen_voice.mjs   (מדלג על קבצים קיימים)
 import { mkdir, writeFile, access } from 'node:fs/promises';
-import { VOICE_LINES } from '../js/data/voice-lines.js';
+import { VOICE_LINES, SPOKEN } from '../js/data/voice-lines.js';
 
 const VOICES = { ori: 'PBHwEnXdzx0yfhIO2UCH' /* Dorian */, noa: 's0T0DT6EAPeX57MQpn3I' /* Danit */ };
 const OUT = new URL('../assets/voice/', import.meta.url);
@@ -24,7 +24,7 @@ for (const coach of Object.keys(VOICES)) {
   await mkdir(new URL(`${coach}/`, OUT), { recursive: true });
   for (const [key, val] of Object.entries(VOICE_LINES)) {
     if (key.startsWith('hello_') && key !== `hello_${coach}`) continue;
-    const text = typeof val === 'string' ? val : val[coach];
+    const text = SPOKEN[key] ?? (typeof val === 'string' ? val : val[coach]);
     jobs.push({ coach, key, text });
   }
 }

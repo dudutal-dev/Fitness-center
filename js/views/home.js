@@ -53,6 +53,7 @@ export function renderHome(root) {
       <div class="row">
         <span class="tag orange">🔥 <span class="num">${st}</span></span>
         <span class="tag lime">${rank.icon} ${rank.name}</span>
+        <a href="#/coach" class="avatar" aria-label="המאמן והגדרות"><img src="${coach.face}" alt=""></a>
       </div>
     </div>
     <div class="sub">${greeting()},</div>

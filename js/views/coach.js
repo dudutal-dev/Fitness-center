@@ -7,6 +7,7 @@ import { runLevelFrom3k } from '../engine/running.js';
 import { say, stop, unlock } from '../coach/voice.js';
 import { parse3k } from './onboarding.js';
 import { fmtTime } from '../ui/dom.js';
+import { watchCard, bindWatchCard } from './garmin.js';
 
 export function renderCoach(root) {
   const s = get();
@@ -26,6 +27,9 @@ export function renderCoach(root) {
         <input type="range" min="0.2" max="1" step="0.05" value="${st.volume}" data-vol></div>
       <button class="btn sm teal" style="margin-top:12px" data-test>▶ בדיקת קול</button>
     </div>
+
+    <div class="h2">⌚ Garmin ושעון חכם</div>
+    ${watchCard()}
 
     <div class="h2">👤 פרופיל ויעדים</div>
     <div class="card">
@@ -51,6 +55,7 @@ export function renderCoach(root) {
     </div>
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM v1.0 · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
+  bindWatchCard(root, () => renderCoach(root));
   on(root, 'click', '[data-coach]', (e, b) => {
     unlock(); stop();
     set((s2) => { s2.profile.coach = b.dataset.coach; return s2; });

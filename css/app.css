@@ -16,8 +16,10 @@
   --red: #ff4d5e;
   --violet: #9b7bff;
   --glow: 0 0 24px rgba(200, 255, 60, 0.35);
-  --r: 22px;
+  --r: 18px;
   --r-s: 14px;
+  /* סולם ריווח 4/8 */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
   --font: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
@@ -136,10 +138,7 @@ a { color: var(--lime-ink); }
 :root[data-theme="light"] .nav a.on { color: #c8ff3c; }
 :root[data-theme="light"] .nav a.go { color: #0a0d05; }
 /* עוגן כהה: כרטיס המאמן במסך הבית */
-:root[data-theme="light"] .coach-hero {
-  background: radial-gradient(420px 220px at 85% 0%, rgba(22, 194, 174, 0.22), transparent 70%), linear-gradient(160deg, #18211d, #0e1412);
-  border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 18px 40px -14px rgba(14, 22, 18, 0.6);
-}
+:root[data-theme="light"] .coach-hero { background: linear-gradient(160deg, rgba(10, 119, 109, 0.1), rgba(10, 119, 109, 0.03)), var(--card-solid); border-color: rgba(10, 119, 109, 0.22); }
 :root[data-theme="light"] .sheet { background: var(--sheet); box-shadow: 0 -10px 40px rgba(18, 26, 31, 0.12); }
 :root[data-theme="light"] .sheet-back { background: rgba(18, 26, 31, 0.38); }
 :root[data-theme="light"] .toast { background: var(--ink); color: #eef3ef; border-color: rgba(200, 255, 60, 0.3); box-shadow: 0 12px 30px rgba(18, 26, 31, 0.25); }
@@ -150,7 +149,7 @@ a { color: var(--lime-ink); }
 :root[data-theme="light"] .guide { background: var(--bg); }
 
 /* אזורים על גבי תמונה/וידאו נשארים כהים בשתי הערכות — כדי שהטקסט יהיה קריא */
-.live .stage, .lib-card, .coach-card, .mission .media, .g-duo, .splash .duo, :root[data-theme="light"] .coach-hero, :root[data-theme="light"] .nav-inner {
+.live .stage, .lib-card, .coach-card, .mission .media, .g-duo, .splash .duo, :root[data-theme="light"] .nav-inner {
   --fg-rgb: 255, 255, 255; --text: #eef3ef; --mute: #b9c2cb; --lime-ink: #c8ff3c; --teal-ink: #22e6d0; --line: rgba(255,255,255,0.12);
   color: var(--text);
 }
@@ -170,15 +169,15 @@ a { color: var(--lime-ink); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: 0.18em; font-size: 15px; }
 .brand-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--lime); color: #0a0d05; box-shadow: var(--glow); font-size: 15px; font-weight: 900; }
 .h1 { font-size: 28px; font-weight: 900; line-height: 1.1; margin: 4px 0 2px; letter-spacing: -0.01em; }
-.h2 { font-size: 19px; font-weight: 800; margin: 26px 0 12px; display: flex; align-items: center; gap: 8px; }
-.h2 .more { margin-inline-start: auto; font-size: 13px; color: var(--lime-ink); font-weight: 600; }
+.h2 { font-size: 18px; font-weight: 800; margin: 28px 0 10px; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.h2 .more { margin-inline-start: auto; font-size: 14px; color: var(--lime-ink); font-weight: 700; padding: 12px 0 12px 2px; margin-block: -12px; white-space: nowrap; cursor: pointer; }
 .sub { color: var(--mute); font-size: 14px; }
-.eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal-ink); font-weight: 700; }
+.eyebrow { font-size: 12px; letter-spacing: 0.02em; color: var(--teal-ink); font-weight: 700; }
 
 /* ───── כרטיסים עם פינות HUD ───── */
 .card {
   position: relative; background: var(--card-bg);
-  border: 1px solid var(--line); border-radius: var(--r); padding: 18px; backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 16px; backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 .card.hud::before, .card.hud::after {
@@ -187,7 +186,7 @@ a { color: var(--lime-ink); }
 .card.hud::before { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-top-right-radius: var(--r); }
 .card.hud::after { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-bottom-left-radius: var(--r); }
 .card + .card { margin-top: 12px; }
-.card.tight { padding: 14px; }
+.card.tight { padding: 14px 16px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .row { display: flex; align-items: center; gap: 10px; }
@@ -207,18 +206,18 @@ a { color: var(--lime-ink); }
 .btn.ghost { background: transparent; }
 .btn.danger { color: var(--red); border-color: rgba(255,77,94,0.35); }
 .btn.block { width: 100%; }
-.btn.sm { height: 38px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
+.btn.sm { height: 44px; padding: 0 14px; font-size: 15px; border-radius: 13px; }
 .btn.xl { height: 64px; font-size: 19px; border-radius: 20px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--panel2); border: 1px solid var(--line); font-size: 19px; }
 
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600;
   background: var(--panel2); border: 1px solid var(--line); transition: all 0.15s; user-select: none;
 }
 .chip.on { background: rgba(200,255,60,0.14); border-color: var(--lime-ink); color: var(--lime-ink); }
 .chip.no.on { background: rgba(255,77,94,0.12); border-color: var(--red); color: #ff8c97; text-decoration: line-through; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--panel2); color: var(--mute); }
+.tag { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--panel2); color: var(--mute); }
 .tag.lime { background: rgba(200,255,60,0.12); color: var(--lime-ink); }
 .tag.teal { background: rgba(34,230,208,0.12); color: var(--teal-ink); }
 .tag.orange { background: rgba(255,138,61,0.14); color: var(--orange); }
@@ -232,7 +231,7 @@ a { color: var(--lime-ink); }
 }
 .input:focus { border-color: var(--lime-ink); }
 .seg { display: flex; background: rgba(var(--sink-rgb),0.35); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
-.seg button { flex: 1; height: 40px; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--mute); }
+.seg button { flex: 1 1 0; min-width: 0; height: 40px; padding: 0 6px; border-radius: 10px; font-weight: 700; font-size: 15px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .seg button.on { background: var(--lime); color: #0a0d05; }
 .stepper { display: flex; align-items: center; gap: 4px; min-width: 0; background: rgba(var(--sink-rgb),0.35); border: 1px solid var(--line); border-radius: 16px; padding: 5px; }
 .stepper button { flex: 0 0 auto; width: 42px; height: 44px; border-radius: 12px; background: var(--panel2); font-size: 22px; font-weight: 700; }
@@ -256,8 +255,12 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .nav a.go svg { transform: rotate(-45deg); width: 26px; height: 26px; }
 
 /* ───── מאמן הולוגרפי ───── */
-.coach-hero { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: center; padding: 14px; overflow: hidden; }
-.holo { position: relative; width: 112px; height: 136px; border-radius: 18px; overflow: hidden; background: #0b1514; }
+.coach-hero { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start; padding: 14px 16px; overflow: hidden; }
+.coach-hero .ch-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.coach-hero .ch-head .eyebrow { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coach-hero .bubble { background: none; border: 0; padding: 0; margin-top: 2px; font-size: 15px; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.holo { position: relative; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: #0b1514; border: 2px solid var(--teal); box-shadow: 0 0 18px rgba(34,230,208,0.3); }
 .holo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .holo::after {
   content: ''; position: absolute; inset: 0;
@@ -265,10 +268,10 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
   animation: scan 6s linear infinite; mix-blend-mode: screen;
 }
 @keyframes scan { to { background-position: 0 136px, 0 0; } }
-.holo .live-badge { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: #031512; background: var(--teal); border-radius: 6px; padding: 2px 6px; }
+.holo .live-badge { display: none;  position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: #031512; background: var(--teal); border-radius: 6px; padding: 2px 6px; }
 .bubble { position: relative; background: rgba(34,230,208,0.08); border: 1px solid rgba(34,230,208,0.25); border-radius: 16px; padding: 12px 14px; font-size: 15px; line-height: 1.5; }
 .bubble b { color: var(--teal-ink); }
-.speak { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: var(--teal-ink); font-weight: 700; }
+.speak { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 2px; font-size: 14px; color: var(--teal-ink); font-weight: 700; }
 .wave { display: inline-flex; gap: 2px; align-items: center; height: 14px; }
 .wave i { width: 3px; background: var(--teal); border-radius: 2px; height: 30%; }
 .speaking .wave i { animation: wave 0.9s ease-in-out infinite; }
@@ -290,23 +293,24 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 
 /* ───── משימת היום ───── */
 .mission { overflow: hidden; padding: 0; }
-.mission .media { position: relative; height: 170px; overflow: hidden; }
+.mission .media { position: relative; height: 150px; overflow: hidden; }
 .mission .media img, .mission .media video { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; filter: saturate(1.1); }
 .mission .media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--card-solid) 4%, rgba(var(--card-rgb),0.2) 60%, rgba(var(--card-rgb),0.6)); }
-.mission .over { position: absolute; bottom: 12px; right: 18px; left: 18px; z-index: 2; }
-.mission .body { padding: 4px 18px 18px; }
+.mission .over { position: absolute; bottom: 10px; inset-inline: 16px; z-index: 2; }
+.mission .body { padding: 4px 16px 16px; }
 .mission .stats { display: flex; gap: 16px; margin: 10px 0 16px; color: var(--mute); font-size: 13px; font-weight: 600; }
 .mission .stats b { color: var(--text); font-family: var(--num); font-size: 17px; display: block; }
 
 .week { display: flex; gap: 8px; }
-.week .d { flex: 1; text-align: center; padding: 10px 0; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--mute); }
+.week .d { flex: 1; min-width: 0; text-align: center; padding: 8px 0; font-size: 11px !important; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--mute); }
 .week .d .n { font-family: var(--num); font-size: 18px; color: var(--text); display: block; }
 .week .d.done { background: rgba(200,255,60,0.1); border-color: rgba(200,255,60,0.4); color: var(--lime-ink); }
 .week .d.next { border-color: var(--teal-ink); box-shadow: inset 0 0 0 1px var(--teal); }
 
-.tracker { display: flex; align-items: center; gap: 12px; }
-.tracker .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--panel2); }
-.tracker .v { font-family: var(--num); font-weight: 800; font-size: 20px; }
+.tracker { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; color: inherit; margin: 0; }
+.grid2 > .card + .card { margin-top: 0; }
+.tracker .ic { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--panel2); }
+.tracker .v { font-family: var(--num); font-weight: 800; font-size: 18px; white-space: nowrap; }
 .tracker .v small { color: var(--mute); font-size: 12px; font-weight: 600; }
 
 /* ───── רשימות תרגילים ───── */
@@ -320,7 +324,7 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .ex-row .w small { display: block; color: var(--mute); font-size: 11px; font-weight: 600; font-family: var(--font); }
 
 .lib { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lib-card { position: relative; border-radius: 18px; overflow: hidden; aspect-ratio: 3/4; background: var(--panel2); border: 1px solid var(--line); text-align: right; }
+.lib-card { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/5; background: var(--panel2); border: 1px solid var(--line); text-align: start; }
 .lib-card img { width: 100%; height: 100%; object-fit: cover; }
 .lib-card .cap { position: absolute; inset: auto 0 0 0; padding: 30px 12px 10px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); font-weight: 800; font-size: 14px; }
 .lib-card .cap small { display: block; color: var(--lime-ink); font-size: 11px; font-weight: 700; }
@@ -463,7 +467,7 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .splash .copy { position: relative; z-index: 2; padding: 22px; }
 .splash .logo { font-size: 56px; font-weight: 900; letter-spacing: 0.12em; line-height: 1; color: var(--lime-ink); text-shadow: 0 0 40px rgba(200,255,60,0.4); }
 .coach-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.coach-card { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 3/4.4; border: 2px solid transparent; transition: all 0.25s; background: var(--panel2); text-align: right; }
+.coach-card { position: relative; border-radius: 18px; overflow: hidden; aspect-ratio: 4/5; border: 2px solid transparent; transition: all 0.25s; background: var(--panel2); text-align: start; }
 .coach-card img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
 .coach-card .cap { position: absolute; inset: auto 0 0 0; padding: 40px 14px 14px; background: linear-gradient(to top, rgba(0,0,0,0.92), transparent); }
 .coach-card .cap b { font-size: 22px; font-weight: 900; display: block; }
@@ -471,7 +475,7 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .coach-card.on { border-color: var(--lime-ink); box-shadow: 0 0 0 4px rgba(200,255,60,0.18), var(--glow); }
 .coach-card .check { position: absolute; top: 12px; left: 12px; width: 30px; height: 30px; border-radius: 50%; background: var(--lime); color: #0a0d05; display: none; place-items: center; font-weight: 900; }
 .coach-card.on .check { display: grid; }
-.goal-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px; background: var(--panel); border: 2px solid var(--line); width: 100%; text-align: right; margin-bottom: 10px; transition: all 0.2s; }
+.goal-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px; background: var(--panel); border: 2px solid var(--line); width: 100%; text-align: start; margin-bottom: 10px; transition: all 0.2s; }
 .goal-card .gi { font-size: 30px; width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; background: var(--panel2); }
 .goal-card b { font-size: 17px; display: block; }
 .goal-card span { font-size: 13px; color: var(--mute); }
@@ -496,9 +500,9 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .tip .ti { font-size: 24px; }
 .tip b { display: block; font-size: 15px; }
 .tip span { color: var(--mute); font-size: 14px; }
-.meal .mi { display: flex; justify-content: space-between; padding: 7px 0; font-size: 15px; border-bottom: 1px dashed var(--line); }
+.meal .mi { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; font-size: 15px; border-bottom: 1px dashed var(--line); }
 .meal .mi:last-child { border: 0; }
-.meal .mi small { color: var(--mute); }
+.meal .mi small { color: var(--mute); text-align: end; max-width: 55%; font-size: 12px; }
 .macro-rings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
 .macro-rings .ring { width: 72px; height: 72px; margin: 0 auto; }
 .macro-rings .big { font-size: 17px; }
@@ -563,7 +567,7 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .g-dots { flex: 1; display: flex; gap: 4px; }
 .g-dots i { flex: 1; height: 4px; border-radius: 4px; background: rgba(var(--fg-rgb),0.12); transition: background 0.3s; }
 .g-dots i.on { background: var(--lime); }
-.g-skip { color: var(--mute); font-weight: 700; font-size: 14px; padding: 6px 4px; }
+.g-skip { color: var(--mute); font-weight: 700; font-size: 15px; min-height: 44px; padding: 0 8px; }
 .g-track { flex: 1; min-height: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .g-track::-webkit-scrollbar { display: none; }
 .g-slide { flex: 0 0 100%; scroll-snap-align: start; display: flex; flex-direction: column; min-height: 0; }
@@ -615,6 +619,75 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .run-stats span { font-size: 11px; color: var(--mute); font-weight: 700; }
 .run-big { font-size: 68px; }
 
+/* ───── מערכת פריסה v2: מניעת גלישה, עזרים, רכיבים חדשים ───── */
+.grid2 > *, .grid3 > *, .row > *, .seg > *, .kpis > * { min-width: 0; }
+.btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.h1, .h2 { text-wrap: balance; }
+.t-cap { font-size: 12px; } .t-foot { font-size: 13px; }
+.mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.center-t { text-align: center; }
+bdi { unicode-bidi: isolate; }
+/* כותרת עמוד */
+.page-head { margin-bottom: 16px; }
+/* פעולות משניות */
+.actions2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.link-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--lime-ink); font-weight: 700; font-size: 15px; }
+/* טבעות מאקרו: אריח אופקי, 2×2 */
+.macro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.macro { padding: 10px 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+.macro b { display: block; font-family: var(--num); font-size: 18px; font-weight: 800; line-height: 1.2; margin: 2px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.macro b small { font-size: 12px; color: var(--mute); font-weight: 600; }
+.macro > span { display: block; font-size: 12px; color: var(--mute); font-weight: 700; }
+.macro .bar { height: 5px; }
+.kcal-big { font-family: var(--num); font-size: 34px; font-weight: 800; line-height: 1.1; }
+.kcal-big small { font-size: 15px; color: var(--mute); font-weight: 600; }
+/* ארוחה בתפריט */
+.meal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.meal-head .grow { flex: 1; min-width: 0; }
+.meal-head .grow b { display: block; }
+.eat-btn { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--panel2); border: 1px solid var(--line); color: var(--lime-ink); }
+.eat-btn svg { width: 20px; height: 20px; }
+/* אקורדיון */
+.acc { padding: 0; overflow: hidden; }
+.acc > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; font-weight: 800; cursor: pointer; }
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary::after { content: ''; margin-inline-start: auto; width: 9px; height: 9px; border-inline-start: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(-45deg); transition: transform 0.2s; }
+.acc[open] > summary::after { transform: rotate(135deg); }
+.acc > .acc-body { padding: 0 16px 12px; }
+/* רשימת שלבי מחזור */
+.phase-list { display: grid; gap: 6px; }
+.phase-list .phase { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.phase-list .phase .bn { font-size: 12px; color: var(--mute); font-weight: 700; flex: 0 0 auto; }
+.phase-list .phase .pn { flex: 1; min-width: 0; font-size: 14px; }
+.phase-list .phase .dots { flex: 0 0 64px; margin: 0; }
+/* רמת קושי */
+.lvl-dots { display: flex; gap: 6px; margin: 12px 0; }
+.lvl-dots i { flex: 1; height: 8px; border-radius: 9px; background: rgba(var(--fg-rgb),0.12); }
+.lvl-dots i.on { background: var(--lime); }
+/* גלילה אופקית של צ'יפים */
+.chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; }
+.chips.scroll::-webkit-scrollbar { display: none; }
+.chips.scroll > * { flex: 0 0 auto; }
+/* שורת הגדרה (בסגנון iOS) */
+.set-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 0; text-align: start; border-bottom: 1px solid var(--line); }
+.card > .set-row:last-child, .set-row.last { border-bottom: 0; }
+.set-row .grow { flex: 1; min-width: 0; }
+.set-row .grow b { display: block; font-size: 15px; }
+.set-row .grow .sub { font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.set-row .chev { color: var(--mute); font-size: 20px; }
+/* ניווט משני של מסך הבית */
+.home-cta-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.home-cta-sub .btn { font-size: 14px; padding: 0 10px; }
+
+@media (max-width: 359px) {
+  .tracker .ic { display: none; }
+  .grid3 { grid-template-columns: 1fr 1fr; }
+  .cri { grid-template-columns: 112px 1fr; gap: 12px; }
+  .cri .ring { width: 112px !important; height: 112px !important; }
+  .cri .ring .big { font-size: 34px; }
+  .kpi { padding: 12px 8px; } .kpi b { font-size: 19px; }
+  .h1 { font-size: 26px; }
+}
 @media (max-width: 360px) {
   .stepper .val small { display: none; }
   .stepper button { width: 38px; }

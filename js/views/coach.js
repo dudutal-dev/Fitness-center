@@ -18,21 +18,21 @@ export function renderCoach(root) {
   const s = get();
   const p = s.profile;
   const st = s.settings;
-  root.innerHTML = html`<div class="eyebrow">המאמן האישי שלך</div><div class="h1">${esc(COACHES[p.coach].name)} איתך</div>
-    <div class="coach-pick" style="margin-top:14px">${Object.values(COACHES).map((c) => html`
+  root.innerHTML = html`<div class="page-head"><div class="eyebrow">המאמן האישי שלך</div><div class="h1">${esc(COACHES[p.coach].name)} איתך</div></div>
+    <div class="coach-pick">${Object.values(COACHES).map((c) => html`
       <button class="coach-card ${p.coach === c.id ? 'on' : ''}" data-coach="${c.id}"><img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
         <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
-    <p class="sub" style="margin-top:10px">💬 ${esc(COACHES[p.coach].bio)}</p>
+    <p class="sub t-foot" style="margin-top:10px">${esc(COACHES[p.coach].bio)}</p>
 
-    <div class="h2" id="reminders">🔔 תזכורות</div>
+    <div class="h2" id="reminders">תזכורות</div>
     ${reminderCard()}
 
-    <div class="h2">🎨 מראה</div>
+    <div class="h2">מראה</div>
     <div class="card"><div class="seg" data-theme-seg>
-      ${[['dark', '🌙 כהה'], ['light', '☀️ בהיר'], ['auto', '📱 לפי המכשיר']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'dark') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <div class="sub" style="font-size:12px;margin-top:8px">"לפי המכשיר" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>
+      ${[['dark', 'כהה'], ['light', 'בהיר'], ['auto', 'אוטומטי']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'dark') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="sub" style="font-size:12px;margin-top:8px">"אוטומטי" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>
 
-    <div class="h2">🔊 קול והנחיות</div>
+    <div class="h2">קול והנחיות</div>
     <div class="card">
       ${toggleRow('voice', 'הנחיות קוליות', 'המאמן מדבר, סופר ומעודד', st.voice)}
       ${toggleRow('tempoCount', 'ספירה מודרכת בטמפו', '"ירידה… עלייה!" וספירת כל חזרה', st.tempoCount)}
@@ -40,17 +40,17 @@ export function renderCoach(root) {
       ${toggleRow('captions', 'כתוביות באימון', 'מה שהמאמן אומר — שורה קצרה שנעלמת', st.captions !== false)}
       <div style="margin-top:12px"><div class="row between"><b>עוצמה</b><span class="num sub">${Math.round(st.volume * 100)}%</span></div>
         <input type="range" min="0.2" max="1" step="0.05" value="${st.volume}" data-vol></div>
-      <button class="btn sm teal" style="margin-top:12px" data-test>▶ בדיקת קול</button>
+      <button class="btn sm teal block" style="margin-top:12px" data-test>${icon('play', 'width="16" height="16"')} בדיקת קול</button>
     </div>
 
-    <div class="h2">⌚ Garmin ושעון חכם</div>
+    <div class="h2">Garmin ושעון חכם</div>
     ${watchCard()}
 
-    <div class="h2">👤 פרופיל ויעדים</div>
+    <div class="h2">פרופיל ויעדים</div>
     <div class="card">
       <label class="field"><span>המאמן פונה אליך בלשון</span><div class="seg" data-seg="sex">
         <button data-v="m" class="${p.sex !== 'f' ? 'on' : ''}">זכר</button><button data-v="f" class="${p.sex === 'f' ? 'on' : ''}">נקבה</button></div></label>
-      <div class="sub" style="font-size:12px;margin:-6px 0 12px">${nameEntry(p) ? `🎙️ ל${esc(COACHES[p.coach].name)} יש הקלטות שבהן ${p.coach === 'noa' ? 'היא קוראת' : 'הוא קורא'} לך "${esc(p.name)}"` : `🎙️ אין עדיין הקלטה אישית לשם "${esc(p.name)}" — המאמן יפנה בלי שם. אפשר להוסיף שמות (tools/names)`}</div>
+      <div class="sub" style="font-size:12px;margin:-6px 0 12px">${nameEntry(p) ? `ל${esc(COACHES[p.coach].name)} יש הקלטות שבהן ${p.coach === 'noa' ? 'היא קוראת' : 'הוא קורא'} לך "${esc(p.name)}"` : `אין עדיין הקלטה אישית לשם "${esc(p.name)}" — המאמן יפנה בלי שם. אפשר להוסיף שמות (tools/names)`}</div>
       <div class="grid2">
         ${field('name', 'שם', p.name, 'text')}${field('age', 'גיל', p.age)}
         ${field('heightCm', 'גובה (ס״מ)', p.heightCm)}${field('targetWeight', 'משקל יעד', p.targetWeight)}
@@ -65,12 +65,12 @@ export function renderCoach(root) {
       <div class="sub" style="font-size:12px;margin-top:8px">רמה נוכחית: ${p.level} (${LEVEL_NAMES[p.level]}) · שינוי מטרה/ימים בונה מחדש את השבוע הנוכחי.</div>
     </div>
 
-    <a class="card tight row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit"><span style="font-size:24px">📖</span><div><b>מדריך שימוש</b><div class="sub" style="font-size:13px">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="spacer"></span><span class="sub">‹</span></a>
+    <a class="card tight set-row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit;border-bottom:1px solid var(--line)"><div class="grow"><b>מדריך שימוש</b><div class="sub">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="chev">${icon('chev', 'width="20" height="20"')}</span></a>
 
-    <div class="h2">💾 נתונים</div>
+    <div class="h2">נתונים וגיבוי</div>
     <div class="card">
       <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים אוטומטית במכשיר. מומלץ לגבות מדי פעם (למשל לפני החלפת טלפון).</div>
-      <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי לקובץ</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
+      <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
@@ -129,6 +129,5 @@ export function renderCoach(root) {
   }));
 }
 
-const toggleRow = (k, t, sub, v) => `<button class="row between" style="width:100%;padding:8px 0;text-align:right" data-toggle="${k}"><div><b>${t}</b><div class="sub" style="font-size:12px">${sub}</div></div>
-  <span style="width:50px;height:30px;border-radius:99px;background:${v ? 'var(--lime)' : 'rgba(var(--fg-rgb),.15)'};position:relative;flex:0 0 auto;transition:.2s"><i style="position:absolute;top:3px;${v ? 'left:3px' : 'left:23px'};width:24px;height:24px;border-radius:50%;background:${v ? '#0a0d05' : '#fff'};transition:.2s"></i></span></button>`;
+const toggleRow = (k, t, sub, v) => `<button class="set-row" data-toggle="${k}"><div class="grow"><b>${t}</b><div class="sub">${sub}</div></div><span class="sw ${v ? 'on' : ''}"><i></i></span></button>`;
 const field = (n, label, v, type = 'number') => `<label class="field"><span>${label}</span><input class="input ${type === 'number' ? 'num' : ''}" name="${n}" type="${type}" value="${esc(v ?? '')}" ${type === 'number' ? 'inputmode="decimal"' : ''}></label>`;

@@ -1,6 +1,6 @@
 // מסך תזונה: יעדים מול מה שנאכל בפועל (יומן אכילה עם חיפוש ב-190+ מזונות), תפריט יומי לפי הקשר (בסיס/שטח/בית),
 // "לא אוכל", מזונות אישיים, מעקב שתייה, טיפים.
-import { html, esc, on, toast, sheet } from '../ui/dom.js';
+import { html, esc, on, toast, sheet, icon } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, g } from '../store.js';
 import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY } from '../engine/nutrition.js';
@@ -13,7 +13,7 @@ let dislikeQuery = '';
 
 const CATS = [['', 'הכל'], ['meal', 'מנות'], ['protein', 'חלבון'], ['dairy', 'חלב'], ['carb', 'פחמימה'], ['fruit', 'פירות'], ['veg', 'ירקות'], ['fat', 'שומנים'], ['snack', 'חטיפים'], ['custom', 'שלי']];
 const QTYS = [0.5, 1, 1.5, 2, 3];
-const MEAL_SLOTS = [['breakfast', '🌅 בוקר'], ['lunch', '🍽️ צהריים'], ['dinner', '🌙 ערב'], ['snack', '⚡ ביניים']];
+const MEAL_SLOTS = [['breakfast', 'בוקר'], ['lunch', 'צהריים'], ['dinner', 'ערב'], ['snack', 'ביניים']];
 
 function currentSlot() {
   const h = new Date().getHours();
@@ -28,75 +28,79 @@ export function renderNutrition(root) {
   const t = plan.targets;
   const dd = daily();
   const eaten = dayTotals(dd, custom);
-  const ctxs = [['base', '🪖 בבסיס'], ['field', '🎒 בשטח'], ['home', '🏠 בבית']];
+  const ctxs = [['base', 'בבסיס'], ['field', 'בשטח'], ['home', 'בבית']];
   const log = (dd.foods || []).map((it, i) => ({ ...it, i, f: foodLookup(it.id, custom) })).filter((x) => x.f);
   const left = t.kcal - eaten.kcal;
 
-  root.innerHTML = html`<div class="eyebrow">תזונת לוחם</div><div class="h1">דלק לביצועים</div>
-    <div class="card hud" style="margin-top:14px">
-      <div class="row between"><div><div class="sub" style="font-size:12px">נאכל היום / יעד</div>
-        <div class="num" style="font-size:32px;font-weight:800">${eaten.kcal.toLocaleString('he-IL')}<span class="sub" style="font-size:16px"> / ${t.kcal.toLocaleString('he-IL')} קק״ל</span></div>
-        <div class="sub" style="font-size:13px">${left > 0 ? `נשארו <b class="num">${left.toLocaleString('he-IL')}</b> קלוריות` : `עברת את היעד ב-<b class="num">${(-left).toLocaleString('he-IL')}</b>`}</div></div>
-        <span class="tag ${p.goal === 'cut' ? 'orange' : 'lime'}">${p.goal === 'cut' ? 'גירעון' : p.goal === 'muscle' ? 'עודף' : 'תחזוקה+'}</span></div>
-      <div class="macro-rings" style="margin-top:14px">
-        ${ring(Math.min(1, eaten.p / t.protein), { size: 72, stroke: 7, big: eaten.p, lbl: `חלבון /${t.protein}` })}
-        ${ring(Math.min(1, eaten.c / t.carbs), { size: 72, stroke: 7, big: eaten.c, lbl: `פחמ׳ /${t.carbs}`, color: '#22e6d0' })}
-        ${ring(Math.min(1, eaten.f / t.fat), { size: 72, stroke: 7, big: eaten.f, lbl: `שומן /${t.fat}`, color: '#ff8a3d' })}
-        ${ring(Math.min(1, dd.water / (t.waterL * 1000)), { size: 72, stroke: 7, big: (dd.water / 1000).toFixed(1), lbl: `מים /${t.waterL}ל׳`, color: '#5aa9ff' })}
+  const act = ACTIVITY[p.activityLevel] || ACTIVITY.training;
+  const actKey = ACTIVITY[p.activityLevel] ? p.activityLevel : 'training';
+  const macro = (pct, color, val, unit, of, name) => `<div class="macro"><span>${name}</span>
+    <b><bdi>${val}</bdi><small> / <bdi>${of} ${unit}</bdi></small></b><div class="bar"><i style="width:${Math.min(100, Math.round(pct * 100))}%;background:${color}"></i></div></div>`;
+
+  root.innerHTML = html`<div class="page-head"><div class="eyebrow">תזונת לוחם</div><div class="h1">דלק לביצועים</div></div>
+    <div class="card hud">
+      <div class="row between" style="align-items:flex-start"><div><div class="sub t-cap">נאכל היום / יעד</div>
+        <div class="kcal-big">${eaten.kcal.toLocaleString('he-IL')}<small> / ${t.kcal.toLocaleString('he-IL')} קק״ל</small></div>
+        <div class="sub t-foot">${left > 0 ? `נשארו <b class="num">${left.toLocaleString('he-IL')}</b> קלוריות` : `עברת את היעד ב-<b class="num">${(-left).toLocaleString('he-IL')}</b>`}</div></div>
+        <span class="tag ${p.goal === 'cut' ? 'orange' : 'lime'}">${p.goal === 'cut' ? 'גירעון' : p.goal === 'muscle' ? 'עודף' : 'תחזוקה'}</span></div>
+      <div class="macro-grid">
+        ${macro(eaten.p / t.protein, 'var(--lime)', eaten.p, 'ג׳', t.protein, 'חלבון')}
+        ${macro(eaten.c / t.carbs, '#22e6d0', eaten.c, 'ג׳', t.carbs, 'פחמימה')}
+        ${macro(eaten.f / t.fat, '#ff8a3d', eaten.f, 'ג׳', t.fat, 'שומן')}
+        ${macro(dd.water / (t.waterL * 1000), '#5aa9ff', (dd.water / 1000).toFixed(1), 'ל׳', t.waterL, 'מים')}
       </div>
-      <div class="sub" style="font-size:12px;margin:12px 0 6px">רמת פעילות (משפיעה על יעד הקלוריות):</div>
-      <div class="seg" data-activity>${Object.entries(ACTIVITY).map(([k, a]) => `<button data-v="${k}" class="${(p.activityLevel || 'training') === k ? 'on' : ''}" title="${a.desc}">${a.name}</button>`).join('')}</div>
-      <div class="grid3" style="margin-top:14px">
-        <button class="btn sm primary" data-act="add-food">＋ מה אכלתי</button>
-        <button class="btn sm" data-add="water">💧 +250 מ״ל</button>
-        <button class="btn sm" data-add="protein">🥩 +20 ג׳</button>
-      </div>
+      <button class="btn primary block mt-4" data-act="add-food">＋ מה אכלתי</button>
+      <div class="actions2"><button class="btn sm" data-add="water">+250 מ״ל מים</button><button class="btn sm" data-add="protein">+20 ג׳ חלבון</button></div>
     </div>
 
-    <div class="h2">📒 יומן אכילה — היום${log.length ? `<span class="more" data-act="clear-log">ניקוי</span>` : ''}</div>
+    <div class="h2">רמת פעילות</div>
+    <div class="seg" data-activity>${Object.entries(ACTIVITY).map(([k, a]) => `<button data-v="${k}" class="${actKey === k ? 'on' : ''}">${a.name}</button>`).join('')}</div>
+    <div class="sub t-foot mt-2">${esc(act.full)}: ${esc(act.desc)} · משפיע על יעד הקלוריות</div>
+
+    <div class="h2">יומן היום${log.length ? `<span class="more" data-act="clear-log">ניקוי</span>` : ''}</div>
     <div class="card tight">
       ${log.length ? MEAL_SLOTS.map(([slot, label]) => {
         const items = log.filter((x) => (x.slot || 'snack') === slot);
         if (!items.length) return '';
         const k = items.reduce((a, x) => a + x.f.kcal * x.qty, 0);
-        return html`<div class="log-slot"><div class="row between"><b>${label}</b><span class="sub num" style="font-size:12px">${Math.round(k)} קק״ל</span></div>
+        return html`<div class="log-slot"><div class="row between"><b>${label}</b><span class="sub num t-cap">${Math.round(k)} קק״ל</span></div>
           ${items.map((x) => html`<button class="log-it" data-log="${x.i}"><span>${esc(x.f.name)}<small> · ${qtyLabel(x.qty)}${esc(x.f.portion)}</small></span>
             <span class="num sub">${Math.round(x.f.kcal * x.qty)} · ${Math.round(x.f.p * x.qty)}ג׳</span></button>`)}</div>`;
-      }).join('') : `<div class="empty" style="padding:16px"><div class="e">🍽️</div>עוד לא נרשם אוכל היום.<br>${g('לחץ', 'לחצי')} "＋ מה אכלתי" או ${g('הוסף', 'הוסיפי')} ארוחה שלמה מהתפריט למטה.</div>`}
+      }).join('') : `<div class="empty" style="padding:12px 4px">עוד לא נרשם אוכל היום.<br>${g('לחץ', 'לחצי')} "＋ מה אכלתי" או ${g('סמן', 'סמני')} ✓ על ארוחה מהתפריט.</div>`}
     </div>
 
-    <div class="h2">🍽️ התפריט המומלץ<span class="more" data-act="shuffle">🎲 תפריט אחר</span></div>
+    <div class="h2">התפריט המומלץ<span class="more" data-act="shuffle">תפריט אחר</span></div>
     <div class="seg" style="margin-bottom:12px">${ctxs.map(([k, v]) => `<button data-ctx="${k}" class="${ctx === k ? 'on' : ''}">${v}</button>`)}</div>
     ${plan.meals.map((m, mi) => html`<div class="card tight meal">
-      <div class="row between" style="margin-bottom:6px"><b>${m.icon} ${m.name}</b><span class="num sub" style="font-size:13px">${m.total.kcal} קק״ל · ${m.total.p}ג׳ חלבון</span></div>
+      <div class="meal-head"><div class="grow"><b>${m.icon} ${m.name}</b><span class="num sub t-foot">${m.total.kcal} קק״ל · ${m.total.p}ג׳ חלבון</span></div>
+        <button class="eat-btn" data-eat-meal="${mi}" aria-label="אכלתי את ${esc(m.name)}" title="אכלתי את זה">${icon('check')}</button></div>
       ${m.items.map((it) => { const f = FOOD[it.id]; return `<div class="mi"><span>${esc(f.name)}</span><small>${qtyLabel(it.qty)}${esc(f.portion)}</small></div>`; })}
-      <button class="btn sm ghost" style="margin-top:6px" data-eat-meal="${mi}">✓ אכלתי את זה</button>
     </div>`)}
-    <div class="sub" style="margin-top:8px;text-align:center">סה״כ: <span class="num">${plan.total.kcal}</span> קק״ל · <span class="num">${plan.total.p}</span>ג׳ חלבון · <span class="num">${plan.total.c}</span>ג׳ פחמימה · <span class="num">${plan.total.f}</span>ג׳ שומן</div>
+    <div class="sub t-foot center-t mt-2">סה״כ: <span class="num">${plan.total.kcal}</span> קק״ל · <span class="num">${plan.total.p}</span>ג׳ חלבון · <span class="num">${plan.total.c}</span>ג׳ פחמימה · <span class="num">${plan.total.f}</span>ג׳ שומן</div>
 
-    <div class="h2">🚫 מה אני לא אוכל<span class="more" data-act="edit">${editDislikes ? 'סיום ✓' : 'עריכה'}</span></div>
+    <div class="h2">מה אני לא אוכל<span class="more" data-act="edit">${editDislikes ? 'סיום' : 'עריכה'}</span></div>
     <div class="card tight">
       ${editDislikes ? html`<div class="sub" style="margin-bottom:8px">קטגוריות:</div>
         <div class="chips">${Object.entries(DISLIKE_TAGS).map(([k, v]) => `<button class="chip no ${p.dislikes.includes(k) ? 'on' : ''}" data-dis="${k}">${v}</button>`)}</div>
         <div class="sub" style="margin:14px 0 8px">מאכלים ספציפיים:</div>
-        <input class="input" data-dq placeholder="🔎 חיפוש מאכל…" value="${esc(dislikeQuery)}" style="height:44px;margin-bottom:10px">
+        <input class="input" data-dq placeholder="חיפוש מאכל…" value="${esc(dislikeQuery)}" style="height:44px;margin-bottom:10px">
         <div class="chips" id="dislikeChips">${dislikeChips(p)}</div>`
-      : html`<div class="chips">${[...p.dislikes.map((k) => DISLIKE_TAGS[k]), ...(p.dislikedFoods || []).map((id) => FOOD[id]?.name)].filter(Boolean).map((x) => `<span class="chip no on">${esc(x)}</span>`).join('') || '<span class="sub">אוכל הכל 👌</span>'}</div>`}
+      : html`<div class="chips">${[...p.dislikes.map((k) => DISLIKE_TAGS[k]), ...(p.dislikedFoods || []).map((id) => FOOD[id]?.name)].filter(Boolean).map((x) => `<span class="chip no on">${esc(x)}</span>`).join('') || '<span class="sub">אוכל הכל</span>'}</div>`}
     </div>
 
-    ${plan.noVeg ? html`<div class="h2">🥦 בלי ירקות — ככה משלימים</div><div class="card tight">${NO_VEG_TIPS.map(tip)}</div>` : ''}
-    <div class="h2">🪖 טיפים לחייל</div><div class="card tight">${ARMY_TIPS.map(tip)}</div>
-    <div class="h2">📚 איך זה מחושב</div>
-    <div class="card tight method">
+    <div class="h2">מידע וטיפים</div>
+    ${plan.noVeg ? html`<details class="card acc"><summary>בלי ירקות — ככה משלימים</summary><div class="acc-body">${NO_VEG_TIPS.map(tip)}</div></details>` : ''}
+    <details class="card acc"><summary>טיפים לחייל</summary><div class="acc-body">${ARMY_TIPS.map(tip)}</div></details>
+    <details class="card acc method"><summary>איך זה מחושב</summary><div class="acc-body">
       <div class="m-row"><b>קלוריות</b><span>BMR לפי Mifflin-St Jeor (<span class="num">${Math.round(t.tdee / t.activity.factor)}</span>) × מקדם פעילות ${t.activity.factor} = <span class="num">${t.tdee}</span>${t.delta ? ` ${t.delta > 0 ? '+' : '−'} <span class="num">${Math.abs(t.delta)}</span> (${p.goal === 'cut' ? 'ירידה של ~0.5% ממשקל הגוף בשבוע' : 'עודף התחלתי — להתאים לפי מגמת המשקל'})` : ' (תחזוקה)'}</span></div>
       <div class="m-row"><b>חלבון</b><span>${p.goal === 'cut' ? '2.2' : '2.0'} ג׳ לק״ג (ISSN: 1.4–2.0 למתאמנים, יותר בגירעון)</span></div>
       <div class="m-row"><b>שומן</b><span>25% מהקלוריות (טווח מומלץ 20–35%)</span></div>
       <div class="m-row"><b>שתייה</b><span>${p.sex === 'f' ? '1.6' : '2.0'} ל׳ ממשקאות (EFSA) + 0.5 ל׳ לשעת אימון (ACSM); בחום ובשטח יותר</span></div>
       <div class="m-row"><b>ערכי מזון</b><span>מאגר התזונה הלאומי של משרד הבריאות — ${FOODS.length} מאכלים, משקל מנה מטבלת המשקלים של המאגר</span></div>
-      <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">מקורות (${NUTRITION_REFS.length})</summary>
+      <details style="margin-top:8px"><summary class="sub" style="cursor:pointer;min-height:44px;display:flex;align-items:center">מקורות (${NUTRITION_REFS.length})</summary>
         <ol class="refs">${NUTRITION_REFS.map((r) => `<li><a href="${r.u}" target="_blank" rel="noopener">${esc(r.t)}</a></li>`).join('')}</ol></details>
-    </div>
-    <p class="sub" style="font-size:12px;margin-top:12px">ההמלצות כלליות ואינן תחליף לייעוץ של דיאטנית/רופא.</p>`;
+    </div></details>
+    <p class="sub t-cap mt-3">ההמלצות כלליות ואינן תחליף לייעוץ של דיאטנית/רופא.</p>`;
 
   const rerender = () => renderNutrition(root);
   on(root, 'click', '[data-activity] button', (e, b) => { set((s2) => { s2.profile.activityLevel = b.dataset.v; return s2; }); rerender(); });
@@ -120,7 +124,7 @@ export function renderNutrition(root) {
   on(root, 'click', '[data-add]', (e, b) => {
     const d2 = daily();
     if (b.dataset.add === 'water') setDaily({ water: d2.water + 250 }); else setDaily({ protein: d2.protein + 20 });
-    toast(b.dataset.add === 'water' ? '💧 נרשם' : '🥩 נרשם', 1200);
+    toast(b.dataset.add === 'water' ? '+250 מ״ל מים נרשמו' : '+20 ג׳ חלבון נרשמו', 1200);
     rerender();
   });
 }
@@ -137,8 +141,8 @@ export function foodSearchSheet(onDone) {
   const custom = () => get().profile.customFoods || [];
   sheet(html`<div class="eyebrow">יומן אכילה</div><div class="h1" style="font-size:22px">מה ${g('אכלת', 'אכלת')}?</div>
     <div class="seg" data-slot style="margin:10px 0">${MEAL_SLOTS.map(([k, v]) => `<button data-sl="${k}" class="${slot === k ? 'on' : ''}">${v}</button>`).join('')}</div>
-    <input class="input" data-q placeholder="🔎 חיפוש: שניצל, קוטג׳, במבה…" autocomplete="off">
-    <div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">${CATS.map(([k, v]) => `<button class="chip ${k === cat ? 'on' : ''}" data-cat="${k}" style="flex:0 0 auto">${v}</button>`).join('')}</div>
+    <input class="input" data-q placeholder="חיפוש: שניצל, קוטג׳, במבה…" autocomplete="off">
+    <div class="chips scroll" style="margin-block:10px">${CATS.map(([k, v]) => `<button class="chip ${k === cat ? 'on' : ''}" data-cat="${k}">${v}</button>`).join('')}</div>
     <div id="fres" class="food-res"></div>
     <button class="btn block" style="margin-top:12px" data-custom>＋ מזון שלא ברשימה</button>`, {
     onMount(sh, close) {
@@ -147,7 +151,7 @@ export function foodSearchSheet(onDone) {
         sh.querySelector('#fres').innerHTML = res.length ? res.map((f) => html`<button class="food-row" data-pick="${f.id}">
           <span><b>${esc(f.name)}</b><small>${esc(f.portion)}${f.custom ? ' · שלי' : ''}</small></span>
           <span class="num"><b>${f.kcal}</b><small>${Math.round(f.p)}ג׳ חלבון</small></span></button>`).join('')
-          : '<div class="empty" style="padding:14px">לא נמצא. אפשר להוסיף "מזון שלא ברשימה" 👇</div>';
+          : '<div class="empty" style="padding:14px">לא נמצא. אפשר להוסיף "מזון שלא ברשימה" למטה.</div>';
       };
       const inp = sh.querySelector('[data-q]');
       inp.addEventListener('input', () => { q = inp.value; paint(); });
@@ -187,7 +191,7 @@ function logItemSheet(i, onDone) {
   sheet(html`<div class="h1" style="font-size:22px">${esc(f.name)}</div><div class="sub">${qtyLabel(it.qty)}${esc(f.portion)} · ${Math.round(f.kcal * it.qty)} קק״ל</div>
     <div class="sub" style="margin:14px 0 6px">שינוי כמות</div>
     <div class="seg">${QTYS.map((v) => `<button data-qv="${v}" class="${v === it.qty ? 'on' : ''}">${v === 0.5 ? '½' : v === 1.5 ? '1½' : v}</button>`).join('')}</div>
-    <button class="btn danger block" style="margin-top:14px" data-del>🗑 הסר מהיומן</button>
+    <button class="btn danger block" style="margin-top:14px" data-del>הסר מהיומן</button>
     <button class="btn ghost block" style="margin-top:8px" data-close>סגור</button>`, {
     onMount(sh, close) {
       on(sh, 'click', '[data-qv]', (e, b) => { const foods = [...daily().foods]; foods[i] = { ...foods[i], qty: Number(b.dataset.qv) }; setDaily({ foods }); close(); onDone?.(); });

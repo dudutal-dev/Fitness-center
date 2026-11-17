@@ -90,14 +90,12 @@ export function garminHelp() {
 export function watchCard() {
   const p = get().profile;
   return html`<div class="card">
-    <div class="row between"><div><b>⌚ שעון / חיישן דופק</b><div class="sub" style="font-size:13px">${watchStatusText()}</div></div>
-      ${isConnected() ? '<button class="btn sm danger" data-w="off">נתק</button>' : supported() ? '<button class="btn sm teal" data-w="on">חבר שעון</button>' : '<span class="tag">לא נתמך בדפדפן</span>'}</div>
-    ${!supported() ? `<div class="sub" style="font-size:12px;margin-top:8px">${isIOS() ? 'באייפון: לדופק חי פתח את האפליקציה בדפדפן Bluefy. GPS וייבוא עובדים כרגיל.' : 'לדופק חי נדרש Chrome (אנדרואיד/מחשב).'}</div>` : ''}
-    <div class="grid2" style="margin-top:12px">
-      <label class="field" style="margin:0"><span>דופק מקסימלי</span><input class="input num" data-maxhr type="number" inputmode="numeric" value="${maxHrFor(p)}"></label>
-      <div class="sub" style="font-size:12px;align-self:end">ברירת מחדל: 208 − 0.7×גיל. אם ידוע לך מהשעון — עדכן.</div>
-    </div>
-    <div class="grid2" style="margin-top:12px"><button class="btn sm" data-w="import">${icon('download', 'width="16" height="16"')} ייבוא מ-Garmin</button><button class="btn sm ghost" data-w="help">❓ איך מחברים</button></div>
+    <div class="row"><div style="flex:1"><b>שעון / חיישן דופק</b><div class="sub t-foot">${watchStatusText()}</div></div>
+      ${isConnected() ? '<button class="btn sm danger" data-w="off">נתק</button>' : supported() ? '<button class="btn sm teal" data-w="on">חבר שעון</button>' : ''}</div>
+    ${!supported() ? `<div class="sub t-cap" style="margin-top:8px">דופק חי לא נתמך בדפדפן הזה. ${isIOS() ? 'באייפון: לדופק חי פתח את האפליקציה בדפדפן Bluefy. GPS וייבוא עובדים כרגיל.' : 'לדופק חי נדרש Chrome (אנדרואיד/מחשב).'}</div>` : ''}
+    <label class="field" style="margin:12px 0 0"><span>דופק מקסימלי</span><input class="input num" data-maxhr type="number" inputmode="numeric" value="${maxHrFor(p)}"></label>
+    <div class="sub t-cap" style="margin-top:6px">ברירת מחדל: 208 − 0.7×גיל. אם ידוע לך מהשעון — עדכן.</div>
+    <div class="grid2" style="margin-top:12px"><button class="btn sm" data-w="import">${icon('download', 'width="16" height="16"')} ייבוא</button><button class="btn sm ghost" data-w="help">איך מחברים</button></div>
   </div>`;
 }
 

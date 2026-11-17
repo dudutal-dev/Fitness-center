@@ -58,57 +58,59 @@ export function renderHome(root) {
         <a href="#/coach" class="avatar" aria-label="המאמן והגדרות"><img src="${coach.face}" alt=""></a>
       </div>
     </div>
-    <div class="sub">${greeting()},</div>
-    <div class="h1">${esc(p.name)} 👊</div>
+    <div class="page-head"><div class="sub">${greeting()},</div>
+    <div class="h1">${esc(p.name)} 👊</div></div>
 
-    <div class="card coach-hero hud" style="margin-top:14px">
-      <div class="holo"><span class="live-badge">LIVE</span><img src="${coach.face}" alt="${coach.name}"></div>
-      <div>
-        <div class="eyebrow">${coach.name} · ${coach.title}</div>
-        <div class="bubble" style="margin-top:8px">${line.text}</div>
-        <button class="speak" data-act="speak" data-key="${line.key}"><span class="wave"><i></i><i></i><i></i><i></i></span> השמע</button>
+    <div class="card coach-hero">
+      <div class="holo"><img src="${coach.face}" alt="${coach.name}"></div>
+      <div style="min-width:0">
+        <div class="ch-head"><div class="eyebrow">${coach.name} · ${coach.title}</div>
+          <button class="speak" data-act="speak" data-key="${line.key}" aria-label="השמע"><span class="wave"><i></i><i></i><i></i><i></i></span> השמע</button></div>
+        <div class="bubble">${line.text}</div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:12px">
-      <div class="cri">
-        ${ring(cri.score / 100, { big: cri.score, lbl: 'כשירות קרבית' })}
-        <div>
-          ${meter('💪 כוח', cri.parts.strength)}${meter('🏃 סבולת', cri.parts.endurance)}
-          ${meter('📅 עקביות', cri.parts.consistency)}${meter('⚖️ גוף', cri.parts.body)}
-        </div>
-      </div>
-      <div class="bar" style="margin-top:6px"><i style="width:${rank.pct * 100}%"></i></div>
-      <div class="row between sub" style="font-size:12px;margin-top:6px"><span>${rank.icon} ${rank.name} · <span class="num">${s.xp}</span> XP</span><span>${rank.next ? `${rank.next.icon} ${rank.next.name} ב-<span class="num">${rank.next.xp}</span>` : 'דרגה מקסימלית'}</span></div>
-    </div>
-
-    <div class="h2">🎯 משימת היום</div>
+    <div class="h2">משימת היום</div>
     ${ns ? html`<div class="card mission hud">
       <div class="media"><img src="${demoPoster(p.coach, heroEx)}" alt="">
         <div class="over"><div class="eyebrow">אימון ${ns.day} מתוך ${s.plan.week.sessions.length} · ${esc(s.plan.week.phase.name)}</div>
-        <div class="h1" style="font-size:26px">${esc(ns.name)}</div><div class="sub">${esc(ns.focus)}</div></div></div>
+        <div class="h1" style="font-size:24px">${esc(ns.name)}</div><div class="sub">${esc(ns.focus)}</div></div></div>
       <div class="body">
         <div class="stats"><div><b>${estMinutes(ns)}</b>דקות</div><div><b>${ns.items.length}</b>תרגילים</div>
-          <div><b>${ns.items.reduce((a, b) => a + b.sets, 0)}</b>סטים</div>${ns.run ? `<div><b>${ns.run.icon}</b>${esc(ns.run.name)}</div>` : ''}</div>
+          <div><b>${ns.items.reduce((a, b) => a + b.sets, 0)}</b>סטים</div>${ns.run ? `<div><b>+</b>ריצה</div>` : ''}</div>
         <button class="btn primary block xl" data-act="start">${icon('play', 'width="22" height="22"')} ${g('צא', 'צאי')} לאימון</button>
-        ${ns.run ? `<button class="btn block" style="margin-top:8px" data-act="run">🏃 רק ריצה: ${esc(ns.run.name)}</button>` : ''}
       </div></div>`
     : html`<div class="card hud"><div class="empty"><div class="e">🏆</div><b>השבוע הושלם!</b><div>מנוחה — השבוע הבא נטען אוטומטית.</div></div></div>`}
-
-    ${reminderPromptHtml()}
-    <div class="week" style="margin-top:12px">${s.plan.week.sessions.map((x) => `<div class="d ${doneDays.has(x.day) ? 'done' : ns?.day === x.day ? 'next' : ''}"><span class="n">${doneDays.has(x.day) ? '✓' : x.day}</span>${x.run ? '🏃' : '🏋️'}</div>`)}</div>
-
-    <button class="btn block" style="margin-top:12px" data-act="field">🎒 אין חדר כושר היום? אימון שטח בלי ציוד</button>
-
-    <div class="h2">📊 היום</div>
-    <div class="grid2">
-      <div class="card tight tracker" data-act="water"><div class="ic">💧</div><div><div class="v num">${(dd.water / 1000).toFixed(1)}<small> / ${t.waterL} ל׳</small></div><div class="sub" style="font-size:12px">+250 מ״ל</div></div></div>
-      <div class="card tight tracker" data-act="protein"><div class="ic">🥩</div><div><div class="v num">${dayTotals(dd, p.customFoods).p}<small> / ${t.protein} ג׳</small></div><div class="sub" style="font-size:12px">+20 גרם חלבון</div></div></div>
-      <div class="card tight tracker" data-act="weight"><div class="ic">⚖️</div><div><div class="v num">${lastW ? lastW.kg : '—'}<small> ק״ג</small></div><div class="sub" style="font-size:12px">${lastW ? `עודכן ${fmtDate(lastW.date)}` : 'שקילה'}</div></div></div>
-      <div class="card tight tracker" data-act="checkin"><div class="ic">🧠</div><div><div class="v">${dd.checkin != null ? `<span class="num">${Math.round(dd.checkin * 100)}%</span>` : '—'}</div><div class="sub" style="font-size:12px">מוכנות יומית</div></div></div>
+    <div class="home-cta-sub">
+      ${ns?.run ? `<button class="btn sm" data-act="run">${icon('run', 'width="18" height="18"')} רק ריצה</button>` : ''}
+      <button class="btn sm" data-act="field" ${ns?.run ? '' : 'style="grid-column:1/-1"'}>${icon('pack', 'width="18" height="18"')} שטח בלי ציוד</button>
     </div>
 
-    ${s.events.length ? html`<div class="h2">📣 עדכונים</div><div class="card tight list-hist">${s.events.slice(0, 4).map((e) => `<div class="it"><div class="ico">${e.type === 'pr' ? '🏆' : e.type === 'rank' ? '🎖️' : e.type === 'level' ? '🚀' : '💬'}</div><div><div style="font-weight:700;font-size:14px">${esc(e.text)}</div><div class="sub" style="font-size:12px">${fmtDate(e.date)}</div></div></div>`)}</div>` : ''}
+    <div class="week" style="margin-top:12px">${s.plan.week.sessions.map((x) => `<div class="d ${doneDays.has(x.day) ? 'done' : ns?.day === x.day ? 'next' : ''}"><span class="n">${doneDays.has(x.day) ? '✓' : x.day}</span>${x.run ? '+ריצה' : 'כוח'}</div>`)}</div>
+    ${reminderPromptHtml()}
+
+    <div class="h2">כשירות קרבית</div>
+    <div class="card">
+      <div class="cri">
+        ${ring(cri.score / 100, { size: 132, big: cri.score, lbl: 'מתוך 100' })}
+        <div>
+          ${meter('כוח', cri.parts.strength)}${meter('סבולת', cri.parts.endurance)}
+          ${meter('עקביות', cri.parts.consistency)}${meter('גוף', cri.parts.body)}
+        </div>
+      </div>
+      <div class="bar" style="margin-top:10px"><i style="width:${rank.pct * 100}%"></i></div>
+      <div class="row between sub t-cap" style="margin-top:6px"><span>${rank.icon} ${rank.name} · <span class="num">${s.xp}</span> XP</span><span>${rank.next ? `הבא: ${rank.next.name} ב-<span class="num">${rank.next.xp}</span>` : 'דרגה מקסימלית'}</span></div>
+    </div>
+
+    <div class="h2">היום</div>
+    <div class="grid2">
+      <button class="card tight tracker" data-act="water"><div class="ic">💧</div><div><div class="v num">${(dd.water / 1000).toFixed(1)}<small> / ${t.waterL} ל׳</small></div><div class="sub t-cap">+250 מ״ל</div></div></button>
+      <button class="card tight tracker" data-act="protein"><div class="ic">🥩</div><div><div class="v num">${dayTotals(dd, p.customFoods).p}<small> / ${t.protein} ג׳</small></div><div class="sub t-cap">+20 ג׳ חלבון</div></div></button>
+      <button class="card tight tracker" data-act="weight"><div class="ic">⚖️</div><div><div class="v num">${lastW ? lastW.kg : '—'}<small> ק״ג</small></div><div class="sub t-cap">${lastW ? `עודכן ${fmtDate(lastW.date)}` : 'שקילה'}</div></div></button>
+      <button class="card tight tracker" data-act="checkin"><div class="ic">🧠</div><div><div class="v">${dd.checkin != null ? `<span class="num">${Math.round(dd.checkin * 100)}%</span>` : '—'}</div><div class="sub t-cap">מוכנות יומית</div></div></button>
+    </div>
+
+    ${s.events.length ? html`<div class="h2">עדכונים</div><div class="card tight list-hist">${s.events.slice(0, 4).map((e) => `<div class="it"><div class="ico">${e.type === 'pr' ? '🏆' : e.type === 'rank' ? '🎖️' : e.type === 'level' ? '🚀' : '💬'}</div><div><div style="font-weight:700;font-size:14px">${esc(e.text)}</div><div class="sub t-cap">${fmtDate(e.date)}</div></div></div>`)}</div>` : ''}
   `;
 
   const off = onSpeaking((v) => root.querySelector('.speak')?.classList.toggle('speaking', v));

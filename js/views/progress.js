@@ -18,11 +18,11 @@ let showAll = false;
 export function renderProgress(root) {
   const s = get();
   const p = s.profile;
-  const tabs = [['weight', '⚖️ משקל'], ['strength', '💪 כוח'], ['run', '🏃 ריצה'], ['body', '🫀 גוף']];
-  root.innerHTML = html`<div class="eyebrow">מעקב ומדדים</div><div class="h1">ההתקדמות שלך</div>
-    <div class="seg" style="margin:14px 0">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`)}</div>
+  const tabs = [['weight', 'משקל'], ['strength', 'כוח'], ['run', 'ריצה'], ['body', 'גוף']];
+  root.innerHTML = html`<div class="page-head"><div class="eyebrow">מעקב ומדדים</div><div class="h1">ההתקדמות שלך</div></div>
+    <div class="seg" style="margin-bottom:14px">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`)}</div>
     <div id="tabc">${TABS[tab](s, p)}</div>
-    <div class="h2">🗂️ היסטוריה<span class="more" data-act="garmin">⌚ ייבוא מ-Garmin</span></div>
+    <div class="h2">היסטוריה<span class="more" data-act="garmin">ייבוא מ-Garmin</span></div>
     <div class="card tight list-hist">${history(s)}</div>`;
   on(root, 'click', '[data-tab]', (e, t) => { tab = t.dataset.tab; renderProgress(root); });
   on(root, 'click', '[data-lift]', (e, t) => { liftSel = t.dataset.lift; renderProgress(root); });
@@ -47,7 +47,7 @@ const TABS = {
         { values: W.map((x) => ({ x: fmtDate(x.date), y: x.trend })), color: '#c8ff3c', fill: true, dots: false, width: 3 }], { target: p.targetWeight })}
         <div class="legend"><span><i style="background:#c8ff3c"></i>מגמה</span><span><i style="background:rgba(var(--fg-rgb),.35)"></i>שקילה</span><span><i style="background:#ff8a3d"></i>יעד</span></div></div>
       <button class="btn primary block" style="margin-top:12px" data-act="weigh">+ שקילה חדשה</button>
-      <p class="sub" style="margin-top:10px">💡 המגמה (ממוצע נע) מסננת תנודות של מים ומלח — זה המספר האמיתי. קצב בריא: ${p.goal === 'cut' ? 'ירידה של 0.3–0.7 ק״ג בשבוע' : 'עלייה של 0.2–0.4 ק״ג בשבוע'}.</p>`;
+      <p class="sub t-foot" style="margin-top:10px">המגמה (ממוצע נע) מסננת תנודות של מים ומלח — זה המספר האמיתי. קצב בריא: ${p.goal === 'cut' ? 'ירידה של 0.3–0.7 ק״ג בשבוע' : 'עלייה של 0.2–0.4 ק״ג בשבוע'}.</p>`;
   },
   strength(s) {
     const lifts = Object.keys(s.history).filter((id) => EX[id]?.type === 'weight' && s.history[id].length);
@@ -61,10 +61,10 @@ const TABS = {
       const b = hh.map((x) => bestSet(x.sets)).filter(Boolean).sort((a, c) => c.e1rm - a.e1rm)[0];
       return b ? { id, b } : null;
     }).filter(Boolean).sort((a, b) => b.b.e1rm - a.b.e1rm);
-    return html`<div class="chips" style="margin-bottom:10px">${lifts.map((id) => `<button class="chip ${id === sel ? 'on' : ''}" data-lift="${id}">${EX[id].name}</button>`)}</div>
+    return html`<div class="chips scroll" style="margin-bottom:10px">${lifts.map((id) => `<button class="chip ${id === sel ? 'on' : ''}" data-lift="${id}">${EX[id].name}</button>`)}</div>
       <div class="kpis"><div class="kpi up"><b>${best}</b><span>1RM משוער</span></div><div class="kpi"><b>${h.length}</b><span>אימונים</span></div><div class="kpi ${gain > 0 ? 'up' : ''}"><b>${gain > 0 ? '+' : ''}${gain}%</b><span>שיפור</span></div></div>
       <div class="card" style="margin-top:12px">${lineChart([{ values: pts, color: '#c8ff3c', fill: true }])}<div class="sub" style="font-size:12px">1RM משוער (נוסחת Epley) — המשקל המקסימלי לחזרה אחת</div></div>
-      <div class="h2">🏆 שיאים אישיים</div>
+      <div class="h2">שיאים אישיים</div>
       <div class="card tight">${prs.map(({ id, b }) => `<div class="ex-row"><div><div class="t">${EX[id].name}</div><div class="s">${b.w} ק״ג × ${b.reps}</div></div><div class="w">${Math.round(b.e1rm)}<small>1RM</small></div></div>`).join('')}</div>`;
   },
   run(s, p) {
@@ -79,7 +79,7 @@ const TABS = {
       ${paced.length ? html`<div class="card" style="margin-top:12px"><b>קצב ממוצע לק״מ</b>${lineChart([{ values: paced.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.durationSec / r.distanceKm / 60) * 100) / 100 })), color: '#22e6d0', fill: true }])}
         <div class="sub" style="font-size:12px">דקות לק״מ — נמוך יותר = מהיר יותר · אחרון: ${fmtPace(paced[paced.length - 1].durationSec / paced[paced.length - 1].distanceKm)}</div></div>` : ''}
       <div class="card" style="margin-top:12px"><b>דקות ריצה בשבוע</b>${bars(weekly, { color: '#22e6d0' })}</div>
-      <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:22px">⌚</span><div><b>יש לך שעון Garmin?</b><div class="sub" style="font-size:13px">ייבא ריצות עם דופק ומרחק, או חבר את השעון לדופק חי.</div></div><span class="spacer"></span><button class="btn sm" data-act="garmin-help">איך?</button></div></div>`;
+      <div class="card tight" style="margin-top:12px"><div class="row"><div style="flex:1"><b>יש לך שעון Garmin?</b><div class="sub t-foot">ייבוא ריצות עם דופק ומרחק, או חיבור השעון לדופק חי.</div></div><button class="btn sm" data-act="garmin-help">איך?</button></div></div>`;
   },
   body(s) {
     const load = muscleLoad(s.sessions);

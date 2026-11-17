@@ -103,6 +103,10 @@ const P = {
   phPull: '<path d="M19 12H7"/><path d="M11 7l-5 5 5 5"/><path d="M3 5v14"/>',
   phRelease: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
   phHold: '<rect x="7" y="5" width="3.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  chev: '<path d="M15 6l-6 6 6 6"/>',
+  run: '<circle cx="14" cy="4.5" r="2"/><path d="M7 21l3-6 3 2v5M6 11l3-3 4 1 2 4 3 1"/>',
+  pack: '<rect x="5" y="7" width="14" height="14" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2M5 13h14"/>',
   download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
   upload: '<path d="M12 20V9"/><path d="M7 14l5-5 5 5"/><path d="M5 4h14"/>',
 };

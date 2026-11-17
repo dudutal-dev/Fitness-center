@@ -12,31 +12,31 @@ export function reminderCard() {
   const st = r.settings;
   if (!r.enabled) {
     return html`<div class="card">
-      <div class="row"><span style="font-size:28px">🔔</span><div><b>תזכורות מהמאמן</b><div class="sub" style="font-size:13px">אימון, שתייה ושקילה — גם כשהאפליקציה סגורה</div></div></div>
+      <div><div><b>תזכורות מהמאמן</b><div class="sub t-foot">אימון, שתייה ושקילה — גם כשהאפליקציה סגורה</div></div></div>
       ${needsInstall() ? html`<div class="g-tip" style="margin-top:12px"><span>📲</span><div>באייפון, תזכורות עובדות רק כשהאפליקציה <b>מותקנת במסך הבית</b>: שיתוף ⬆️ ← "הוסף למסך הבית", ואז לפתוח משם ולהפעיל כאן.</div></div>`
         : !pushSupported() ? '<div class="sub" style="margin-top:10px">הדפדפן הזה לא תומך בתזכורות. אפשר להשתמש בלוח השנה 👇</div>'
-        : '<button class="btn primary block" style="margin-top:12px" data-rem="on">🔔 הפעל תזכורות</button>'}
-      <button class="btn sm ghost block" style="margin-top:8px" data-rem="ics">📅 או: הוסף אימונים ושקילה ללוח השנה</button>
+        : '<button class="btn primary block" style="margin-top:12px" data-rem="on">הפעל תזכורות</button>'}
+      <button class="btn sm ghost block" style="margin-top:8px" data-rem="ics">או: הוסף ללוח השנה</button>
     </div>`;
   }
   const tog = (k, label, sub) => `<button class="row between rem-tog" data-rtog="${k}"><div><b>${label}</b><div class="sub" style="font-size:12px">${sub}</div></div><span class="sw ${st[k]?.on ? 'on' : ''}"><i></i></span></button>`;
   return html`<div class="card rem">
-    <div class="row between"><div class="row"><span style="font-size:24px">🔔</span><b>תזכורות פעילות</b></div><button class="btn sm" data-rem="test">שלח דוגמה</button></div>
+    <div class="row between"><b>תזכורות פעילות</b><button class="btn sm" data-rem="test">שלח דוגמה</button></div>
 
-    ${tog('workout', '💪 תזכורת אימון', 'לא נשלחת אם כבר התאמנת באותו יום')}
+    ${tog('workout', 'תזכורת אימון', 'לא נשלחת אם כבר התאמנת באותו יום')}
     ${st.workout?.on ? html`<div class="rem-sub"><div class="chips">${DAY_NAMES.map((d, i) => `<button class="chip ${st.workout.days.includes(i) ? 'on' : ''}" data-rday="${i}">${d}</button>`).join('')}</div>
       <label class="rem-time">בשעה <input class="input num" type="time" data-rtime="workout" value="${st.workout.time}"></label></div>` : ''}
 
-    ${tog('water', '💧 תזכורת שתייה', 'כל כמה שעות, בשעות היום')}
+    ${tog('water', 'תזכורת שתייה', 'כל כמה שעות, בשעות היום')}
     ${st.water?.on ? html`<div class="rem-sub"><div class="seg" data-rwater>${[[90, 'שעה וחצי'], [120, 'שעתיים'], [180, '3 שעות']].map(([v, t]) => `<button data-v="${v}" class="${st.water.every === v ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="row" style="margin-top:8px"><label class="rem-time">מ- <input class="input num" type="time" data-rtime="water.from" value="${st.water.from}"></label><label class="rem-time">עד <input class="input num" type="time" data-rtime="water.to" value="${st.water.to}"></label></div></div>` : ''}
 
-    ${tog('weigh', '⚖️ שקילה שבועית', 'בבוקר, לפני אוכל')}
+    ${tog('weigh', 'שקילה שבועית', 'בבוקר, לפני אוכל')}
     ${st.weigh?.on ? html`<div class="rem-sub row"><select class="input" data-rweighday style="height:44px">${DAY_FULL.map((d, i) => `<option value="${i}" ${Number(st.weigh.day) === i ? 'selected' : ''}>יום ${d}</option>`).join('')}</select>
       <label class="rem-time"><input class="input num" type="time" data-rtime="weigh" value="${st.weigh.time}"></label></div>` : ''}
 
-    ${tog('comeback', '👀 "חסר לי אותך"', 'אחרי 3 ימים בלי אימון, ב-19:00')}
-    <div class="row" style="margin-top:12px"><button class="btn sm ghost" data-rem="ics">📅 גם ללוח השנה</button><span class="spacer"></span><button class="btn sm danger" data-rem="off">כבה תזכורות</button></div>
+    ${tog('comeback', '"חסר לי אותך"', 'אחרי 3 ימים בלי אימון, ב-19:00')}
+    <div class="row" style="margin-top:12px"><button class="btn sm ghost" data-rem="ics">ללוח השנה</button><span class="spacer"></span><button class="btn sm danger" data-rem="off">כבה</button></div>
   </div>`;
 }
 

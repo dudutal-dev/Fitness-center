@@ -1,0 +1,322 @@
+{
+ "ori/back_squat": {
+  "img": "Q8GgpJuT7NYqgpCWAzay",
+  "vid": "d2Y6clwB3yh6jL44kNHs"
+ },
+ "noa/back_squat": {
+  "img": "3V8RuAOJ1kbqKUhUk5Gj",
+  "vid": "yXWPHKNaoy53A0m1FjjS"
+ },
+ "ori/leg_press": {
+  "img": "MQCFgvJXUemwlxCKCyxA",
+  "vid": "D0ST4pyFBz4N88LUfnFP"
+ },
+ "noa/leg_press": {
+  "img": "WLnvDsBj1LR7sEZxgBAl",
+  "vid": "F13aRw9w1EpVTyeldjJR"
+ },
+ "ori/rdl": {
+  "img": "OAMa1dON2wwcugtlxT6m",
+  "vid": "zk74w6vtbL1sYkb1MRT5"
+ },
+ "noa/rdl": {
+  "img": "UvjwWHdNMKFTs2NpvueT",
+  "vid": "HlpDi1UP7Br5Ca52Btnw"
+ },
+ "ori/deadlift": {
+  "img": "5UI08otgrJKy2SZIZeya",
+  "vid": "vIhqSroEhpliPIcmhqKI"
+ },
+ "noa/deadlift": {
+  "img": "9deKWXxHD5rdLJHOG0px",
+  "vid": "8TXDAeCC1PNG8z5MMoeD"
+ },
+ "ori/db_lunge": {
+  "img": "YXfUkU2f1VeGYTep1oEO",
+  "vid": "AvTO8s2oNmbPwU0zbKdB"
+ },
+ "noa/db_lunge": {
+  "img": "RAlHp53DIqYrp0A13JO4",
+  "vid": "MYEwKf3ON36GqOJempMM"
+ },
+ "ori/bulgarian_split": {
+  "img": "hoBA122f9OaTcSUm8Yir",
+  "vid": "NXwHK2b8wpjNY6ARHNjg"
+ },
+ "noa/bulgarian_split": {
+  "img": "Z0vJVM6QMs7uwcniFD4Y",
+  "vid": "3HqxQPctW7Wqavby1sH5"
+ },
+ "ori/leg_ext": {
+  "img": "G1rRBxI5SGzdJdqzAtkr",
+  "vid": "kkH4cZgCyFPT786vI6Gm"
+ },
+ "noa/leg_ext": {
+  "img": "oAs1My1886ccITCntOqH",
+  "vid": "ofoMJg30Me5cObdxQ6xB"
+ },
+ "ori/leg_curl": {
+  "img": "BhV5fJxnQ63pIEbchjgw",
+  "vid": "ju4iHH52hv7LjPLufZxg"
+ },
+ "noa/leg_curl": {
+  "img": "uMz3AEGh78Wznzw4uCNK",
+  "vid": "RoKKdF1TTqVrLENrVOTv"
+ },
+ "ori/calf_raise": {
+  "img": "n7qKs2kDRqB2tEaQcNlv",
+  "vid": "8LUeXDHGh4JOMbcsGkgr"
+ },
+ "noa/calf_raise": {
+  "img": "xGaKMcyrERllK91a1G1j",
+  "vid": "0dkBkV9fDXKReGHXcw2X"
+ },
+ "ori/hip_thrust": {
+  "img": "0hUqKnq3z8c3f0jHeb1N",
+  "vid": "tjij2APoKSvzSLlNx88V"
+ },
+ "noa/hip_thrust": {
+  "img": "VblQv2gvPKM1YXBTKJBy",
+  "vid": "NWYp5bmPb6vmX4TVdNGD"
+ },
+ "ori/pullup": {
+  "img": "Eb97xeUIWVpKV5R0rJom",
+  "vid": "HUQSmZnWZerRClveDijh"
+ },
+ "noa/pullup": {
+  "img": "Fs0Zk1lRgK765zMP6rnQ",
+  "vid": "96VG6UqKjlrvttsZqHWL"
+ },
+ "ori/lat_pulldown": {
+  "img": "SXKLOSQmUK219EWSWQMI",
+  "vid": "fseNrZRoBGeQQh3Dtq3C"
+ },
+ "noa/lat_pulldown": {
+  "img": "zYQKj872A8zYtECklc5J",
+  "vid": "WqzssJwPHBgvePDruMfm"
+ },
+ "ori/cable_row": {
+  "img": "BDfVjgdYeP2WeZVOWuXa",
+  "vid": "9kIDzfz86i3culMDLRXj"
+ },
+ "noa/cable_row": {
+  "img": "uZgIyHRpCYmrUZd39FSM",
+  "vid": "KaNKgxSdZmW1uqJjW5p1"
+ },
+ "ori/bb_row": {
+  "img": "Dapes2VQz1XcDxXGGA6s",
+  "vid": "9TzENK3LwEoXSA53qZuI"
+ },
+ "noa/bb_row": {
+  "img": "752FJLjNUJ80XL3xY3x0",
+  "vid": "IzwjLNYobupGFXkRtsig"
+ },
+ "ori/db_row": {
+  "img": "gvpGPUSRikigklQXB2y1",
+  "vid": "gklckxeMlq5KYcxyuhVn"
+ },
+ "noa/db_row": {
+  "img": "Tu1ekmQMObA9fyNTR7xI",
+  "vid": "i1COaKHL19mJzpA6W600"
+ },
+ "ori/face_pull": {
+  "img": "879zSZzgSGRflgHcNVdV",
+  "vid": "ikQIYmzKdzrQPO4Ne4SL"
+ },
+ "noa/face_pull": {
+  "img": "sq4Cv0ggDrw6qXPXNFfI",
+  "vid": "4Cq3gNhqO7YN6rMowOUw"
+ },
+ "ori/bench_press": {
+  "img": "vrss49At50tcBmrc43F3",
+  "vid": "e6Z2dSdWU1AC2s9QusUE"
+ },
+ "noa/bench_press": {
+  "img": "re5zMmzaYfeNGBJ6DQ4m",
+  "vid": "rWhMiAuUY8YNZBN27Vd1"
+ },
+ "ori/incline_db_press": {
+  "img": "OrLHQ2m1VwkjeUjLvDoQ",
+  "vid": "itTZLnGsq6I6ahfyDSib"
+ },
+ "noa/incline_db_press": {
+  "img": "dNZRcPp4waEKR70XUe9h",
+  "vid": "HFp761rcvaLAvE917MZb"
+ },
+ "ori/cable_fly": {
+  "img": "2GsQQ2xG6Midb3cFbmRX",
+  "vid": "IqmcRIvkllfNjy5KJND5"
+ },
+ "noa/cable_fly": {
+  "img": "4tGb5EqGkbxw6AB3Yc6I",
+  "vid": "OD5n9qcaXss2Oy7arHEq"
+ },
+ "ori/pushup": {
+  "img": "41evysvCN5wUAALnW9MC",
+  "vid": "3zdYtMXz9Go221CCT5Zg"
+ },
+ "noa/pushup": {
+  "img": "w5CrZyZuTo083VapwkQi",
+  "vid": "2YMsddXcu0zxCy8hUbNN"
+ },
+ "ori/dips": {
+  "img": "kCuG8zKOPDLJbwt2t015",
+  "vid": "uGSskXFMAJeqK0QHSacX"
+ },
+ "noa/dips": {
+  "img": "UMoEfNFNVM3rNFdTDWNe",
+  "vid": "Zfsnwj9sRFKNH6dDoMP3"
+ },
+ "ori/ohp": {
+  "img": "lD6aIKFSZwf3PjDLzga1",
+  "vid": "DGBJVta1rTiULVH8PNkS"
+ },
+ "noa/ohp": {
+  "img": "vweKgLbynuauNRqTYmiV",
+  "vid": "8fLsONYM9XzViNLlXWvE"
+ },
+ "ori/lateral_raise": {
+  "img": "ni2kFlTobpuTmELoSHbP",
+  "vid": "b4hxPGdg2XjmzDIyPl7p"
+ },
+ "noa/lateral_raise": {
+  "img": "iNoixyqwpWBOuukSWM0w",
+  "vid": "W5zzI4qdjvlGt28yB4oj"
+ },
+ "ori/rear_delt_fly": {
+  "img": "5cSnimLJIe8aHlDDKL9E",
+  "vid": "ZXndHDSeLXNEFuX4OBmc"
+ },
+ "noa/rear_delt_fly": {
+  "img": "xa7onL32MGmQp1jq4oeg",
+  "vid": "NGSd9C0lrGHLVfglNQKW"
+ },
+ "ori/bb_curl": {
+  "img": "B8Myomu4SXqUjdZUdDrW",
+  "vid": "RI6fAq1i1nUtJlNMOPOA"
+ },
+ "noa/bb_curl": {
+  "img": "chUin961Hs2TBvX66AT5",
+  "vid": "wk0JsBjteWIGgiL91TN5"
+ },
+ "ori/hammer_curl": {
+  "img": "RtdaHyoXkM9OjVRN4r3n",
+  "vid": "jhaFbOhI4iJTBNGrRwK7"
+ },
+ "noa/hammer_curl": {
+  "img": "8ROvahxnNeunFTQ16t7c",
+  "vid": "KFMs5dl5SdX3jwLpTLLy"
+ },
+ "ori/rope_pushdown": {
+  "img": "6Vz0uYA6NJZgvH3wbLdn",
+  "vid": "E4K2MIZ1xxmXVvlAYwgw"
+ },
+ "noa/rope_pushdown": {
+  "img": "7M3LP8BQ5jOZjXMzGrga",
+  "vid": "Khq8B8hQbsERYmO9CggJ"
+ },
+ "ori/oh_tri_ext": {
+  "img": "8KgsASinsirtaiHl3381",
+  "vid": "BHcoGqksV805UqiYsQ8F"
+ },
+ "noa/oh_tri_ext": {
+  "img": "1tK6iFyYosl05Ye7CERY",
+  "vid": "e6dlUnIOmlVgnAn475G3"
+ },
+ "ori/plank": {
+  "img": "HQy9vtomGUuL44PmNhBU",
+  "vid": "S5zyDaojmXkH92cwJVKq"
+ },
+ "noa/plank": {
+  "img": "feeidR7mabdLPSHFAQB7",
+  "vid": "iOdDgF69TGUVLi2nmben"
+ },
+ "ori/hanging_leg_raise": {
+  "img": "DLZelt4jiu11FzjgTr9I",
+  "vid": "K82BbbcuU3RihHOWpaAP"
+ },
+ "noa/hanging_leg_raise": {
+  "img": "AYw4jDAWkAClA6v9PV0q",
+  "vid": "pnAyIuNZX8MrwKR2fOU4"
+ },
+ "ori/woodchop": {
+  "img": "4VuxwrPYAGt7Jz0ACArm",
+  "vid": "buuDWTIae7cBTGQS0wT0"
+ },
+ "noa/woodchop": {
+  "img": "kxOBSZJX6bPWMBwKwRFj",
+  "vid": "WQ9Zp0QFjkFPJXkJOfJL"
+ },
+ "ori/ab_wheel": {
+  "img": "OXperJ3s6MrL6bkRHn7J",
+  "vid": "iG7opaqYK4R8OOeoOCSl"
+ },
+ "noa/ab_wheel": {
+  "img": "tw5quHUuRZ1oafFtchEF",
+  "vid": "n9H5NKdQNWtxIolgTfCP"
+ },
+ "ori/kb_swing": {
+  "img": "YR9DVm0npiEDj1VxWWFR",
+  "vid": "M9JYaRuoiabekM2yQWTc"
+ },
+ "noa/kb_swing": {
+  "img": "axUKXmLjazWBSSitibdo",
+  "vid": "QpY59wSR5tZ7wYF8vRF6"
+ },
+ "ori/burpee": {
+  "img": "5nRmgx2iya73KtsFHrvJ",
+  "vid": "4qgBb5U7zuQyyPH7hwsS"
+ },
+ "noa/burpee": {
+  "img": "qyaZxu0gkcE6KVg6psq6",
+  "vid": "VXqlOHllHRFRYsG1uEnI"
+ },
+ "ori/farmer_carry": {
+  "img": "PbHJ5WtT8XlViXylnWRB",
+  "vid": "ibXuTjoGK3jwWtSPuhRt"
+ },
+ "noa/farmer_carry": {
+  "img": "ih37E9F6epiJkvf2ivfW",
+  "vid": "RoWN7UoZHXSOA99D6gnr"
+ },
+ "ori/box_jump": {
+  "img": "M9nGkPv8I2OZHm5u0cDT",
+  "vid": "doi2uSEs2QALXVEgB5Iq"
+ },
+ "noa/box_jump": {
+  "img": "QxBsRmzzYjbozydscKZX",
+  "vid": "RgJljNjEqhTGIdSjOCad"
+ },
+ "ori/battle_rope": {
+  "img": "DQbVlJQqv8BFqW6lOiYl",
+  "vid": "hzxMMNhAoMDtU689aOxH"
+ },
+ "noa/battle_rope": {
+  "img": "0WfchsEzeqLNrql31vi3",
+  "vid": "LZzqjlHyBGPos13mQkkC"
+ },
+ "ori/rower": {
+  "img": "uZgus1KB1nyuWMSiBEJf",
+  "vid": "n0BpyqPSvUlrvzoJTxeV"
+ },
+ "noa/rower": {
+  "img": "9tCTzZQdNdDWxaLp2NJY",
+  "vid": "sQM57DKvNYFkFMjLtaXh"
+ },
+ "ori/sled_push": {
+  "img": "IoKdiZ5xE42sUSkyTOWG",
+  "vid": "hN0yq3QhKm9fFwoV5b7p"
+ },
+ "noa/sled_push": {
+  "img": "oLZU6pOkQh8FtVrCyR8z",
+  "vid": "qEusmmRMsrJt82KUwQEx"
+ },
+ "ori/treadmill_run": {
+  "img": "COWbMyQvHz1EDV5XQ9fg",
+  "vid": "eEawPuiA66kToJxp6Scw"
+ },
+ "noa/treadmill_run": {
+  "img": "uTiUxLrfb1A0bCTKyUYv",
+  "vid": "9W8h8qQbZmliLBQt5bQ3"
+ }
+}

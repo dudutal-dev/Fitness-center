@@ -1,0 +1,476 @@
+// מצב אימון חי: הדגמת וידאו של המאמן, ספירת חזרות בטמפו עם קול, מדידת מנוחות, רישום ביצועים
+// והתאמת משקל בזמן אמת (אוטו־רגולציה בין סטים).
+import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el } from '../ui/dom.js';
+import { ring, setRing } from '../ui/charts.js';
+import { get, set, addXP, XP, pushEvent, regenerateWeek } from '../store.js';
+import { EX, EXERCISES, MUSCLES } from '../data/exercises.js';
+import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
+import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
+import { applyReadiness, blockedSet, LEVEL_NAMES } from '../engine/program.js';
+import { say, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
+import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
+import { startRun } from './run.js';
+
+const RPE = [{ v: 6.5, e: '😎', t: 'קל' }, { v: 8, e: '💪', t: 'טוב' }, { v: 9, e: '😤', t: 'קשה' }, { v: 10, e: '🥵', t: 'עד הקצה' }];
+
+export function startWorkout(workout, { readiness = null } = {}) {
+  unlock();
+  const s = get();
+  const profile = s.profile;
+  const coach = profile.coach;
+  const w = readiness != null ? applyReadiness(workout, readiness) : structuredClone(workout);
+
+  // פריטים: תרגילים רגילים + פיניש (סבב)
+  const items = w.items.map((it) => ({ ...it }));
+  if (w.finisher) {
+    for (const [exId, n] of w.finisher.items) {
+      const ex = EX[exId];
+      const timed = ex.type === 'time' || ex.type === 'cardio';
+      items.push({ exId, role: 'finisher', sets: w.finisher.rounds, reps: [n, n], rest: 25, unit: timed ? 'sec' : undefined, rpe: 9 });
+    }
+  }
+  // רישום מוכן לכל סט
+  const log = items.map((it) => {
+    const ex = EX[it.exId];
+    const sg = it.role === 'finisher' ? { reps: it.reps[0], w: ex.load ? roundLoad(profile.weightKg * ex.load[profile.level - 1], ex) : 0 } : suggest(it.exId, it, s.history[it.exId], profile);
+    return { sg, sets: Array.from({ length: it.sets }, () => ({ w: sg.w || 0, reps: sg.reps, rpe: null, done: false })) };
+  });
+  // סדר צעדים: תרגילים רגילים לפי תרגיל, פיניש לפי סבבים
+  const steps = [];
+  items.forEach((it, ii) => { if (it.role !== 'finisher') for (let si = 0; si < it.sets; si++) steps.push({ ii, si }); });
+  const fin = items.map((it, ii) => ({ it, ii })).filter((x) => x.it.role === 'finisher');
+  if (fin.length) for (let r = 0; r < fin[0].it.sets; r++) fin.forEach(({ ii }) => steps.push({ ii, si: r }));
+
+  const t0 = Date.now();
+  let k = 0;            // צעד נוכחי
+  let mode = 'ready';   // ready | active | log | rest | summary
+  let timer = null;
+  let wakeLock = null;
+  let countedReps = 0;
+  let lastExShown = -1;
+  let intraMsg = '';
+
+  try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
+  preload(['go', 'down', 'up', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set', 'next_ex', 'n1', 'n2', 'n3', 'hold_start', 'hold_half', 'hold_done']);
+
+  const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
+    <div class="stage"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
+      <div class="hud-top"><button class="icon-btn" data-act="exit" aria-label="יציאה">${icon('close', 'width="20" height="20"')}</button>
+        <div class="progress"></div><span class="clock num">0:00</span>
+        <button class="icon-btn" data-act="voice" aria-label="קול">${icon(get().settings.voice ? 'vol' : 'mute', 'width="20" height="20"')}</button></div>
+      <div class="coach-pip"><img src="${COACHES[coach].face}" alt=""></div><div class="say"></div>
+      <div class="title"></div></div>
+    <div class="panel"></div></div>`);
+  document.body.append(root);
+  document.body.style.overflow = 'hidden';
+  const $ = (q) => root.querySelector(q);
+  const video = $('video'), poster = $('img.poster');
+  video.addEventListener('error', () => { video.style.display = 'none'; });
+
+  const offSpeak = onSpeaking((v, text) => {
+    $('.coach-pip').classList.toggle('speaking', v);
+    if (v && text) $('.say').textContent = text;
+  });
+  const clock = setInterval(() => { $('.clock').textContent = fmtTime((Date.now() - t0) / 1000); }, 1000);
+
+  const cur = () => steps[k];
+  const item = () => items[cur().ii];
+  const ex = () => EX[item().exId];
+  const setLog = () => log[cur().ii].sets[cur().si];
+
+  function showExercise() {
+    const ii = cur().ii;
+    if (ii === lastExShown) return;
+    lastExShown = ii;
+    const id = item().exId;
+    video.style.display = '';
+    poster.src = demoPoster(coach, id);
+    video.src = demoVideo(coach, id);
+    video.play().catch(() => {});
+  }
+
+  function paintTop() {
+    const exIdx = [...new Set(steps.map((x) => x.ii))];
+    $('.progress').innerHTML = exIdx.map((ii) => {
+      const sets = log[ii].sets;
+      const all = sets.every((x) => x.done);
+      return `<i class="${all ? 'f' : ii === cur()?.ii ? 'c' : ''}"></i>`;
+    }).join('');
+    const it = item(), e = ex();
+    const setNo = cur().si + 1;
+    $('.title').innerHTML = html`<div class="row" style="gap:6px;margin-bottom:6px">
+        ${it.role === 'finisher' ? `<span class="tag orange">🔥 ${esc(w.finisher.name)}</span>` : `<span class="tag lime">${it.role === 'main' ? 'תרגיל מרכזי' : it.role === 'second' ? 'משני' : it.role === 'core' ? 'ליבה' : 'עזר'}</span>`}
+        <span class="tag">${it.role === 'finisher' ? 'סבב' : 'סט'} <span class="num">${setNo}/${it.sets}</span></span>
+        <button class="tag teal" data-act="info">${icon('info', 'width="12" height="12"')} הסבר</button></div>
+      <div class="name">${esc(e.name)}</div>
+      <div class="sub">${esc(e.equip)} · ${e.muscles.slice(0, 3).map((m) => MUSCLES[m]).join(' · ')}</div>`;
+  }
+
+  // ───── מצבים ─────
+  function paint() {
+    if (mode === 'summary') return;
+    showExercise(); paintTop();
+    const p = $('.panel');
+    const it = item(), e = ex(), sl = setLog();
+    const timed = it.unit === 'sec';
+    if (mode === 'ready') {
+      const sg = log[cur().ii].sg;
+      p.innerHTML = html`
+        ${cur().si === 0 && sg.why ? `<div class="sub" style="margin:6px 0 10px;color:var(--teal);font-weight:700">🧠 ${esc(sg.why)}</div>` : ''}
+        ${intraMsg ? `<div class="sub" style="margin:6px 0 10px;color:var(--lime);font-weight:700">⚡ ${esc(intraMsg)}</div>` : ''}
+        <div class="target">
+          ${e.type === 'weight' || e.load ? html`<div><div class="sub" style="font-size:12px;margin-bottom:4px">משקל</div>
+            <div class="stepper"><button data-w="-">−</button><div class="val"><span>${sl.w}</span><small>ק״ג</small></div><button data-w="+">+</button></div></div>` : ''}
+          <div><div class="sub" style="font-size:12px;margin-bottom:4px">${timed ? 'זמן' : 'חזרות יעד'}</div>
+            <div class="stepper"><button data-r="-">−</button><div class="val"><span>${sl.reps}</span><small>${timed ? 'שנ׳' : e.unilateral ? 'לכל צד' : ''}</small></div><button data-r="+">+</button></div></div>
+        </div>
+        <button class="btn primary block xl" data-act="go">${icon('play', 'width="22" height="22"')} ${timed ? 'התחל' : 'התחל סט'}</button>
+        <div class="row" style="margin-top:10px">
+          ${it.role !== 'finisher' ? `<button class="btn sm" data-act="swap">${icon('swap', 'width="16" height="16"')} החלף תרגיל</button>` : ''}
+          <span class="spacer"></span>
+          ${!timed ? `<button class="btn sm ghost" data-act="manual">סיימתי בלי ספירה ✓</button>` : ''}
+        </div>`;
+    } else if (mode === 'active') {
+      p.innerHTML = html`<div class="counter">${ring(0, { size: 190, stroke: 14, big: timed ? sl.reps : '0', lbl: timed ? 'שניות' : `מתוך ${sl.reps}` })}
+        <div class="phase-lbl" id="ph">היכון…</div></div>
+        <button class="btn block xl" data-act="finish-set">${timed ? 'עצור' : 'סיימתי את הסט'}</button>`;
+    } else if (mode === 'log') {
+      p.innerHTML = html`<div class="h2" style="margin:6px 0 10px">איך היה? 📝</div>
+        <div class="target">
+          ${e.type === 'weight' || e.load ? html`<div><div class="stepper"><button data-w="-">−</button><div class="val"><span>${sl.w}</span><small>ק״ג</small></div><button data-w="+">+</button></div></div>` : ''}
+          <div><div class="stepper"><button data-r="-">−</button><div class="val"><span>${sl.reps}</span><small>${timed ? 'שנ׳' : 'חזרות'}</small></div><button data-r="+">+</button></div></div>
+        </div>
+        <div class="rpe">${RPE.map((r) => `<button data-rpe="${r.v}" class="${sl.rpe === r.v ? 'on' : ''}"><span>${r.e}</span>${r.t}</button>`)}</div>`;
+    }
+  }
+
+  function startSet() {
+    mode = 'active'; paint();
+    countedReps = 0;
+    const it = item(), e = ex(), sl = setLog();
+    if (it.unit === 'sec') return runTimed(sl.reps);
+    if (!get().settings.tempoCount) { $('#ph').textContent = 'בצע בקצב שלך'; return; }
+    say('go', { priority: true });
+    const [down, hold, up] = e.tempo;
+    const rep = (down + hold + up) * 1000;
+    const target = sl.reps;
+    let startAt = Date.now() + 2600;
+    let lastPhase = '';
+    timer = setInterval(() => {
+      const t = Date.now() - startAt;
+      if (t < 0) return;
+      const r = Math.floor(t / rep);
+      const within = t - r * rep;
+      if (r >= target) { countedReps = target; say(`n${Math.min(20, target)}`); endSet(); return; }
+      const phase = within < down * 1000 ? 'down' : within < (down + hold) * 1000 ? 'hold' : 'up';
+      const key = `${r}-${phase}`;
+      const ringNode = $('.counter .ring');
+      setRing(ringNode, (r + within / rep) / target);
+      if (key !== lastPhase) {
+        lastPhase = key;
+        const ph = $('#ph');
+        ph.className = `phase-lbl ${phase}`;
+        ph.textContent = phase === 'down' ? '⬇ ירידה' : phase === 'hold' ? '⏸ החזק' : '⬆ עלייה';
+        if (r < 2 && down + up >= 3) say(phase === 'down' ? 'down' : phase === 'hold' ? 'hold' : 'up');
+        if (phase === 'down' && r > 0) {
+          countedReps = r;
+          ringNode.querySelector('.big').textContent = r;
+          say(`n${Math.min(20, r)}`);
+          if (target - r === 2 && target >= 5) say('two_more');
+          if (target - r === 1) say('last_rep');
+          vibrate(15);
+        }
+      }
+    }, 50);
+  }
+
+  function runTimed(secs) {
+    say('hold_start', { priority: true });
+    const startAt = Date.now() + 1200;
+    let lastSec = -1, half = false;
+    timer = setInterval(() => {
+      const t = (Date.now() - startAt) / 1000;
+      if (t < 0) return;
+      const left = Math.max(0, secs - t);
+      const node = $('.counter .ring');
+      setRing(node, t / secs);
+      node.querySelector('.big').textContent = Math.ceil(left);
+      $('#ph').textContent = left > 0 ? '🔥 ממשיכים' : '';
+      const sec = Math.ceil(left);
+      if (sec !== lastSec) {
+        lastSec = sec;
+        if (!half && t >= secs / 2 && secs >= 20) { half = true; say('hold_half'); }
+        if (sec <= 3 && sec >= 1) say(`n${sec}`);
+      }
+      if (left <= 0) { countedReps = secs; say('hold_done'); endSet(); }
+    }, 100);
+  }
+
+  function endSet(manual = false) {
+    clearInterval(timer); timer = null;
+    const sl = setLog(), it = item();
+    if (it.unit === 'sec' && manual) {
+      // נעצר מוקדם
+      const shown = Number($('.counter .big')?.textContent || 0);
+      sl.reps = Math.max(1, Math.round(sl.reps - shown));
+    } else if (!manual || countedReps) sl.reps = countedReps || sl.reps;
+    vibrate([40, 60, 40]);
+    if (it.role === 'finisher') { sl.done = true; sl.rpe = 9; return afterLog(); }
+    mode = 'log';
+    say('rate_set');
+    paint();
+  }
+
+  function afterLog() {
+    const sl = setLog(), it = item(), e = ex();
+    sl.done = true;
+    // אוטו־רגולציה בתוך האימון
+    intraMsg = '';
+    const nextSame = steps[k + 1] && steps[k + 1].ii === cur().ii ? log[cur().ii].sets[steps[k + 1].si] : null;
+    if (nextSame && e.type === 'weight') {
+      if (sl.rpe <= 6.5 && sl.reps >= it.reps[1] - 1) { nextSame.w = roundLoad(sl.w + e.inc, e); intraMsg = `היה קל — העליתי ל-${nextSame.w} ק״ג`; }
+      else if (sl.rpe >= 10 && sl.reps < it.reps[0]) { nextSame.w = roundLoad(sl.w * 0.92, e); intraMsg = `הורדתי ל-${nextSame.w} ק״ג כדי לשמור על טכניקה`; }
+      else nextSame.w = sl.w;
+      nextSame.reps = Math.max(nextSame.reps, it.reps[0]);
+    }
+    if (k >= steps.length - 1) return finish();
+    k++;
+    rest(it.rest);
+  }
+
+  function rest(secs) {
+    mode = 'rest';
+    const nxt = steps[k];
+    const nIt = items[nxt.ii], nEx = EX[nIt.exId];
+    const newEx = nxt.ii !== steps[k - 1].ii;
+    say('set_done');
+    if (secs >= 40) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
+    const p = $('.panel');
+    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: '#22e6d0' })}</div>
+      <div class="row"><button class="btn sm" data-act="rest-minus">−15</button><span class="spacer"></span>
+        <button class="btn sm teal" data-act="rest-skip">${icon('skip', 'width="16" height="16"')} דלג</button><span class="spacer"></span>
+        <button class="btn sm" data-act="rest-plus">+30</button></div>
+      <div class="next-up"><img src="${demoPoster(coach, nIt.exId)}" alt=""><div><div class="sub" style="font-size:12px">${newEx ? 'תרגיל הבא' : 'הסט הבא'}</div>
+        <b>${esc(nEx.name)}</b> · <span class="num">${log[nxt.ii].sets[nxt.si].w ? `${log[nxt.ii].sets[nxt.si].w} ק״ג × ` : ''}${log[nxt.ii].sets[nxt.si].reps}</span></div></div>`;
+    let end = Date.now() + secs * 1000;
+    let lastSec = -1;
+    const total = secs;
+    root._restAdj = (d) => { end += d * 1000; };
+    root._restSkip = () => { end = Date.now(); };
+    timer = setInterval(() => {
+      const left = Math.max(0, (end - Date.now()) / 1000);
+      const node = $('.counter .ring');
+      if (node) { setRing(node, left / total); node.querySelector('.big').textContent = fmtTime(left); }
+      const sec = Math.ceil(left);
+      if (sec !== lastSec) {
+        lastSec = sec;
+        if (sec === 30 && total >= 60) say('rest_30');
+        if (sec === 10 && total >= 25) say('rest_10');
+        if (sec <= 3 && sec >= 1) { say(`n${sec}`); vibrate(20); }
+      }
+      if (left <= 0) {
+        clearInterval(timer); timer = null;
+        mode = 'ready';
+        if (newEx) { say('next_ex'); say(`ex_${nIt.exId}`); } else {
+          const last = nxt.si === nIt.sets - 1;
+          say(last ? 'last_set' : `set${Math.min(6, nxt.si + 1)}`);
+        }
+        paint();
+      }
+    }, 200);
+  }
+
+  // ───── סיום ─────
+  function finish(partial = false) {
+    clearInterval(timer); timer = null;
+    mode = 'summary';
+    const st = get();
+    const dur = Math.round((Date.now() - t0) / 1000);
+    const exercises = [];
+    const prs = [];
+    let volume = 0, setsDone = 0;
+    items.forEach((it, ii) => {
+      const done = log[ii].sets.filter((x) => x.done);
+      if (!done.length) return;
+      setsDone += done.length;
+      done.forEach((x) => (volume += (x.w || 0) * (it.unit === 'sec' ? 0 : x.reps)));
+      exercises.push({ exId: it.exId, role: it.role, sets: done, target: it.reps });
+      if (it.role !== 'finisher' && EX[it.exId].type === 'weight' && isPR(it.exId, done, st.history[it.exId])) prs.push(it.exId);
+    });
+    if (!exercises.length) { close(); return; }
+    let gained = XP.workout + prs.length * XP.pr;
+    set((s2) => {
+      for (const e of exercises) {
+        if (e.role === 'finisher') continue;
+        (s2.history[e.exId] ||= []).push({ date: new Date().toISOString(), sets: e.sets, target: e.target });
+      }
+      s2.sessions.push({ date: new Date().toISOString(), name: w.name, day: workout.day ?? null, field: !!workout.field, durationSec: dur, volume: Math.round(volume), setsDone, exercises, prs, readiness: w.readiness ?? null, partial });
+      if (workout.day != null && !partial && !s2.plan.completedDays.includes(workout.day)) s2.plan.completedDays.push(workout.day);
+      return s2;
+    });
+    prs.forEach((id) => pushEvent({ type: 'pr', text: `שיא אישי ב${EX[id].name}! 🏆` }));
+    const rk = addXP(gained, 'workout');
+    const weekMsg = maybeAdvanceWeek();
+
+    stop();
+    say(prs.length ? 'pr' : 'workout_done', { priority: true });
+    if (prs.length) say('workout_done');
+    confetti(prs.length ? 140 : 80);
+    try { wakeLock?.release(); } catch { /* */ }
+
+    video.pause();
+    root.querySelector('.stage').style.flex = '0 0 34%';
+    $('.title').innerHTML = html`<div class="eyebrow">משימה הושלמה</div><div class="name">${esc(w.name)} ✓</div>`;
+    $('.progress').innerHTML = '';
+    $('.panel').innerHTML = html`
+      <div class="kpis" style="margin-top:8px">
+        <div class="kpi"><b>${fmtTime(dur)}</b><span>זמן</span></div>
+        <div class="kpi"><b>${setsDone}</b><span>סטים</span></div>
+        <div class="kpi up"><b>${Math.round(volume).toLocaleString('he-IL')}</b><span>ק״ג נפח</span></div></div>
+      ${prs.length ? html`<div class="card tight" style="margin-top:12px">${prs.map((id) => `<div class="row" style="padding:4px 0"><span class="pr-badge">PR</span><b>${esc(EX[id].name)}</b><span class="spacer"></span><span class="num">${bestSet(exercises.find((x) => x.exId === id).sets).w} ק״ג</span></div>`)}</div>` : ''}
+      <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:26px">⭐</span><div><b>+${gained} XP</b>${rk.rankUp ? `<div class="sub">עלית דרגה: ${rk.rankUp.icon} ${rk.rankUp.name}!</div>` : ''}</div></div>
+        ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--lime);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
+      ${workout.run && !partial ? `<button class="btn teal block xl" style="margin-top:14px" data-act="run-now">🏃 המשך לריצה: ${esc(workout.run.name)}</button>` : ''}
+      <button class="btn primary block xl" style="margin-top:10px" data-act="close">סיום</button>`;
+  }
+
+  function close() {
+    clearInterval(timer); clearInterval(clock); offSpeak(); stop();
+    try { wakeLock?.release(); } catch { /* */ }
+    root.remove();
+    document.body.style.overflow = '';
+    dispatchEvent(new HashChangeEvent('hashchange'));
+  }
+
+  // ───── אירועים ─────
+  on(root, 'click', '[data-act]', (e, t) => {
+    const a = t.dataset.act;
+    if (a === 'go') startSet();
+    if (a === 'manual') { countedReps = setLog().reps; mode = 'log'; paint(); }
+    if (a === 'finish-set') endSet(true);
+    if (a === 'rest-skip') root._restSkip?.();
+    if (a === 'rest-plus') root._restAdj?.(30);
+    if (a === 'rest-minus') root._restAdj?.(-15);
+    if (a === 'info') infoSheet(item().exId, coach);
+    if (a === 'swap') swapSheet();
+    if (a === 'voice') {
+      set((s2) => { s2.settings.voice = !s2.settings.voice; return s2; });
+      if (!get().settings.voice) stop();
+      t.innerHTML = icon(get().settings.voice ? 'vol' : 'mute', 'width="20" height="20"');
+    }
+    if (a === 'exit') {
+      if (mode === 'summary') return close();
+      const any = log.some((l) => l.sets.some((x) => x.done));
+      sheet(html`<div class="h1" style="font-size:22px">לצאת מהאימון?</div><p class="sub">${any ? 'אפשר לשמור את מה שעשית עד עכשיו.' : 'עוד לא נרשם אף סט.'}</p>
+        ${any ? '<button class="btn primary block" data-x="save">סיים ושמור</button>' : ''}
+        <button class="btn block" style="margin-top:8px" data-x="quit">צא בלי לשמור</button>
+        <button class="btn ghost block" style="margin-top:8px" data-close>המשך להתאמן</button>`, {
+        onMount(sh, closeSheet) {
+          on(sh, 'click', '[data-x]', (ev, b) => { closeSheet(); b.dataset.x === 'save' ? finish(true) : close(); });
+        },
+      });
+    }
+    if (a === 'close') close();
+    if (a === 'run-now') { close(); startRun(workout.run, { day: workout.day }); }
+  });
+  on(root, 'click', '[data-w]', (e, t) => {
+    const sl = setLog(), ex1 = ex();
+    const step = ex1.inc >= 5 ? 2.5 : ex1.inc >= 2 ? 1 : 0.5;
+    sl.w = Math.max(0, Math.round((sl.w + (t.dataset.w === '+' ? step : -step)) * 10) / 10);
+    // עדכון גם לסטים הבאים של אותו תרגיל
+    log[cur().ii].sets.forEach((x, i) => { if (i > cur().si && !x.done) x.w = sl.w; });
+    t.parentElement.querySelector('.val span').textContent = sl.w;
+  });
+  on(root, 'click', '[data-r]', (e, t) => {
+    const sl = setLog();
+    const step = item().unit === 'sec' ? 5 : 1;
+    sl.reps = Math.max(1, sl.reps + (t.dataset.r === '+' ? step : -step));
+    t.parentElement.querySelector('.val span').textContent = sl.reps;
+  });
+  on(root, 'click', '[data-rpe]', (e, t) => {
+    setLog().rpe = Number(t.dataset.rpe);
+    vibrate(20);
+    afterLog();
+  });
+
+  function swapSheet() {
+    const cur1 = item();
+    const blocked = blockedSet(profile);
+    const used = new Set(items.map((x) => x.exId));
+    const e = EX[cur1.exId];
+    const opts = EXERCISES.filter((x) => x.id !== e.id && !blocked.has(x.id) && !used.has(x.id) && (e.alts.includes(x.id) || x.pattern === e.pattern || x.group === e.group) && x.type !== 'cardio');
+    sheet(html`<div class="h1" style="font-size:22px">החלפת תרגיל</div><p class="sub">המכשיר תפוס? יש כאב? בחר חלופה שעובדת על אותם שרירים.</p>
+      ${opts.slice(0, 8).map((x) => html`<button class="ex-row" style="width:100%;text-align:right" data-sw="${x.id}">
+        <div class="ex-thumb"><img src="${demoPoster(coach, x.id)}" alt=""></div><div><div class="t">${esc(x.name)}</div><div class="s">${esc(x.equip)}</div></div></button>`)}`, {
+      onMount(sh, closeSheet) {
+        on(sh, 'click', '[data-sw]', (ev, b) => {
+          const id = b.dataset.sw;
+          cur1.exId = id;
+          const sg = suggest(id, cur1, get().history[id], profile);
+          const L = log[cur().ii];
+          L.sg = sg;
+          L.sets.forEach((x) => { if (!x.done) { x.w = sg.w || 0; x.reps = sg.reps; } });
+          lastExShown = -1;
+          closeSheet(); say(`ex_${id}`, { priority: true }); paint();
+        });
+      },
+    });
+  }
+
+  // פתיחה
+  say(`hello_${coach}`, { priority: true });
+  say(`ex_${items[0].exId}`);
+  if (w.note) toast(w.note, 4200);
+  paint();
+}
+
+export function infoSheet(exId, coach) {
+  const e = EX[exId];
+  sheet(html`<video src="${demoVideo(coach, exId)}" poster="${demoPoster(coach, exId)}" muted playsinline loop autoplay style="width:100%;max-height:46vh;object-fit:cover;border-radius:18px"></video>
+    <div class="h1" style="font-size:24px;margin-top:14px">${esc(e.name)}</div>
+    <div class="chips" style="margin:8px 0">${e.muscles.map((m) => `<span class="tag lime">${MUSCLES[m]}</span>`)}<span class="tag">${esc(e.equip)}</span></div>
+    <div class="h2" style="margin-top:14px">ביצוע נכון</div>
+    ${e.cues.map((c, i) => `<div class="row" style="padding:6px 0;align-items:flex-start"><span class="tag teal num">${i + 1}</span><span>${esc(c)}</span></div>`)}
+    <div class="sub" style="margin-top:10px">⏱️ טמפו: ${e.tempo[0]} שנ׳ ירידה · ${e.tempo[1] ? `${e.tempo[1]} שנ׳ החזקה · ` : ''}${e.tempo[2]} שנ׳ עלייה</div>
+    <button class="btn block" style="margin-top:16px" data-close>סגור</button>`);
+}
+
+// ───── התקדמות שבוע / בלוק / רמה ─────
+export function maybeAdvanceWeek() {
+  const s = get();
+  if (s.plan.completedDays.length < s.plan.week.sessions.length) return '';
+  let msg = 'שבוע הושלם! 🎉 השבוע הבא נבנה לפי הביצועים שלך.';
+  set((s2) => {
+    s2.plan.weekInBlock += 1;
+    if (s2.plan.weekInBlock >= 4) {
+      s2.plan.weekInBlock = 0;
+      s2.plan.blockIndex += 1;
+      const ev = evaluateLevel(s2.profile.level, blockStats(s2));
+      if (ev.change) {
+        s2.profile.level = ev.level;
+        s2.events = [{ type: 'level', text: `רמה ${ev.level} (${LEVEL_NAMES[ev.level]}): ${ev.msg}`, date: new Date().toISOString() }, ...s2.events];
+      }
+      msg = `בלוק הושלם! ${ev.msg}`;
+    }
+    s2.plan.completedDays = [];
+    s2.plan.weekStart = new Date().toISOString().slice(0, 10);
+    regenerateWeek(s2);
+    return s2;
+  });
+  addXP(XP.perfectWeek, 'week');
+  return msg;
+}
+
+function blockStats(s) {
+  const since = Date.now() - 28 * 864e5;
+  const sess = s.sessions.filter((x) => new Date(x.date).getTime() >= since && !x.field);
+  const rpes = sess.flatMap((x) => x.exercises.flatMap((e) => e.sets.map((y) => y.rpe).filter(Boolean)));
+  let progressed = 0, tracked = 0;
+  for (const [, hist] of Object.entries(s.history)) {
+    const inBlock = hist.filter((h) => new Date(h.date).getTime() >= since);
+    if (inBlock.length < 2) continue;
+    tracked++;
+    if ((bestSet(inBlock[inBlock.length - 1].sets)?.e1rm || 0) > (bestSet(inBlock[0].sets)?.e1rm || 0)) progressed++;
+  }
+  return { planned: s.profile.days * 4, completed: sess.length, progressed, tracked, avgRpe: rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : 8 };
+}

@@ -1,0 +1,162 @@
+{
+ "back_squat": [
+  "standing upright in a squat rack with a loaded olympic barbell resting on the upper back, feet shoulder-width, side view",
+  "performs one slow controlled barbell back squat: descends until thighs are parallel to the floor, then drives back up to standing"
+ ],
+ "leg_press": [
+  "seated in a 45-degree leg press machine with feet on the platform, legs extended (knees soft), side view",
+  "performs one controlled leg press rep: lowers the platform bending the knees to 90 degrees, then pushes it back up"
+ ],
+ "rdl": [
+  "standing tall holding a loaded barbell at the hips with straight arms, side view",
+  "performs one romanian deadlift: hinges at the hips with a flat back, slides the bar down the thighs to mid-shin, then squeezes glutes back to standing"
+ ],
+ "deadlift": [
+  "standing tall holding a loaded barbell after a completed deadlift lockout, side view",
+  "lowers the barbell to the floor with a flat back by hinging hips and bending knees, briefly touches the floor, then lifts it back up to full lockout"
+ ],
+ "db_lunge": [
+  "standing upright holding a dumbbell in each hand at the sides, side view",
+  "performs one forward lunge: steps forward, lowers until the back knee nearly touches the floor, then pushes back to standing"
+ ],
+ "bulgarian_split": [
+  "standing in a split stance with the rear foot elevated on a flat bench, holding dumbbells at the sides, side view",
+  "performs one bulgarian split squat: lowers straight down until the front thigh is parallel, then drives back up"
+ ],
+ "leg_ext": [
+  "seated in a leg extension machine, knees bent at 90 degrees, hands on the handles, side view",
+  "extends both knees lifting the pad until legs are straight, squeezes, then slowly lowers back down"
+ ],
+ "leg_curl": [
+  "lying face down on a lying leg curl machine with the pad behind the ankles, legs straight, side view",
+  "curls the heels toward the glutes, squeezes the hamstrings, then slowly lowers back to straight legs"
+ ],
+ "calf_raise": [
+  "standing on a step platform in a standing calf raise machine, heels slightly lowered, side view",
+  "rises up high onto the toes, pauses at the top, then slowly lowers the heels below the platform"
+ ],
+ "hip_thrust": [
+  "sitting on the floor with upper back against a flat bench, padded barbell across the hips, knees bent, side view",
+  "drives the hips up until the torso is parallel to the floor, squeezes the glutes, then lowers back down"
+ ],
+ "pullup": [
+  "hanging from a high pull-up bar mounted well above head height, with an overhand grip, arms fully extended, feet clearly off the ground with knees slightly bent and ankles crossed, front three-quarter view",
+  "performs one strict pull-up: pulls until the chin clears the bar, then lowers slowly to a full hang"
+ ],
+ "lat_pulldown": [
+  "seated at a lat pulldown machine holding a wide bar overhead with straight arms, front three-quarter view",
+  "pulls the bar down to the upper chest squeezing the shoulder blades, then lets it rise slowly back up"
+ ],
+ "cable_row": [
+  "seated at a low cable row machine, feet on the platform, holding a V-handle with arms extended, side view",
+  "rows the handle to the stomach pulling the elbows back and squeezing the back, then extends the arms slowly"
+ ],
+ "bb_row": [
+  "hinged forward about 45 degrees with a flat back, holding a loaded barbell with straight arms below the knees, side view",
+  "rows the barbell to the lower chest, squeezes the shoulder blades, then lowers it with control"
+ ],
+ "db_row": [
+  "one knee and one hand on a flat bench, back flat, holding a dumbbell in the other hand with the arm extended, side view",
+  "rows the dumbbell up to the hip keeping the elbow close, then lowers it slowly"
+ ],
+ "face_pull": [
+  "standing facing a high cable pulley holding a rope attachment with arms extended at face height, side view",
+  "pulls the rope toward the face splitting the ends apart with elbows high, then returns slowly"
+ ],
+ "bench_press": [
+  "lying on a flat bench under a loaded barbell, arms locked out holding the bar above the chest, side view",
+  "lowers the barbell slowly to the mid chest, then presses it back up to full lockout"
+ ],
+ "incline_db_press": [
+  "lying on an incline bench holding two dumbbells pressed above the upper chest, side view",
+  "lowers the dumbbells to chest level with elbows at 45 degrees, then presses them back up"
+ ],
+ "cable_fly": [
+  "standing in the middle of a cable crossover station, one foot forward, holding handles with arms open wide at chest height, front view",
+  "brings the hands together in a wide hugging arc in front of the chest, squeezes, then opens slowly"
+ ],
+ "pushup": [
+  "in a high plank push-up position on the gym floor, arms straight, body in a straight line, side view",
+  "lowers the chest close to the floor keeping the body rigid, then pushes back up"
+ ],
+ "dips": [
+  "supported on parallel dip bars with arms locked out, legs slightly bent, side view",
+  "does one controlled parallel-bar exercise: bends the elbows to lower the body a little, then straightens the arms back up, athletic gym training"
+ ],
+ "ohp": [
+  "standing holding a loaded barbell at the front of the shoulders, side view",
+  "presses the barbell straight overhead to lockout, then lowers it back to the shoulders"
+ ],
+ "lateral_raise": [
+  "standing holding light dumbbells at the sides, front view",
+  "raises both arms out to the sides to shoulder height with a slight elbow bend, then lowers slowly"
+ ],
+ "rear_delt_fly": [
+  "seated facing the pad of a reverse pec-deck machine, arms extended forward holding the handles, side three-quarter view",
+  "opens the arms back in a wide arc squeezing the rear shoulders, then returns slowly"
+ ],
+ "bb_curl": [
+  "standing holding a barbell with an underhand grip, arms extended at the thighs, side view",
+  "curls the bar up to the shoulders keeping elbows pinned, then lowers slowly"
+ ],
+ "hammer_curl": [
+  "standing holding dumbbells at the sides with palms facing in, front three-quarter view",
+  "curls both dumbbells up with a neutral grip, then lowers slowly"
+ ],
+ "rope_pushdown": [
+  "standing facing a high cable pulley holding a rope attachment, elbows bent at 90 degrees at the sides, side view",
+  "pushes the rope down until the arms are straight, spreading the ends apart, then returns slowly"
+ ],
+ "oh_tri_ext": [
+  "seated on a bench holding one dumbbell with both hands straight overhead, side view",
+  "lowers the dumbbell behind the head by bending the elbows, then extends back up"
+ ],
+ "plank": [
+  "holding a forearm plank on a gym mat, body in a perfectly straight line, side view",
+  "holds the forearm plank steadily, breathing, with tiny core-bracing adjustments"
+ ],
+ "hanging_leg_raise": [
+  "hanging from a high pull-up bar mounted well above head height, arms straight, feet clearly off the ground, legs straight, side view",
+  "raises the straight legs up to hip height in a controlled manner, then lowers slowly without swinging"
+ ],
+ "woodchop": [
+  "standing sideways to a high cable pulley holding the handle with both hands above one shoulder, front view",
+  "pulls the handle diagonally down across the body to the opposite hip rotating the torso, then returns"
+ ],
+ "ab_wheel": [
+  "kneeling on a mat holding an ab wheel on the floor under the shoulders, side view",
+  "rolls the wheel forward extending the body while bracing the core, then rolls back to the start"
+ ],
+ "kb_swing": [
+  "standing with feet wide holding a kettlebell with both hands in front of the hips, side view",
+  "performs one kettlebell swing: hinges and hikes the bell back, then snaps the hips to swing it to chest height, and lets it swing back"
+ ],
+ "burpee": [
+  "standing upright on the gym floor, side view",
+  "performs one burpee: squats down, jumps feet back to a plank, does a push-up, jumps feet forward and explodes into a jump with arms overhead"
+ ],
+ "farmer_carry": [
+  "standing tall holding a heavy dumbbell in each hand at the sides, front three-quarter view",
+  "walks forward with heavy dumbbells, tall posture, braced core, steady steps"
+ ],
+ "box_jump": [
+  "standing in front of a plyometric box, side view",
+  "swings the arms and jumps explosively onto the box, lands softly in a squat, then steps back down"
+ ],
+ "battle_rope": [
+  "standing in an athletic half squat holding the ends of two thick battle ropes, front three-quarter view",
+  "creates fast powerful alternating waves with the battle ropes"
+ ],
+ "rower": [
+  "seated on an indoor rowing machine at the catch position, knees bent, arms extended, side view",
+  "performs one rowing stroke: drives with the legs, leans back slightly, pulls the handle to the ribs, then returns to the catch"
+ ],
+ "sled_push": [
+  "leaning into a loaded push sled, hands on the vertical poles, on gym turf, side view",
+  "drives the heavy sled forward with powerful steps, low body angle"
+ ],
+ "treadmill_run": [
+  "running on a modern treadmill, mid-stride, side view",
+  "runs at a steady fast pace on the treadmill with good running form"
+ ]
+}

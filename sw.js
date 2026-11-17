@@ -1,6 +1,6 @@
 // Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין), מדיה במטמון נפרד שמתרענן רק כשהמדיה משתנה.
 // הגרסאות מתעדכנות אוטומטית ע״י tools/release.mjs — כל שינוי כאן גורם לדפדפן להתקין את הגרסה החדשה.
-const VERSION = 'lohem-20261117.213352';
+const VERSION = 'lohem-20261117.213759';
 const MEDIA = 'lohem-media-20261117.211920';
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'version.json',

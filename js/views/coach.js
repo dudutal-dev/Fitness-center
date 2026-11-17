@@ -1,5 +1,5 @@
 // מסך המאמן והפרופיל: החלפת מאמן, הגדרות קול, עריכת פרופיל ויעדים, גיבוי ושחזור.
-import { html, esc, on, sheet, toast } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, icon } from '../ui/dom.js';
 import { get, set, regenerateWeek, exportData, importData, resetAll } from '../store.js';
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, LEVEL_NAMES } from '../engine/program.js';
@@ -58,7 +58,7 @@ export function renderCoach(root) {
     <div class="h2">💾 נתונים</div>
     <div class="card">
       <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים אוטומטית במכשיר. מומלץ לגבות מדי פעם (למשל לפני החלפת טלפון).</div>
-      <div class="grid2"><button class="btn sm" data-export>⬇ גיבוי לקובץ</button><label class="btn sm">⬆ שחזור<input type="file" accept="application/json" hidden data-import></label></div>
+      <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי לקובץ</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;

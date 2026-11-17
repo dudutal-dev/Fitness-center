@@ -97,5 +97,13 @@ const P = {
   skip: '<path d="M5 5l9 7-9 7zM18 5v14"/>',
   vol: '<path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>',
   mute: '<path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/>',
+  // שלבי חזרה (במקום אמוג׳י — אחיד בכל המכשירים)
+  phUp: '<path d="M6 13l6-6 6 6"/><path d="M6 19l6-6 6 6" opacity=".45"/>',
+  phDown: '<path d="M6 11l6 6 6-6"/><path d="M6 5l6 6 6-6" opacity=".45"/>',
+  phPull: '<path d="M19 12H7"/><path d="M11 7l-5 5 5 5"/><path d="M3 5v14"/>',
+  phRelease: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
+  phHold: '<rect x="7" y="5" width="3.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"/>',
+  download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  upload: '<path d="M12 20V9"/><path d="M7 14l5-5 5 5"/><path d="M5 4h14"/>',
 };
 export const icon = (name, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${P[name] || ''}</svg>`;

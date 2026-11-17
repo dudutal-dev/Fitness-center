@@ -201,7 +201,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const P = conFirst
       ? [{ k: 'con', secs: con, cue: e.cueCon, part: 'A' }, { k: 'hold', secs: hold, cue: 'hold', part: 'hold' }, { k: 'ecc', secs: ecc, cue: e.cueEcc, part: 'B' }]
       : [{ k: 'ecc', secs: ecc, cue: e.cueEcc, part: 'A' }, { k: 'hold', secs: hold, cue: 'hold', part: 'hold' }, { k: 'con', secs: con, cue: e.cueCon, part: 'B' }];
-    const LABEL = { down: '⬇ ירידה', up: '⬆ עלייה', pull: '⟵ משיכה', press: '⬇ לחיצה', release: '↺ שחרור', hold: '⏸ החזק' };
+    const ph = (ic, cls, t) => `<span class="ph-ico ${cls}">${icon(ic)}</span>${t}`;
+    const LABEL = { down: ph('phDown', 'go-down', 'ירידה'), up: ph('phUp', 'go-up', 'עלייה'), pull: ph('phPull', 'go-pull', 'משיכה'),
+      press: ph('phDown', 'go-down', 'לחיצה'), release: ph('phRelease', 'go-rel', 'שחרור'), hold: ph('phHold', 'go-hold', 'החזק') };
     const rep = (ecc + hold + con) * 1000;
     const target = sl.reps;
     const segs = segsFor(e.id);
@@ -230,17 +232,17 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (r >= target) { countedReps = target; sayNow([`n${Math.min(20, target)}`]); endSet(); return; }
       let acc = 0, pi = 0;
       while (pi < 2 && within >= (acc + P[pi].secs) * 1000) { acc += P[pi].secs; pi++; }
-      const ph = P[pi];
+      const cur = P[pi];
       const key = `${r}-${pi}`;
       const ringNode = $('.counter .ring');
       setRing(ringNode, (r + within / rep) / target);
       if (key !== lastPhase) {
         lastPhase = key;
-        (window.__phaseLog ||= []).push({ t: performance.now(), r, pi, label: LABEL[ph.cue], ct: video.currentTime }); // לבדיקות סנכרון
-        if (segs.length) videoPhase(segs[r % segs.length], ph.part, ph.secs);
+        (window.__phaseLog ||= []).push({ t: performance.now(), r, pi, label: LABEL[cur.cue], ct: video.currentTime }); // לבדיקות סנכרון
+        if (segs.length) videoPhase(segs[r % segs.length], cur.part, cur.secs);
         const lbl = $('#ph');
-        lbl.className = `phase-lbl ${ph.k === 'hold' ? 'hold' : ph.k === 'ecc' ? 'down' : 'up'}`;
-        lbl.textContent = LABEL[ph.cue];
+        lbl.className = `phase-lbl ${cur.k === 'hold' ? 'hold' : cur.k === 'ecc' ? 'down' : 'up'}`;
+        lbl.innerHTML = LABEL[cur.cue];
         // מה המאמן אומר בתחילת כל שלב (חלון = משך השלב):
         //  • תחילת חזרה: מספר החזרה שהושלמה, "עוד שתיים"/"חזרה אחרונה", ובשתי החזרות הראשונות גם הנחיית התנועה
         //  • שלב שני: הנחיית התנועה ("עלייה!") בכל חזרה — אם נכנס בזמן
@@ -253,9 +255,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
             vibrate(15);
           }
           const extra = target - r === 2 && target >= 5 ? 'two_more' : target - r === 1 && target > 1 ? 'last_rep' : null;
-          words = fit([r > 0 ? `n${Math.min(20, r)}` : null, extra, r < 2 ? ph.cue : null], ph.secs);
-        } else if (ph.secs > 0) {
-          words = fit([ph.cue], ph.secs);
+          words = fit([r > 0 ? `n${Math.min(20, r)}` : null, extra, r < 2 ? cur.cue : null], cur.secs);
+        } else if (cur.secs > 0) {
+          words = fit([cur.cue], cur.secs);
         }
         if (words.length) sayNow(words);
       }

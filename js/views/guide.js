@@ -1,5 +1,5 @@
 // מדריך שימוש: נפתח אוטומטית בפתיחה הראשונה, ואפשר לפתוח שוב בכל רגע (כפתור "?" במסך הבית / מסך המאמן / #/guide).
-import { html, el, on } from '../ui/dom.js';
+import { html, el, on, icon } from '../ui/dom.js';
 import { COACHES } from '../data/coaches.js';
 import { get, set } from '../store.js';
 import { unlock } from '../coach/voice.js';
@@ -53,7 +53,7 @@ function slides() {
     },
     {
       id: 'workout', title: 'איך מתאמנים עם המאמן', eyebrow: 'הכי חשוב',
-      visual: `<div class="g-mock"><div class="gm-tempo"><span class="num">4</span><small>מתוך 10</small></div><div class="gm-phase">⬇ ירידה … ⬆ עלייה!</div></div>`,
+      visual: `<div class="g-mock"><div class="gm-tempo"><span class="num">4</span><small>מתוך 10</small></div><div class="gm-phase"><span class="ph-ico go-down">${icon('phDown')}</span>ירידה &nbsp;·&nbsp; <span class="ph-ico go-up">${icon('phUp')}</span>עלייה</div></div>`,
       body: step(1, 'צ׳ק־אין קצר', '4 שאלות (שינה, אנרגיה, כאבים, עומס) — המאמן מתאים את העומס להיום') +
         step(2, 'מסתכלים על ההדגמה', 'מכוונים משקל וחזרות עם + / −. "הסבר" = דגשי ביצוע') +
         step(3, 'לוחצים "התחל סט"', 'המאמן סופר "3, 2, 1… יאללה!" — ומתחילים יחד איתו') +

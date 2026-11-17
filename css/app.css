@@ -298,6 +298,22 @@ input[type=range] { width: 100%; accent-color: var(--lime); }
 .counter .ring { width: 190px; height: 190px; }
 .counter .big { font-size: 68px; }
 .phase-lbl { font-size: 16px; font-weight: 900; letter-spacing: 0.08em; }
+.phase-lbl { display: inline-flex; align-items: center; gap: 8px; }
+.ph-ico { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: color-mix(in srgb, currentColor 14%, transparent); border: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+.ph-ico svg { width: 20px; height: 20px; stroke-width: 2.6; }
+.ph-ico.go-down svg { animation: phDown 0.9s ease-in-out infinite; }
+.ph-ico.go-up svg { animation: phUp 0.9s ease-in-out infinite; }
+.ph-ico.go-pull svg { animation: phPull 0.9s ease-in-out infinite; }
+.ph-ico.go-rel svg { animation: phRel 1.6s linear infinite; }
+.ph-ico.go-hold svg { stroke-width: 0; fill: currentColor; animation: phHold 1s ease-in-out infinite; }
+@keyframes phDown { 50% { transform: translateY(3px); } }
+@keyframes phUp { 50% { transform: translateY(-3px); } }
+@keyframes phPull { 50% { transform: translateX(3px); } }
+@keyframes phRel { to { transform: rotate(-360deg); } }
+@keyframes phHold { 50% { opacity: 0.5; } }
+.gm-phase { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.gm-phase .ph-ico { width: 24px; height: 24px; }
+.gm-phase .ph-ico svg { width: 16px; height: 16px; }
 .phase-lbl.down { color: var(--teal); } .phase-lbl.up { color: var(--lime); } .phase-lbl.hold { color: var(--orange); }
 
 .rpe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }

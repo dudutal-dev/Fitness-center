@@ -1,5 +1,5 @@
 // Garmin: ייבוא פעילויות מקבצים, כרטיס הגדרות שעון, והוראות.
-import { html, esc, on, sheet, toast, fmtTime, fmtDate } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, fmtTime, fmtDate, icon } from '../ui/dom.js';
 import { get, set, addXP, XP } from '../store.js';
 import { importActivityFile } from '../devices/importer.js';
 import { summarizeHR, maxHrFor, supported, isConnected, disconnect } from '../devices/hr.js';
@@ -82,7 +82,7 @@ export function garminHelp() {
     <div class="h2">2 · מרחק וקצב בריצה</div>
     <div class="tip"><div class="ti">🛰️</div><div><b>GPS של הטלפון</b><span>מופעל אוטומטית במצב ריצה (לאשר הרשאת מיקום). במבדק 3 ק״מ המאמן מזהה לבד את סוף ה-3 ק״מ. להשאיר את המסך דלוק.</span></div></div>
     <div class="h2">3 · ייבוא אימונים מ-Garmin Connect</div>
-    <div class="tip"><div class="ti">⬇️</div><div><b>ייצוא מהאתר</b><span>connect.garmin.com → פעילות → ⚙️ (גלגל שיניים) → <b>Export Original</b> (קובץ ZIP), או Export to TCX/GPX. ואז כאן: "ייבוא מ-Garmin" ולבחור את הקובץ.</span></div></div>
+    <div class="tip"><div class="ti">📤</div><div><b>ייצוא מהאתר</b><span>connect.garmin.com → פעילות → ⚙️ (גלגל שיניים) → <b>Export Original</b> (קובץ ZIP), או Export to TCX/GPX. ואז כאן: "ייבוא מ-Garmin" ולבחור את הקובץ.</span></div></div>
     <div class="tip"><div class="ti">📈</div><div><b>מה נכנס</b><span>זמן, מרחק, קצב, דופק ממוצע/מקסימלי ואזורי דופק, קלוריות. ריצות נכנסות לגרפים ולמדד הכשירות; ריצת ~3 ק״מ אפשר לשמור כמבדק. באימוני כוח — סטים, חזרות ומשקלים.</span></div></div>
     <button class="btn block" style="margin-top:14px" data-close>הבנתי</button>`);
 }
@@ -97,7 +97,7 @@ export function watchCard() {
       <label class="field" style="margin:0"><span>דופק מקסימלי</span><input class="input num" data-maxhr type="number" inputmode="numeric" value="${maxHrFor(p)}"></label>
       <div class="sub" style="font-size:12px;align-self:end">ברירת מחדל: 208 − 0.7×גיל. אם ידוע לך מהשעון — עדכן.</div>
     </div>
-    <div class="grid2" style="margin-top:12px"><button class="btn sm" data-w="import">⬇ ייבוא מ-Garmin</button><button class="btn sm ghost" data-w="help">❓ איך מחברים</button></div>
+    <div class="grid2" style="margin-top:12px"><button class="btn sm" data-w="import">${icon('download', 'width="16" height="16"')} ייבוא מ-Garmin</button><button class="btn sm ghost" data-w="help">❓ איך מחברים</button></div>
   </div>`;
 }
 

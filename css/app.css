@@ -529,6 +529,15 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 .ed-n { width: 24px; color: var(--mute); font-weight: 700; text-align: center; }
 .ed-x { width: 38px; height: 38px; font-size: 14px; color: var(--red); }
 
+/* ───── שיטת חישוב ומקורות ───── */
+.method .m-row { display: grid; grid-template-columns: 76px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.method .m-row:last-of-type { border-bottom: 0; }
+.method .m-row span { color: var(--mute); }
+.refs { margin: 8px 0 0; padding-inline-start: 18px; font-size: 12.5px; line-height: 1.6; }
+.refs a { color: var(--teal-ink); }
+.tip small.ref { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+.src-line { margin-top: 8px; font-size: 12px; color: var(--mute); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
+
 /* ───── יומן אכילה ───── */
 .log-slot + .log-slot { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .log-it { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; text-align: right; font-size: 15px; border-bottom: 1px dashed var(--line); }

@@ -3,8 +3,8 @@
 import { html, esc, on, toast, sheet } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, g } from '../store.js';
-import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods } from '../engine/nutrition.js';
-import { FOOD, FOODS, DISLIKE_TAGS, NO_VEG_TIPS, ARMY_TIPS } from '../data/foods.js';
+import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY } from '../engine/nutrition.js';
+import { FOOD, FOODS, DISLIKE_TAGS, NO_VEG_TIPS, ARMY_TIPS, NUTRITION_REFS } from '../data/foods.js';
 
 let ctx = 'base';
 let seed = new Date().getDate();
@@ -44,6 +44,8 @@ export function renderNutrition(root) {
         ${ring(Math.min(1, eaten.f / t.fat), { size: 72, stroke: 7, big: eaten.f, lbl: `שומן /${t.fat}`, color: '#ff8a3d' })}
         ${ring(Math.min(1, dd.water / (t.waterL * 1000)), { size: 72, stroke: 7, big: (dd.water / 1000).toFixed(1), lbl: `מים /${t.waterL}ל׳`, color: '#5aa9ff' })}
       </div>
+      <div class="sub" style="font-size:12px;margin:12px 0 6px">רמת פעילות (משפיעה על יעד הקלוריות):</div>
+      <div class="seg" data-activity>${Object.entries(ACTIVITY).map(([k, a]) => `<button data-v="${k}" class="${(p.activityLevel || 'training') === k ? 'on' : ''}" title="${a.desc}">${a.name}</button>`).join('')}</div>
       <div class="grid3" style="margin-top:14px">
         <button class="btn sm primary" data-act="add-food">＋ מה אכלתי</button>
         <button class="btn sm" data-add="water">💧 +250 מ״ל</button>
@@ -84,9 +86,20 @@ export function renderNutrition(root) {
 
     ${plan.noVeg ? html`<div class="h2">🥦 בלי ירקות — ככה משלימים</div><div class="card tight">${NO_VEG_TIPS.map(tip)}</div>` : ''}
     <div class="h2">🪖 טיפים לחייל</div><div class="card tight">${ARMY_TIPS.map(tip)}</div>
-    <p class="sub" style="font-size:12px;margin-top:12px">ההמלצות כלליות ואינן תחליף לייעוץ של דיאטנית/רופא. ערכי המזון משוערים למנה טיפוסית. חישוב: Mifflin-St Jeor × פעילות קרבית, חלבון ${p.goal === 'cut' ? '2.2' : '2.0'} ג׳ לק״ג.</p>`;
+    <div class="h2">📚 איך זה מחושב</div>
+    <div class="card tight method">
+      <div class="m-row"><b>קלוריות</b><span>BMR לפי Mifflin-St Jeor (<span class="num">${Math.round(t.tdee / t.activity.factor)}</span>) × מקדם פעילות ${t.activity.factor} = <span class="num">${t.tdee}</span>${t.delta ? ` ${t.delta > 0 ? '+' : '−'} <span class="num">${Math.abs(t.delta)}</span> (${p.goal === 'cut' ? 'ירידה של ~0.5% ממשקל הגוף בשבוע' : 'עודף התחלתי — להתאים לפי מגמת המשקל'})` : ' (תחזוקה)'}</span></div>
+      <div class="m-row"><b>חלבון</b><span>${p.goal === 'cut' ? '2.2' : '2.0'} ג׳ לק״ג (ISSN: 1.4–2.0 למתאמנים, יותר בגירעון)</span></div>
+      <div class="m-row"><b>שומן</b><span>25% מהקלוריות (טווח מומלץ 20–35%)</span></div>
+      <div class="m-row"><b>שתייה</b><span>${p.sex === 'f' ? '1.6' : '2.0'} ל׳ ממשקאות (EFSA) + 0.5 ל׳ לשעת אימון (ACSM); בחום ובשטח יותר</span></div>
+      <div class="m-row"><b>ערכי מזון</b><span>מאגר התזונה הלאומי של משרד הבריאות — ${FOODS.length} מאכלים, משקל מנה מטבלת המשקלים של המאגר</span></div>
+      <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">מקורות (${NUTRITION_REFS.length})</summary>
+        <ol class="refs">${NUTRITION_REFS.map((r) => `<li><a href="${r.u}" target="_blank" rel="noopener">${esc(r.t)}</a></li>`).join('')}</ol></details>
+    </div>
+    <p class="sub" style="font-size:12px;margin-top:12px">ההמלצות כלליות ואינן תחליף לייעוץ של דיאטנית/רופא.</p>`;
 
   const rerender = () => renderNutrition(root);
+  on(root, 'click', '[data-activity] button', (e, b) => { set((s2) => { s2.profile.activityLevel = b.dataset.v; return s2; }); rerender(); });
   on(root, 'click', '[data-ctx]', (e, b) => { ctx = b.dataset.ctx; rerender(); });
   on(root, 'click', '[data-act="shuffle"]', () => { seed++; rerender(); });
   on(root, 'click', '[data-act="edit"]', () => { editDislikes = !editDislikes; rerender(); });
@@ -151,6 +164,7 @@ function qtySheet(f, slot, onDone) {
   let qty = 1;
   const line = () => `<b class="num">${Math.round(f.kcal * qty)}</b> קק״ל · <b class="num">${Math.round(f.p * qty)}</b>ג׳ חלבון · <b class="num">${Math.round(f.c * qty)}</b>ג׳ פחמ׳ · <b class="num">${Math.round(f.f * qty)}</b>ג׳ שומן`;
   sheet(html`<div class="h1" style="font-size:22px">${esc(f.name)}</div><div class="sub">מנה: ${esc(f.portion)}</div>
+    ${f.src ? `<div class="src-line">מקור: מאגר משרד הבריאות — ${f.src.map((x) => `${esc(x.name)} (${x.g} ג׳)`).join(' + ')}</div>` : f.custom ? '<div class="src-line">מזון אישי (ערכים שהזנת)</div>' : ''}
     <div class="sub" style="margin:14px 0 6px">כמות</div>
     <div class="seg" data-qty>${QTYS.map((v) => `<button data-qv="${v}" class="${v === qty ? 'on' : ''}">${v === 0.5 ? '½' : v === 1.5 ? '1½' : v}</button>`).join('')}</div>
     <div class="card tight" style="margin-top:12px" id="qline">${line()}</div>
@@ -209,5 +223,5 @@ function customFoodSheet(slot, onDone, prefill = '') {
   });
 }
 
-const tip = (x) => `<div class="tip"><div class="ti">${x.icon}</div><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div></div>`;
+const tip = (x) => `<div class="tip"><div class="ti">${x.icon}</div><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span>${x.ref ? `<small class="ref">מקור: ${esc(x.ref)}</small>` : ''}</div></div>`;
 function toggle(arr, v) { const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); }

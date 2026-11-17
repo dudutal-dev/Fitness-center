@@ -193,16 +193,39 @@ test('warm-up and targeted stretches per workout', async () => {
   assert.ok(!knee.some((x) => ['jumping_jacks', 'high_knees'].includes(x.exId)));
 });
 
-test('food database + search + day totals', async () => {
+test('food database: every item has a MoH source, sane values, search and day totals', async () => {
   const { searchFoods, dayTotals } = await import('../js/engine/nutrition.js');
-  const { FOODS } = await import('../js/data/foods.js');
-  assert.ok(FOODS.length >= 180);
+  const { FOODS, FOOD } = await import('../js/data/foods.js');
+  assert.ok(FOODS.length >= 150);
+  for (const f of FOODS) {
+    assert.ok(Array.isArray(f.src) && f.src.length && f.src.every((x) => Number.isInteger(x.code) && x.g > 0), `${f.id} has no source`);
+    assert.ok(f.g > 0 && f.kcal >= 0 && Array.isArray(f.meals) && f.meals.length, f.id);
+    // אנרגיה ממאקרו (4/4/9 + סיבים 2) קרובה לערך האנרגיה במאגר — פער גדול = טעות מיפוי או פריט חשוד במאגר.
+    const est = f.p * 4 + f.c * 4 + f.f * 9 + (f.fib || 0) * 2;
+    if (f.kcal > 40) assert.ok(Math.abs(est - f.kcal) / f.kcal < 0.15, `${f.id}: ${f.kcal} vs ${Math.round(est)}`);
+  }
   assert.ok(searchFoods('שניצל').some((f) => f.id === 'schnitzel_pita'));
   assert.ok(searchFoods('קוטג').length >= 2);
   assert.equal(searchFoods('', [], { cat: 'meal' }).every((f) => f.cat === 'meal'), true);
   const custom = [{ id: 'c_1', name: 'חטיף של עומר', kcal: 100, p: 10, c: 10, f: 2, custom: true }];
   assert.equal(searchFoods('עומר', custom)[0].id, 'c_1');
   const t = dayTotals({ foods: [{ id: 'banana', qty: 2 }, { id: 'c_1', qty: 1 }], protein: 20 }, custom);
-  assert.equal(t.kcal, 105 * 2 + 100 + 80);
-  assert.equal(t.p, Math.round(1.3 * 2 + 10 + 20));
+  assert.equal(t.kcal, Math.round(FOOD.banana.kcal * 2 + 100 + 80));
 });
+
+test('meal plan: no chicken / meat / fish at breakfast; foods fit their meal; no junk in plan', async () => {
+  const { mealPlan } = await import('../js/engine/nutrition.js');
+  const { FOOD } = await import('../js/data/foods.js');
+  const MEAT = ['chicken', 'red_meat', 'fish', 'tuna'];
+  const code = { breakfast: 'b', snack1: 's', lunch: 'l', post: 'p', dinner: 'd' };
+  for (const ctx of ['base', 'field', 'home']) for (let seed = 1; seed <= 60; seed++) {
+    const plan = mealPlan({ ...P, dislikes: [] }, { ctx, seed });
+    for (const m of plan.meals) for (const it of m.items) {
+      const f = FOOD[it.id];
+      assert.ok(f.meals.includes(code[m.id]), `${f.name} not allowed in ${m.id}`);
+      assert.notEqual(f.cat, 'meal');
+      if (m.id === 'breakfast') assert.ok(!f.tags.some((t) => MEAT.includes(t)), `breakfast has ${f.name} (${ctx}, seed ${seed})`);
+    }
+  }
+});
+

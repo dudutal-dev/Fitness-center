@@ -25,7 +25,7 @@ async function baseState(b) {
 
 async function runOne(b, state, coach, ex) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
-  const s = structuredClone(state); s.profile.coach = coach;
+  const s = structuredClone(state); s.profile.coach = coach; s.settings.warmup = false; // בודקים את התרגיל עצמו
   await ctx.addInitScript((st) => { if (!sessionStorage.getItem('init')) { localStorage.setItem('golani_fit_v1', st); sessionStorage.setItem('init', '1'); } }, JSON.stringify(s));
   await ctx.route(/assets\/demos\/(\w+)\/(\w+)\.mp4/, (route, req) => {
     const [, c, e] = req.url().match(/demos\/(\w+)\/(\w+)\.mp4/);

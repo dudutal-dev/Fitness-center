@@ -67,7 +67,13 @@ export function startRun(run, { day = null } = {}) {
   const pill = hrPill();
   $('#tot').after(pill);
   $('video').addEventListener('error', (e) => (e.target.style.display = 'none'));
-  const offSpeak = onSpeaking((v, text) => { $('.coach-pip').classList.toggle('speaking', v); if (v && text) $('.say').textContent = text; });
+  let sayT;
+  const offSpeak = onSpeaking((v, text) => {
+    $('.coach-pip').classList.toggle('speaking', v);
+    clearTimeout(sayT);
+    if (v && text) { $('.say').textContent = text; $('.say').classList.add('show'); }
+    if (!v) sayT = setTimeout(() => $('.say')?.classList.remove('show'), 1200);
+  });
 
   function enterSeg() {
     const sg = segs[i];

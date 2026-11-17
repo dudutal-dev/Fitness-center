@@ -26,6 +26,7 @@ function shell() {
 
 function route() {
   const s = get();
+  document.body.classList.toggle('no-captions', s.settings?.captions === false);
   if (!s.profile?.name || !s.plan) {
     app.innerHTML = '';
     const c = document.createElement('div');

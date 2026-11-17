@@ -1,5 +1,5 @@
 // Service Worker: קוד האפליקציה במטמון מראש (עובד אופליין), מדיה נשמרת במטמון בשימוש הראשון.
-const VERSION = 'lohem-v3';
+const VERSION = 'lohem-v4';
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/store.js', 'js/ui/dom.js', 'js/ui/charts.js', 'js/coach/voice.js',

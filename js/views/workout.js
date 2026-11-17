@@ -73,9 +73,12 @@ export function startWorkout(workout, { readiness = null } = {}) {
   const video = $('video'), poster = $('img.poster');
   video.addEventListener('error', () => { video.style.display = 'none'; });
 
+  let sayT;
   const offSpeak = onSpeaking((v, text) => {
     $('.coach-pip').classList.toggle('speaking', v);
-    if (v && text) $('.say').textContent = text;
+    clearTimeout(sayT);
+    if (v && text) { $('.say').textContent = text; $('.say').classList.add('show'); }
+    if (!v) sayT = setTimeout(() => $('.say')?.classList.remove('show'), 1200);
   });
   const clock = setInterval(() => { $('.clock').textContent = fmtTime((Date.now() - t0) / 1000); }, 1000);
 

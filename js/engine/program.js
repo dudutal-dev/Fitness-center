@@ -155,6 +155,8 @@ export function buildWorkout(templateId, profile, { blockIndex = 0, weekInBlock 
     items.push({ exId, role: slot.role, ...sch });
   });
   const out = { templateId, name: tpl.name, focus: tpl.focus, phase: phase.id, items: capToTime(items, profile.sessionMin || 60) };
+  out.warmup = warmupFor(out.items, blocked);
+  out.cooldown = cooldownFor(out.items);
   if ((GOALS[profile.goal]?.finisher || templateId === 'field') && weekInBlock !== 3) {
     const f = FINISHERS[(blockIndex + templateId.length) % FINISHERS.length];
     const ok = f.items.every(([id]) => !blocked.has(id));
@@ -216,6 +218,29 @@ export function estimateLevel({ years = 0, pushups = 0, pullups = 0, run3k = nul
   s += pullups >= 15 ? 1.2 : pullups >= 10 ? 0.9 : pullups >= 5 ? 0.5 : 0.1;
   if (run3k) s += run3k <= 12 * 60 ? 1 : run3k <= 13.5 * 60 ? 0.7 : run3k <= 15 * 60 ? 0.4 : 0.1;
   return Math.min(5, Math.max(1, Math.floor(1 + s)));
+}
+
+// ───── חימום ומתיחות ─────
+// חימום דינמי: 5 תנועות × 40 שנ׳ (סקוואט חימום ביום רגליים, ברכיים גבוהות ביום עליון)
+export function warmupFor(items, blocked = new Set()) {
+  const legDay = items.some((it) => EX[it.exId] && ['squat', 'hinge', 'lunge'].includes(EX[it.exId].pattern));
+  const ids = ['jumping_jacks', 'arm_circles', 'leg_swings', 'inchworm', legDay ? 'bw_squat' : 'high_knees']
+    .filter((id) => !blocked.has(id) && !(blocked.has('box_jump') && ['jumping_jacks', 'high_knees'].includes(id)));
+  return ids.map((exId) => ({ exId, secs: 40 }));
+}
+// מתיחות: לפי השרירים שעבדו הכי הרבה באימון, 4 מתיחות × 40 שנ׳ (חד־צדדיות: 20 לכל צד), תנוחת ילד בסוף
+const STRETCH_FOR = { quads: 'quad_stretch', hamstrings: 'hamstring_stretch', glutes: 'hip_flexor_stretch', chest: 'chest_stretch',
+  shoulders: 'shoulder_stretch', upper_back: 'shoulder_stretch', lats: 'child_pose', lower_back: 'child_pose', triceps: 'shoulder_stretch', biceps: 'chest_stretch' };
+export function cooldownFor(items) {
+  const load = {};
+  for (const it of items) (EX[it.exId]?.muscles || []).forEach((m, i) => { load[m] = (load[m] || 0) + it.sets * (i ? 0.5 : 1); });
+  const picks = [];
+  for (const [m] of Object.entries(load).sort((a, b) => b[1] - a[1])) {
+    const id = STRETCH_FOR[m];
+    if (id && id !== 'child_pose' && !picks.includes(id)) picks.push(id);
+    if (picks.length === 3) break;
+  }
+  return [...picks, 'child_pose'].map((exId) => ({ exId, secs: 40 }));
 }
 
 export const LEVEL_NAMES = ['', 'מתחיל', 'בסיסי', 'בינוני', 'מתקדם', 'עילית'];

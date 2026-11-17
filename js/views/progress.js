@@ -8,10 +8,12 @@ import { weightTrend, muscleLoad } from '../engine/stats.js';
 import { next3kTarget } from '../engine/running.js';
 import { weightSheet } from './home.js';
 import { pickAndImport, garminHelp } from './garmin.js';
+import { openSessionEditor, openRunEditor } from './history.js';
 import { fmtPace } from '../engine/running.js';
 
 let tab = 'weight';
 let liftSel = null;
+let showAll = false;
 
 export function renderProgress(root) {
   const s = get();
@@ -25,6 +27,8 @@ export function renderProgress(root) {
   on(root, 'click', '[data-tab]', (e, t) => { tab = t.dataset.tab; renderProgress(root); });
   on(root, 'click', '[data-lift]', (e, t) => { liftSel = t.dataset.lift; renderProgress(root); });
   on(root, 'click', '[data-act="weigh"]', () => weightSheet(() => renderProgress(root)));
+  on(root, 'click', '[data-h]', (e, b) => { const [k, i] = b.dataset.h.split(':'); (k === 's' ? openSessionEditor : openRunEditor)(Number(i), () => renderProgress(root)); });
+  on(root, 'click', '[data-act="hist-all"]', () => { showAll = !showAll; renderProgress(root); });
   on(root, 'click', '[data-act="garmin"]', () => pickAndImport(() => renderProgress(root)));
   on(root, 'click', '[data-act="garmin-help"]', () => garminHelp());
 }
@@ -93,11 +97,14 @@ const TABS = {
 
 function history(s) {
   const items = [
-    ...s.sessions.map((x) => ({ date: x.date, ico: x.field ? '🎒' : '🏋️', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}${x.hr ? ` · ❤ ${x.hr.avg}` : ''}${x.source === 'garmin' ? ' · ⌚' : ''}` })),
-    ...s.runs.map((r) => ({ date: r.date, ico: '🏃', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}${r.hr ? ` · ❤ ${r.hr.avg}` : ''}${r.source === 'garmin' ? ' · ⌚' : ''}` })),
-  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
+    ...s.sessions.map((x, i) => ({ key: `s:${i}`, date: x.date, ico: x.field ? '🎒' : '🏋️', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}${x.hr ? ` · ❤ ${x.hr.avg}` : ''}${x.source === 'garmin' ? ' · ⌚' : ''}` })),
+    ...s.runs.map((r, i) => ({ key: `r:${i}`, date: r.date, ico: '🏃', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}${r.hr ? ` · ❤ ${r.hr.avg}` : ''}${r.source === 'garmin' ? ' · ⌚' : ''}` })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+  const shown = showAll ? items : items.slice(0, 15);
   if (!items.length) return '<div class="empty"><div class="e">🗓️</div>עוד אין אימונים. הראשון מחכה לך!</div>';
-  return items.map((x) => `<div class="it"><div class="ico">${x.ico}</div><div><div style="font-weight:800">${esc(x.t)}</div><div class="sub" style="font-size:12px">${fmtDate(x.date)} · ${esc(x.sub)}</div></div></div>`).join('');
+  return shown.map((x) => `<button class="it" data-h="${x.key}"><div class="ico">${x.ico}</div><div style="flex:1;text-align:right"><div style="font-weight:800">${esc(x.t)}</div><div class="sub" style="font-size:12px">${fmtDate(x.date)} · ${esc(x.sub)}</div></div><span class="sub" aria-hidden="true">✎</span></button>`).join('')
+    + (items.length > 15 ? `<button class="btn sm ghost block" data-act="hist-all">${showAll ? 'הצג פחות' : `הצג הכל (${items.length})`}</button>` : '')
+    + '<div class="sub" style="font-size:12px;text-align:center;margin-top:6px">לחיצה על אימון — עריכה או מחיקה</div>';
 }
 
 function lastWeeks(n) {

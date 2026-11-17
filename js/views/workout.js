@@ -6,7 +6,7 @@ import { get, set, addXP, XP, pushEvent, regenerateWeek } from '../store.js';
 import { EX, EXERCISES, MUSCLES } from '../data/exercises.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
-import { applyReadiness, blockedSet, LEVEL_NAMES } from '../engine/program.js';
+import { applyReadiness, blockedSet, LEVEL_NAMES, warmupFor, cooldownFor } from '../engine/program.js';
 import { say, sayNow, resolve, clipDur, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
@@ -23,8 +23,15 @@ export function startWorkout(workout, { readiness = null } = {}) {
   const coach = profile.coach;
   const w = readiness != null ? applyReadiness(workout, readiness) : structuredClone(workout);
 
-  // פריטים: תרגילים רגילים + פיניש (סבב)
-  const items = w.items.map((it) => ({ ...it }));
+  // פריטים: חימום → תרגילים → פיניש (סבב) → מתיחות
+  const AUTO = new Set(['finisher', 'warmup', 'cooldown']); // סטים שלא מדרגים ולא נכנסים להיסטוריה
+  const guidedMobility = get().settings.warmup !== false;
+  const warm = guidedMobility ? (w.warmup || warmupFor(w.items, blockedSet(profile))) : [];
+  const cool = guidedMobility ? (w.cooldown || cooldownFor(w.items)) : [];
+  const items = [
+    ...warm.map((x, i) => ({ exId: x.exId, role: 'warmup', sets: 1, reps: [x.secs, x.secs], rest: i === warm.length - 1 ? 20 : 6, unit: 'sec', rpe: 5 })),
+    ...w.items.map((it) => ({ ...it })),
+  ];
   if (w.finisher) {
     for (const [exId, n] of w.finisher.items) {
       const ex = EX[exId];
@@ -32,17 +39,20 @@ export function startWorkout(workout, { readiness = null } = {}) {
       items.push({ exId, role: 'finisher', sets: w.finisher.rounds, reps: [n, n], rest: 25, unit: timed ? 'sec' : undefined, rpe: 9 });
     }
   }
+  cool.forEach((x) => items.push({ exId: x.exId, role: 'cooldown', sets: 1, reps: [x.secs, x.secs], rest: 6, unit: 'sec', rpe: 3 }));
   // רישום מוכן לכל סט
   const log = items.map((it) => {
     const ex = EX[it.exId];
-    const sg = it.role === 'finisher' ? { reps: it.reps[0], w: ex.load ? roundLoad(profile.weightKg * ex.load[profile.level - 1], ex) : 0 } : suggest(it.exId, it, s.history[it.exId], profile);
+    const sg = it.role === 'warmup' || it.role === 'cooldown' ? { reps: it.reps[0], w: 0 } : it.role === 'finisher' ? { reps: it.reps[0], w: ex.load ? roundLoad(profile.weightKg * ex.load[profile.level - 1], ex) : 0 } : suggest(it.exId, it, s.history[it.exId], profile);
     return { sg, sets: Array.from({ length: it.sets }, () => ({ w: sg.w || 0, reps: sg.reps, rpe: null, done: false })) };
   });
   // סדר צעדים: תרגילים רגילים לפי תרגיל, פיניש לפי סבבים
   const steps = [];
-  items.forEach((it, ii) => { if (it.role !== 'finisher') for (let si = 0; si < it.sets; si++) steps.push({ ii, si }); });
+  items.forEach((it, ii) => { if (it.role !== 'finisher' && it.role !== 'cooldown') for (let si = 0; si < it.sets; si++) steps.push({ ii, si }); });
   const fin = items.map((it, ii) => ({ it, ii })).filter((x) => x.it.role === 'finisher');
   if (fin.length) for (let r = 0; r < fin[0].it.sets; r++) fin.forEach(({ ii }) => steps.push({ ii, si: r }));
+  items.forEach((it, ii) => { if (it.role === 'cooldown') steps.push({ ii, si: 0 }); });
+  const mobilityIdx = (role) => items.map((it, ii) => (it.role === role ? ii : -1)).filter((x) => x >= 0);
 
   const t0 = Date.now();
   let k = 0;            // צעד נוכחי
@@ -58,7 +68,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   const hrMax = maxHrFor(profile);
   // טעינה מראש של כל מה שהמאמן עשוי להגיד באימון הזה (ספירה 1–20, טמפו, סטים, מוטיבציה, שמות התרגילים)
   preload(['go', 'down', 'up', 'hold', 'pull', 'press', 'release', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set',
-    'next_ex', 'rate_set', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'hr_ready', 'hr_high', `hello_${coach}`,
+    'next_ex', 'rate_set', 'warm_intro', 'warm_go', 'switch_side', 'warm_done', 'cool_intro', 'cool_done', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'hr_ready', 'hr_high', `hello_${coach}`,
     ...Array.from({ length: 20 }, (_, i) => `n${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `set${i + 1}`),
     ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`)]);
 
@@ -113,8 +123,10 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const it = item(), e = ex();
     const setNo = cur().si + 1;
     $('.title').innerHTML = html`<div class="row" style="gap:6px;margin-bottom:6px">
-        ${it.role === 'finisher' ? `<span class="tag orange">🔥 ${esc(w.finisher.name)}</span>` : `<span class="tag lime">${it.role === 'main' ? 'תרגיל מרכזי' : it.role === 'second' ? 'משני' : it.role === 'core' ? 'ליבה' : 'עזר'}</span>`}
-        <span class="tag">${it.role === 'finisher' ? 'סבב' : 'סט'} <span class="num">${setNo}/${it.sets}</span></span>
+        ${it.role === 'warmup' || it.role === 'cooldown'
+    ? `<span class="tag teal">${it.role === 'warmup' ? 'חימום' : 'מתיחות'} <span class="num">${mobilityIdx(it.role).indexOf(cur().ii) + 1}/${mobilityIdx(it.role).length}</span></span>${e.unilateral ? '<span class="tag">20 שנ׳ לכל צד</span>' : ''}`
+    : html`${it.role === 'finisher' ? `<span class="tag orange">🔥 ${esc(w.finisher.name)}</span>` : `<span class="tag lime">${it.role === 'main' ? 'תרגיל מרכזי' : it.role === 'second' ? 'משני' : it.role === 'core' ? 'ליבה' : 'עזר'}</span>`}
+        <span class="tag">${it.role === 'finisher' ? 'סבב' : 'סט'} <span class="num">${setNo}/${it.sets}</span></span>`}
         <button class="tag teal" data-act="info">${icon('info', 'width="12" height="12"')} הסבר</button></div>
       <div class="name">${esc(e.name)}</div>
       <div class="sub">${esc(e.equip)} · ${e.muscles.slice(0, 3).map((m) => MUSCLES[m]).join(' · ')}</div>`;
@@ -140,7 +152,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
         </div>
         <button class="btn primary block xl" data-act="go">${icon('play', 'width="22" height="22"')} ${timed ? 'התחל' : 'התחל סט'}</button>
         <div class="row" style="margin-top:10px">
-          ${it.role !== 'finisher' ? `<button class="btn sm" data-act="swap">${icon('swap', 'width="16" height="16"')} החלף תרגיל</button>` : ''}
+          ${it.role === 'warmup' ? `<button class="btn sm" data-act="skip-warm">${icon('skip', 'width="16" height="16"')} דלג על החימום</button>`
+    : it.role === 'cooldown' ? `<button class="btn sm" data-act="skip-cool">${icon('skip', 'width="16" height="16"')} דלג על המתיחות</button>`
+    : it.role !== 'finisher' ? `<button class="btn sm" data-act="swap">${icon('swap', 'width="16" height="16"')} החלף תרגיל</button>` : ''}
           <span class="spacer"></span>
           ${!timed ? `<button class="btn sm ghost" data-act="manual">סיימתי בלי ספירה ✓</button>` : ''}
         </div>`;
@@ -191,7 +205,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     mode = 'active'; paint();
     countedReps = 0;
     const it = item(), e = ex(), sl = setLog();
-    if (it.unit === 'sec') return runTimed(sl.reps);
+    if (it.unit === 'sec') return runTimed(sl.reps, it.role, e);
     if (!get().settings.tempoCount) { $('#ph').textContent = 'בצע בקצב שלך'; return; }
     stop();
     const goDur = sayNow(['go']) || 2.6;
@@ -264,9 +278,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
     }, 40);
   }
 
-  function runTimed(secs) {
-    say('hold_start', { priority: true });
-    const startAt = Date.now() + 1200;
+  function runTimed(secs, role, e) {
+    const mobility = role === 'warmup' || role === 'cooldown';
+    // חימום/מתיחות: "מתחילים!" אחרי שם התרגיל (לא קוטע אותו); תרגילי זמן רגילים: "מתחילים להחזיק… עכשיו!"
+    if (mobility) say('warm_go'); else say('hold_start', { priority: true });
+    const startAt = Date.now() + (mobility ? 2200 : 1200);
     let lastSec = -1, half = false;
     timer = setInterval(() => {
       const t = (Date.now() - startAt) / 1000;
@@ -275,11 +291,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
       const node = $('.counter .ring');
       setRing(node, t / secs);
       node.querySelector('.big').textContent = Math.ceil(left);
-      $('#ph').textContent = left > 0 ? '🔥 ממשיכים' : '';
+      $('#ph').textContent = left <= 0 ? '' : mobility && e?.unilateral ? (half ? 'צד שני' : 'צד ראשון') : role === 'cooldown' ? 'נושמים ומרפים' : 'ממשיכים';
       const sec = Math.ceil(left);
       if (sec !== lastSec) {
         lastSec = sec;
-        if (!half && t >= secs / 2 && secs >= 20) { half = true; say('hold_half'); }
+        if (!half && t >= secs / 2 && secs >= 20) { half = true; if (mobility && e?.unilateral) { sayNow(['switch_side']); vibrate([60, 40, 60]); } else if (!mobility) say('hold_half'); }
         if (sec <= 3 && sec >= 1) sayNow([`n${sec}`]);
       }
       if (left <= 0) { countedReps = secs; sayNow(['hold_done']); endSet(); }
@@ -296,7 +312,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       sl.reps = Math.max(1, Math.round(sl.reps - shown));
     } else if (!manual || countedReps) sl.reps = countedReps || sl.reps;
     vibrate([40, 60, 40]);
-    if (it.role === 'finisher') { sl.done = true; sl.rpe = 9; return afterLog(); }
+    if (AUTO.has(it.role)) { sl.done = true; sl.rpe = it.rpe; return afterLog(); }
     mode = 'log';
     say('rate_set');
     paint();
@@ -324,8 +340,12 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const nxt = steps[k];
     const nIt = items[nxt.ii], nEx = EX[nIt.exId];
     const newEx = nxt.ii !== steps[k - 1].ii;
-    say('set_done');
-    if (secs >= 40) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
+    const prevRole = items[steps[k - 1].ii].role;
+    const autoNext = nIt.role === 'warmup' || nIt.role === 'cooldown';
+    if (prevRole === 'warmup' && nIt.role !== 'warmup') say('warm_done');
+    else if (nIt.role === 'cooldown' && prevRole !== 'cooldown') say('cool_intro');
+    else if (!autoNext && prevRole !== 'warmup') say('set_done');
+    if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
     p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: '#22e6d0' })}</div>
       <div class="row"><button class="btn sm" data-act="rest-minus">−15</button><span class="spacer"></span>
@@ -364,6 +384,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (left <= 0) {
         clearInterval(timer); timer = null;
         mode = 'ready';
+        if (autoNext) { say(`ex_${nIt.exId}`); paint(); startSet(); return; }
         if (newEx) { say('next_ex'); say(`ex_${nIt.exId}`); } else {
           const last = nxt.si === nIt.sets - 1;
           say(last ? 'last_set' : `set${Math.min(6, nxt.si + 1)}`);
@@ -382,9 +403,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const exercises = [];
     const prs = [];
     let volume = 0, setsDone = 0;
+    const mobilityDone = { warmup: 0, cooldown: 0 };
     items.forEach((it, ii) => {
       const done = log[ii].sets.filter((x) => x.done);
       if (!done.length) return;
+      if (it.role === 'warmup' || it.role === 'cooldown') { mobilityDone[it.role]++; return; }
       setsDone += done.length;
       done.forEach((x) => (volume += (x.w || 0) * (it.unit === 'sec' ? 0 : x.reps)));
       exercises.push({ exId: it.exId, role: it.role, sets: done, target: it.reps });
@@ -393,12 +416,13 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (!exercises.length) { close(); return; }
     let gained = XP.workout + prs.length * XP.pr;
     const hr = hrRec.stop();
+    const nowIso = new Date().toISOString(), sid = `s_${Date.now()}`;
     set((s2) => {
       for (const e of exercises) {
         if (e.role === 'finisher') continue;
-        (s2.history[e.exId] ||= []).push({ date: new Date().toISOString(), sets: e.sets, target: e.target });
+        (s2.history[e.exId] ||= []).push({ date: nowIso, sid, sets: e.sets, target: e.target });
       }
-      s2.sessions.push({ date: new Date().toISOString(), name: w.name, day: workout.day ?? null, field: !!workout.field, durationSec: dur, volume: Math.round(volume), setsDone, exercises, prs, readiness: w.readiness ?? null, partial, hr });
+      s2.sessions.push({ id: sid, date: nowIso, name: w.name, day: workout.day ?? null, field: !!workout.field, durationSec: dur, volume: Math.round(volume), setsDone, exercises, prs, warmupDone: mobilityDone.warmup, stretchDone: mobilityDone.cooldown, readiness: w.readiness ?? null, partial, hr });
       if (workout.day != null && !partial && !s2.plan.completedDays.includes(workout.day)) s2.plan.completedDays.push(workout.day);
       return s2;
     });
@@ -442,6 +466,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
   on(root, 'click', '[data-act]', (e, t) => {
     const a = t.dataset.act;
     if (a === 'go') startSet();
+    if (a === 'skip-warm') {
+      const first = steps.findIndex((x) => items[x.ii].role !== 'warmup');
+      if (first > k) { k = first; stop(); say('next_ex'); say(`ex_${item().exId}`); mode = 'ready'; paint(); }
+    }
+    if (a === 'skip-cool') finish();
     if (a === 'manual') { countedReps = setLog().reps; mode = 'log'; paint(); }
     if (a === 'finish-set') endSet(true);
     if (a === 'rest-skip') root._restSkip?.();
@@ -515,6 +544,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
 
   // פתיחה
   say(`hello_${coach}`, { priority: true });
+  if (items[0].role === 'warmup') say('warm_intro');
   say(`ex_${items[0].exId}`);
   if (w.note) toast(w.note, 4200);
   paint();

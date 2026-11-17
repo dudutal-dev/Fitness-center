@@ -138,3 +138,71 @@ test('demo timing: every rep-based exercise video has rep segments for both coac
     }
   }
 });
+
+test('edit/delete workouts keeps progression history consistent', async () => {
+  const { updateSession, deleteSession, updateRun, deleteRun } = await import('../js/engine/history-edit.js');
+  const d1 = '2026-11-10T18:00:00.000Z', d2 = '2026-11-12T18:00:00.000Z';
+  const st = {
+    xp: 500, profile: { run3k: 800 }, plan: { weekStart: '2026-11-11', completedDays: [1, 2] },
+    sessions: [
+      { id: 's1', date: d1, day: 1, exercises: [{ exId: 'bench_press', role: 'main', target: [8, 10], sets: [{ w: 60, reps: 10, done: true }, { w: 60, reps: 9, done: true }] }] },
+      // אימון ישן בלי מזהה — הקישור לפי זמן
+      { date: d2, day: 2, exercises: [{ exId: 'bench_press', role: 'main', target: [8, 10], sets: [{ w: 62.5, reps: 8, done: true }] }, { exId: 'back_squat', role: 'main', target: [8, 10], sets: [{ w: 80, reps: 8, done: true }] }] },
+    ],
+    history: {
+      bench_press: [{ sid: 's1', date: d1, sets: [{ w: 60, reps: 10 }, { w: 60, reps: 9 }] }, { date: '2026-11-12T18:00:01.000Z', sets: [{ w: 62.5, reps: 8 }] }],
+      back_squat: [{ date: '2026-11-12T18:00:01.000Z', sets: [{ w: 80, reps: 8 }] }],
+    },
+    runs: [{ date: d1, type: 'test', timeSec: 800 }, { date: d2, type: 'test', timeSec: 760 }],
+  };
+  // עריכה: תיקון משקל ומחיקת סט
+  updateSession(st, 0, { exercises: [{ exId: 'bench_press', role: 'main', target: [8, 10], sets: [{ w: 65, reps: 10, done: true }] }] });
+  assert.equal(st.history.bench_press.length, 2);
+  assert.deepEqual(st.history.bench_press.find((h) => h.sid === 's1').sets.map((x) => x.w), [65]);
+  assert.equal(st.sessions[0].volume, 650);
+  assert.equal(st.sessions[0].setsDone, 1);
+  // מחיקה של אימון ישן (בלי מזהה): ההיסטוריה שלו נמחקת, יום 2 בשבוע הנוכחי חוזר להיות פתוח, XP יורד
+  deleteSession(st, 1);
+  assert.equal(st.sessions.length, 1);
+  assert.equal(st.history.bench_press.length, 1);
+  assert.equal(st.history.back_squat, undefined);
+  assert.deepEqual(st.plan.completedDays, [1]);
+  assert.equal(st.xp, 380);
+  // ריצות: מחיקת המבדק האחרון מחזירה את זמן ה-3 ק״מ הקודם
+  deleteRun(st, 1);
+  assert.equal(st.profile.run3k, 800);
+  updateRun(st, 0, { timeSec: 790 });
+  assert.equal(st.profile.run3k, 790);
+});
+
+test('warm-up and targeted stretches per workout', async () => {
+  const { warmupFor, cooldownFor, buildWorkout } = await import('../js/engine/program.js');
+  const legs = buildWorkout('lowerA', P), upper = buildWorkout('upperA', P);
+  assert.equal(legs.warmup.length, 5);
+  assert.ok(legs.warmup.some((x) => x.exId === 'bw_squat'));
+  assert.ok(upper.warmup.some((x) => x.exId === 'high_knees'));
+  assert.ok(legs.cooldown.some((x) => ['quad_stretch', 'hamstring_stretch'].includes(x.exId)));
+  assert.ok(upper.cooldown.some((x) => ['chest_stretch', 'shoulder_stretch'].includes(x.exId)));
+  for (const w of [legs, upper]) {
+    assert.equal(w.cooldown[w.cooldown.length - 1].exId, 'child_pose');
+    for (const m of [...w.warmup, ...w.cooldown]) assert.equal(EX[m.exId].group, 'mobility');
+    for (const it of w.items) assert.notEqual(EX[it.exId].group, 'mobility');
+  }
+  // פציעת ברכיים: בלי קפיצות בחימום
+  const knee = warmupFor(buildWorkout('lowerA', { ...P, injuries: ['knee'] }).items, new Set(['box_jump']));
+  assert.ok(!knee.some((x) => ['jumping_jacks', 'high_knees'].includes(x.exId)));
+});
+
+test('food database + search + day totals', async () => {
+  const { searchFoods, dayTotals } = await import('../js/engine/nutrition.js');
+  const { FOODS } = await import('../js/data/foods.js');
+  assert.ok(FOODS.length >= 180);
+  assert.ok(searchFoods('שניצל').some((f) => f.id === 'schnitzel_pita'));
+  assert.ok(searchFoods('קוטג').length >= 2);
+  assert.equal(searchFoods('', [], { cat: 'meal' }).every((f) => f.cat === 'meal'), true);
+  const custom = [{ id: 'c_1', name: 'חטיף של עומר', kcal: 100, p: 10, c: 10, f: 2, custom: true }];
+  assert.equal(searchFoods('עומר', custom)[0].id, 'c_1');
+  const t = dayTotals({ foods: [{ id: 'banana', qty: 2 }, { id: 'c_1', qty: 1 }], protein: 20 }, custom);
+  assert.equal(t.kcal, 105 * 2 + 100 + 80);
+  assert.equal(t.p, Math.round(1.3 * 2 + 10 + 20));
+});

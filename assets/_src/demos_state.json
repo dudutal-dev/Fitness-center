@@ -318,5 +318,101 @@
  "noa/treadmill_run": {
   "img": "uTiUxLrfb1A0bCTKyUYv",
   "vid": "9W8h8qQbZmliLBQt5bQ3"
+ },
+ "ori/jumping_jacks": {
+  "img": "rRAXlOEmIIU2cVnj9pVP",
+  "vid": "4VZl2ZorFC7ZqRPTfdux"
+ },
+ "noa/jumping_jacks": {
+  "img": "myprfaxzctbaNhPZIcMH",
+  "vid": "cmX8yQJPsGvMWP69UQfU"
+ },
+ "ori/arm_circles": {
+  "img": "uB3AottBVUDl0B6f8Ow5",
+  "vid": "CGfWwEl5RruaroYuw7Ng"
+ },
+ "noa/arm_circles": {
+  "img": "hxBckFB4542qKn7TfRiA",
+  "vid": "Vd4145dRPjE9Yap81ZsY"
+ },
+ "ori/leg_swings": {
+  "img": "JU4E6CrTSBFZ5kgqNokr",
+  "vid": "PufrM3eqGFemBcWOVXUc"
+ },
+ "noa/leg_swings": {
+  "img": "kHZHDV6jSmkEmtC6towU",
+  "vid": "DrGePe03nCRVDh6UDbOR"
+ },
+ "ori/inchworm": {
+  "img": "yPye2c0GbF1koKvyemYF",
+  "vid": "ty1CsMnAUS5gITCK6Wfv"
+ },
+ "noa/inchworm": {
+  "img": "DrUfyB51KHfzF2YlMyPm",
+  "vid": "IPYc542pCm3rf1Ca8rew"
+ },
+ "ori/bw_squat": {
+  "img": "2w4plCK6NAeZgRHsVYNQ",
+  "vid": "nSk0zmuyneGva0cAjtFf"
+ },
+ "noa/bw_squat": {
+  "img": "sTYlVvojuetnG5ZpXNJC",
+  "vid": "wrTNOBciE6ZTydM9avTm"
+ },
+ "noa/high_knees": {
+  "img": "K7WuJC18smUJwPK9KUin",
+  "vid": "ZOUAKOORCxeyuK4ZuEkl"
+ },
+ "ori/quad_stretch": {
+  "img": "iLWjxROPO2uuyW5Zn2KQ",
+  "vid": "RwQqXyuktznW4HHK5uRa"
+ },
+ "noa/quad_stretch": {
+  "img": "gmpDhGTcvmkMN6wvVtv8",
+  "vid": "mbpRKvb2wQNfsPNVzSjm"
+ },
+ "ori/hamstring_stretch": {
+  "img": "RgpOmmbeoxiTwibXAqux",
+  "vid": "fOkfsa9n8tWBJNgJuJlv"
+ },
+ "noa/hamstring_stretch": {
+  "img": "XcWioAF3jQDa24R6pTFs",
+  "vid": "Jk5kAljZlZO0Ng5nWfCf"
+ },
+ "ori/hip_flexor_stretch": {
+  "img": "fG5pykBl2c7UPJevIli0",
+  "vid": "kOQ6IUuUe8a564PCBmEg"
+ },
+ "ori/chest_stretch": {
+  "img": "Kp4UxkOkqbSLs2gvidcG",
+  "vid": "SK3Ao8ZCsmxdv0rN7OBL"
+ },
+ "noa/chest_stretch": {
+  "img": "OESepn2ZDJ3osrmH8qOI",
+  "vid": "F1c0z70TICiLSHn5Cyhd"
+ },
+ "ori/shoulder_stretch": {
+  "img": "TmsOFmYgTJGOrEmmUtRr",
+  "vid": "hQFQX36FyZp8s3NdBfpT"
+ },
+ "noa/shoulder_stretch": {
+  "img": "ZYFQwYWTeAEEtHQKHfgu",
+  "vid": "Yn9h2brdpCeQ4lcKh4Nk"
+ },
+ "ori/child_pose": {
+  "img": "nXnfmWoXSdX15wtBnWDE",
+  "vid": "jOGVKmUHSe99J8xtyyXO"
+ },
+ "noa/child_pose": {
+  "img": "wbsNJGtpnqF6bH4Mkdjx",
+  "vid": "muqEZl5gctdzKOQUwsho"
+ },
+ "ori/high_knees": {
+  "img": "ZHmPVPYDh7KscCmRteRu",
+  "vid": "xt78d92yCOIo6r0LMeRo"
+ },
+ "noa/hip_flexor_stretch": {
+  "img": "M3qNJktdoVOynoUZkKV8",
+  "vid": "o3PwCw0oOFLVKVRpKEIU"
  }
 }

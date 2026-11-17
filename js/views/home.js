@@ -5,7 +5,7 @@ import { get, set, daily, setDaily, today, addXP, XP, g } from '../store.js';
 import { COACHES, demoPoster } from '../data/coaches.js';
 import { EX } from '../data/exercises.js';
 import { combatReadiness, rankFor, streak, readinessScore } from '../engine/stats.js';
-import { targets } from '../engine/nutrition.js';
+import { targets, dayTotals } from '../engine/nutrition.js';
 import { buildFieldWorkout } from '../engine/program.js';
 import { say, onSpeaking, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, lineFor } from '../data/voice-lines.js';
@@ -101,7 +101,7 @@ export function renderHome(root) {
     <div class="h2">📊 היום</div>
     <div class="grid2">
       <div class="card tight tracker" data-act="water"><div class="ic">💧</div><div><div class="v num">${(dd.water / 1000).toFixed(1)}<small> / ${t.waterL} ל׳</small></div><div class="sub" style="font-size:12px">+250 מ״ל</div></div></div>
-      <div class="card tight tracker" data-act="protein"><div class="ic">🥩</div><div><div class="v num">${dd.protein}<small> / ${t.protein} ג׳</small></div><div class="sub" style="font-size:12px">+20 גרם חלבון</div></div></div>
+      <div class="card tight tracker" data-act="protein"><div class="ic">🥩</div><div><div class="v num">${dayTotals(dd, p.customFoods).p}<small> / ${t.protein} ג׳</small></div><div class="sub" style="font-size:12px">+20 גרם חלבון</div></div></div>
       <div class="card tight tracker" data-act="weight"><div class="ic">⚖️</div><div><div class="v num">${lastW ? lastW.kg : '—'}<small> ק״ג</small></div><div class="sub" style="font-size:12px">${lastW ? `עודכן ${fmtDate(lastW.date)}` : 'שקילה'}</div></div></div>
       <div class="card tight tracker" data-act="checkin"><div class="ic">🧠</div><div><div class="v">${dd.checkin != null ? `<span class="num">${Math.round(dd.checkin * 100)}%</span>` : '—'}</div><div class="sub" style="font-size:12px">מוכנות יומית</div></div></div>
     </div>

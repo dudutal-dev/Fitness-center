@@ -83,3 +83,32 @@ export function qtyLabel(q) {
   if (q === 2) return 'מנה כפולה · ';
   return `×${q} · `;
 }
+
+// ───── יומן אכילה ─────
+// daily.foods: [{ id, qty, at }] ; מזונות אישיים: profile.customFoods
+export function foodLookup(id, customFoods = []) {
+  return FOOD[id] || customFoods.find((f) => f.id === id) || null;
+}
+
+export function dayTotals(dd = {}, customFoods = []) {
+  const t = { kcal: 0, p: 0, c: 0, f: 0 };
+  for (const it of dd.foods || []) {
+    const f = foodLookup(it.id, customFoods);
+    if (!f) continue;
+    t.kcal += f.kcal * it.qty; t.p += f.p * it.qty; t.c += f.c * it.qty; t.f += f.f * it.qty;
+  }
+  t.p += dd.protein || 0; // תוספות חלבון מהירות (+20 ג׳)
+  t.kcal += (dd.protein || 0) * 4;
+  return roundMacros(t);
+}
+
+const norm = (s) => String(s).replace(/[׳״'"\-–—()]/g, '').replace(/\s+/g, ' ').trim();
+
+// חיפוש: התאמה לפי מילים (כל מילה בחיפוש צריכה להופיע בשם), מזון אישי קודם
+export function searchFoods(query, customFoods = [], { cat = null, limit = 40 } = {}) {
+  const words = norm(query).split(' ').filter(Boolean);
+  const pool = [...customFoods, ...FOODS];
+  const res = pool.filter((f) => (!cat || f.cat === cat || (cat === 'custom' && f.custom)) && words.every((w) => norm(f.name).includes(w)));
+  if (words.length) res.sort((a, b) => (norm(a.name).startsWith(words[0]) ? 0 : 1) - (norm(b.name).startsWith(words[0]) ? 0 : 1));
+  return res.slice(0, limit);
+}

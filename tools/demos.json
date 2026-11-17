@@ -158,5 +158,53 @@
  "treadmill_run": [
   "running on a modern treadmill, mid-stride, side view",
   "runs at a steady fast pace on the treadmill with good running form"
+ ],
+ "jumping_jacks": [
+  "standing upright with arms at the sides, feet together, side three-quarter view",
+  "performs one jumping jack: jumps feet wide while raising arms overhead, then jumps back to feet together with arms down"
+ ],
+ "arm_circles": [
+  "standing tall with both arms extended straight out to the sides at shoulder height, front view",
+  "makes controlled big circles with both straight arms, a shoulder warm-up"
+ ],
+ "leg_swings": [
+  "standing on one leg holding a squat rack upright with one hand for balance, side view",
+  "swings the free straight leg forward and backward in a controlled dynamic hip warm-up"
+ ],
+ "inchworm": [
+  "standing tall with feet together, side view",
+  "slowly bends forward and places both hands on the floor in front of the feet, walks the hands forward step by step into a push-up plank, then walks the hands back to the feet and slowly stands up. Feet stay on the floor the whole time, no jumping, no flips"
+ ],
+ "bw_squat": [
+  "standing with feet shoulder-width apart, arms relaxed, side view",
+  "does one slow air squat as a warm-up drill, sitting the hips back and down with arms forward, then rising back to standing, fitness training"
+ ],
+ "high_knees": [
+  "standing tall in a gym in an athletic ready position, arms bent at 90 degrees, front three-quarter view, fully clothed in the black t-shirt and black shorts",
+  "jogs lightly in place with high knee lifts and arm swings as a cardio warm-up in the gym"
+ ],
+ "quad_stretch": [
+  "standing on one leg holding the other ankle behind the glutes, knees together, one hand on a rack for balance, side view",
+  "holds a standing quadriceps stretch calmly, breathing slowly, small natural movements"
+ ],
+ "hamstring_stretch": [
+  "sitting on a gym mat with one leg straight forward and the other bent, reaching toward the toes of the straight leg, side view",
+  "holds a seated hamstring stretch calmly, breathing slowly and reaching slightly further"
+ ],
+ "hip_flexor_stretch": [
+  "kneeling on one knee on a gym mat in a low lunge: right foot forward with the front knee bent 90 degrees, left knee resting on the mat behind, torso upright, hands on the front knee, side view",
+  "holds a kneeling hip flexor stretch calmly, gently pressing the hips forward while breathing"
+ ],
+ "chest_stretch": [
+  "standing beside a squat rack upright, one forearm placed flat against the upright at shoulder height, side view",
+  "holds a chest stretch by gently rotating the torso away from the arm, breathing slowly"
+ ],
+ "shoulder_stretch": [
+  "standing tall pulling one straight arm across the chest with the other arm, front three-quarter view",
+  "holds a cross-body shoulder stretch calmly, breathing slowly"
+ ],
+ "child_pose": [
+  "kneeling on a gym mat sitting back on the heels, torso folded forward, arms stretched forward on the mat, side view",
+  "holds the child's pose stretch, breathing slowly and deeply, back relaxing"
  ]
 }

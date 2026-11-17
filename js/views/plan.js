@@ -10,6 +10,7 @@ import { fmtPace } from '../engine/running.js';
 import { startWorkout, infoSheet } from './workout.js';
 import { startRun } from './run.js';
 import { checkIn, estMinutes } from './home.js';
+import { warmupFor, cooldownFor, blockedSet } from '../engine/program.js';
 
 let libFilter = 'all';
 
@@ -43,6 +44,7 @@ export function renderPlan(root) {
           <div class="ex-row" data-info="${it.exId}"><div class="ex-thumb"><img src="${demoPoster(p.coach, it.exId)}" alt="" loading="lazy"></div>
             <div><div class="t">${esc(e.name)}</div><div class="s">${it.sets} × ${it.reps[0]}–${it.reps[1]}${it.unit === 'sec' ? ' שנ׳' : ''} · מנוחה ${fmtTime(it.rest)}</div></div>
             <div class="w">${sg.w ? `${sg.w}<small>ק״ג</small>` : '<small>משקל גוף</small>'}</div></div>`; })}
+        ${s.settings.warmup !== false ? `<div class="mob-line"><span>🤸 חימום: ${(x.warmup || warmupFor(x.items, blockedSet(p))).map((m) => EX[m.exId].name).join(' · ')}</span><span>🧘 מתיחות: ${(x.cooldown || cooldownFor(x.items)).map((m) => EX[m.exId].name).join(' · ')}</span></div>` : ''}
         ${x.finisher ? `<div class="card tight" style="margin-top:10px"><b>🔥 ${esc(x.finisher.name)}</b><div class="sub">${x.finisher.rounds} סבבים: ${x.finisher.items.map(([id, n]) => `${EX[id].name} ${n}${['time', 'cardio'].includes(EX[id].type) ? ' שנ׳' : ''}`).join(' + ')}</div></div>` : ''}
         ${x.run ? html`<div class="card tight" style="margin-top:10px"><div class="row"><b>${x.run.icon} ${esc(x.run.name)}</b><span class="spacer"></span><span class="tag teal">${x.run.type === 'test' ? 'מבדק' : `${Math.round(x.run.totalSec / 60)} דק׳`}</span></div>
           <div class="sub">${x.run.segs.filter((g) => !['warm', 'cool'].includes(g.kind)).slice(0, 1).map((g) => esc(g.label))} ${x.run.type === 'intervals' ? `· קצב ספרינט ${fmtPace(x.run.pace.fast)}/ק״מ` : x.run.type === 'tempo' ? `· קצב ${fmtPace(x.run.pace.tempo)}/ק״מ` : x.run.type === 'easy' ? `· קצב ${fmtPace(x.run.pace.easy)}/ק״מ` : ''}</div>

@@ -8,7 +8,7 @@ import numpy as np
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 DEMOS = json.load(open(os.path.join(os.path.dirname(__file__), "demos.json")))
 FPS = 24
-FREE = {"plank", "farmer_carry", "battle_rope", "sled_push", "treadmill_run", "rower"}  # לולאה רגילה, בלי סנכרון
+FREE = {"plank", "farmer_carry", "battle_rope", "sled_push", "treadmill_run", "rower", "jumping_jacks", "arm_circles", "leg_swings", "inchworm", "bw_squat", "high_knees", "quad_stretch", "hamstring_stretch", "hip_flexor_stretch", "chest_stretch", "shoulder_stretch", "child_pose"}  # לולאה רגילה, בלי סנכרון
 
 def frames(path):
     raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", f"fps={FPS},scale=96:170,format=gray", "-f", "rawvideo", "-"],

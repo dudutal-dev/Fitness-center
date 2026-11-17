@@ -108,7 +108,7 @@ export const keyDur = (key) => clipDur(resolve(key, { allowName: false }).clip);
 async function next() {
   let e = queue.shift();
   // משפטים שחיכו יותר מדי כבר לא רלוונטיים
-  while (e && performance.now() - e.at > (e.critical ? 1500 : 6000)) e = queue.shift();
+  while (e && performance.now() - e.at > (e.critical ? 1500 : 12000)) e = queue.shift();
   if (!e) { current = null; emit(false); return; }
   current = { entry: e };
   emit(true, e.text);

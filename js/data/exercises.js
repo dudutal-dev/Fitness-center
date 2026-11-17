@@ -9,7 +9,7 @@ export const MUSCLES = {
 };
 
 export const GROUPS = {
-  legs: 'רגליים', back: 'גב', chest: 'חזה', shoulders: 'כתפיים', arms: 'ידיים', core: 'ליבה', conditioning: 'כושר קרבי',
+  legs: 'רגליים', back: 'גב', chest: 'חזה', shoulders: 'כתפיים', arms: 'ידיים', core: 'ליבה', conditioning: 'כושר קרבי', mobility: 'חימום ומתיחות',
 };
 
 const E = (o) => ({ unilateral: false, compound: false, inc: 2.5, tempo: [2, 0, 1], alts: [], ...o });
@@ -155,6 +155,32 @@ export const EXERCISES = [
   E({ id: 'treadmill_run', name: 'ריצה', group: 'conditioning', pattern: 'cardio', type: 'cardio',
     muscles: ['quads', 'hamstrings', 'calves', 'glutes'], equip: 'הליכון / מסלול', level: 1,
     cues: ['כתפיים רפויות', 'נחיתה מתחת לגוף', 'נשימה קצבית'] }),
+
+  // ───── חימום דינמי ומתיחות (תרגילי זמן) ─────
+  E({ id: 'jumping_jacks', name: 'קפיצות פיסוק', group: 'mobility', pattern: 'mobility', type: 'time', warm: true,
+    muscles: ['calves', 'shoulders', 'quads'], equip: 'משקל גוף', level: 1, cues: ['נחיתה רכה על כריות כף הרגל', 'ידיים עד מעל הראש', 'קצב נוח ואחיד'] }),
+  E({ id: 'arm_circles', name: 'סיבובי ידיים', group: 'mobility', pattern: 'mobility', type: 'time', warm: true,
+    muscles: ['shoulders'], equip: 'משקל גוף', level: 1, cues: ['ידיים ישרות בגובה הכתפיים', 'מעגלים גדולים ומבוקרים', 'באמצע — מחליפים כיוון'] }),
+  E({ id: 'leg_swings', name: 'נדנוד רגליים', group: 'mobility', pattern: 'mobility', type: 'time', warm: true, unilateral: true,
+    muscles: ['hamstrings', 'glutes', 'quads'], equip: 'מתקן לאחיזה', level: 1, cues: ['מחזיקים במתקן לשיווי משקל', 'רגל ישרה קדימה ואחורה', 'הטווח גדל בהדרגה'] }),
+  E({ id: 'inchworm', name: 'תולעת (אינצ׳וורם)', group: 'mobility', pattern: 'mobility', type: 'time', warm: true,
+    muscles: ['hamstrings', 'shoulders', 'abs'], equip: 'משקל גוף', level: 1, cues: ['ידיים לרצפה ליד הרגליים', 'הולכים עם הידיים עד פלאנק', 'חוזרים ונעמדים לאט'] }),
+  E({ id: 'bw_squat', name: 'סקוואט חימום', group: 'mobility', pattern: 'mobility', type: 'time', warm: true,
+    muscles: ['quads', 'glutes'], equip: 'משקל גוף', level: 1, cues: ['ירידה איטית ועמוקה', 'עקבים על הרצפה', 'ידיים קדימה לאיזון'] }),
+  E({ id: 'high_knees', name: 'ברכיים גבוהות', group: 'mobility', pattern: 'mobility', type: 'time', warm: true,
+    muscles: ['quads', 'calves', 'abs'], equip: 'משקל גוף', level: 1, cues: ['ברכיים לגובה האגן', 'ידיים עובדות בקצב', 'נשימה קצבית'] }),
+  E({ id: 'quad_stretch', name: 'מתיחת ארבע ראשי', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true, unilateral: true,
+    muscles: ['quads'], equip: 'עמידה', level: 1, cues: ['עקב לכיוון הישבן', 'ברכיים צמודות', 'אגן מעט קדימה'] }),
+  E({ id: 'hamstring_stretch', name: 'מתיחת ירך אחורית', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true, unilateral: true,
+    muscles: ['hamstrings', 'lower_back'], equip: 'מזרן', level: 1, cues: ['רגל ישרה, הבוהן למעלה', 'מתכופפים מהאגן, גב ארוך', 'נושמים ומעמיקים בכל נשיפה'] }),
+  E({ id: 'hip_flexor_stretch', name: 'מתיחת מכופפי ירך', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true, unilateral: true,
+    muscles: ['glutes', 'quads'], equip: 'מזרן', level: 1, cues: ['ברך אחורית על המזרן', 'מכווצים ישבן ודוחפים אגן קדימה', 'גו זקוף'] }),
+  E({ id: 'chest_stretch', name: 'מתיחת חזה', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true, unilateral: true,
+    muscles: ['chest', 'shoulders'], equip: 'עמוד / קיר', level: 1, cues: ['אמה צמודה לעמוד בגובה הכתף', 'מסובבים את הגו הצידה בעדינות', 'בלי כאב — רק מתיחה'] }),
+  E({ id: 'shoulder_stretch', name: 'מתיחת כתף', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true, unilateral: true,
+    muscles: ['shoulders', 'upper_back'], equip: 'עמידה', level: 1, cues: ['יד ישרה לרוחב החזה', 'היד השנייה מקרבת', 'כתפיים למטה, רחוק מהאוזניים'] }),
+  E({ id: 'child_pose', name: 'תנוחת ילד', group: 'mobility', pattern: 'mobility', type: 'time', stretch: true,
+    muscles: ['lower_back', 'lats', 'shoulders'], equip: 'מזרן', level: 1, cues: ['ישבן לעקבים', 'ידיים מושטות קדימה', 'נשימות איטיות לגב'] }),
 ];
 
 // סדר שלבי החזרה: רוב התרגילים מתחילים בירידה (אקסצנטרי). בתרגילים שמתחילים מלמטה/ממצב מתוח — מתחילים במאמץ (קונצנטרי).

@@ -8,6 +8,7 @@ import { say, sayNow, stop, onSpeaking, unlock } from '../coach/voice.js';
 import { gpsTracker } from '../devices/gps.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor, hasRSC } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
+import { pingWorkout } from '../reminders.js';
 
 const SEG_VOICE = { warm: 'run_warm', fast: 'run_fast', easy: 'run_easy', walk: 'run_walk', tempo: 'run_tempo', steady: 'run_steady', cool: 'run_cool', test: 'go' };
 // אזור דופק יעד לכל סוג מקטע [מינ׳, מקס׳]
@@ -219,6 +220,7 @@ export function saveRun(r) {
     return s2;
   });
   addXP(XP.run + (isPR ? XP.pr : 0), 'run');
+  pingWorkout();
   if (r.timeSec) pushEvent({ type: isPR ? 'pr' : 'coach', text: `${isPR ? 'שיא חדש ב-3 ק״מ' : 'מבדק 3 ק״מ'}: ${fmtTime(r.timeSec)}. היעד הבא: ${fmtTime(next3kTarget(r.timeSec))}` });
   if (isPR) say('pr');
   toast('🏃 הריצה נשמרה');

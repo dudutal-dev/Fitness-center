@@ -18,6 +18,9 @@ npm test             # בדיקות יחידה למנועים
 כל push לענף מתפרסם ב-GitHub Pages: https://dudutal-dev.github.io/Fitness-center/
 לפני כל commit: `node tools/release.mjs "תיאור"` (הוסף `--media` אם קבצי וידאו/קול השתנו) — כך האפליקציות המותקנות מתעדכנות לבד.
 
+## שרת התזכורות (Cloudflare Worker)
+`worker/` — `index.js` (API + קרון), `webpush.js` (הצפנה + VAPID), `schedule.js` (מתי לשלוח). פרוס כ-`lohem-reminders` עם KV `SUBS`, משתנים `VAPID_PUBLIC`, `VAPID_SUBJECT` וסוד `VAPID_PRIVATE_JWK`, וקרון `*/5 * * * *`.
+
 ## יצירת הנכסים מחדש (ElevenLabs)
 ```bash
 python3 tools/gen_coaches.py                      # דיוקנאות המאמנים

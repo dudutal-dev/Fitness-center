@@ -11,6 +11,7 @@ import { say, sayNow, resolve, clipDur, stop, onSpeaking, preload, unlock } from
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
 import { startRun } from './run.js';
+import { pingWorkout, syncReminders } from '../reminders.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 
@@ -427,6 +428,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       return s2;
     });
     prs.forEach((id) => pushEvent({ type: 'pr', text: `שיא אישי ב${EX[id].name}! 🏆` }));
+    pingWorkout();
     const rk = addXP(gained, 'workout');
     const weekMsg = maybeAdvanceWeek();
 

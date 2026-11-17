@@ -11,6 +11,8 @@ import { watchCard, bindWatchCard } from './garmin.js';
 import { nameEntry } from '../data/names.js';
 import { APP_VERSION } from '../version.js';
 import { applyTheme } from '../theme.js';
+import { reminderCard, bindReminders } from './reminders-ui.js';
+import { syncReminders } from '../reminders.js';
 
 export function renderCoach(root) {
   const s = get();
@@ -21,6 +23,9 @@ export function renderCoach(root) {
       <button class="coach-card ${p.coach === c.id ? 'on' : ''}" data-coach="${c.id}"><img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
         <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
     <p class="sub" style="margin-top:10px">💬 ${esc(COACHES[p.coach].bio)}</p>
+
+    <div class="h2" id="reminders">🔔 תזכורות</div>
+    ${reminderCard()}
 
     <div class="h2">🎨 מראה</div>
     <div class="card"><div class="seg" data-theme-seg>
@@ -71,11 +76,14 @@ export function renderCoach(root) {
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
   bindWatchCard(root, () => renderCoach(root));
+  bindReminders(root, () => renderCoach(root));
+  if (sessionStorage.getItem('scrollTo') === 'reminders') { sessionStorage.removeItem('scrollTo'); setTimeout(() => root.querySelector('#reminders')?.scrollIntoView({ behavior: 'smooth' }), 100); }
   on(root, 'click', '[data-th]', (e, b) => { set((s2) => { s2.settings.theme = b.dataset.th; return s2; }); applyTheme(); renderCoach(root); });
   on(root, 'click', '[data-coach]', (e, b) => {
     unlock(); stop();
     set((s2) => { s2.profile.coach = b.dataset.coach; return s2; });
     say(`hello_${b.dataset.coach}`, { priority: true });
+    syncReminders().catch(() => {});
     renderCoach(root);
   });
   on(root, 'click', '[data-toggle]', (e, b) => { const k = b.dataset.toggle; set((s2) => { s2.settings[k] = !(s2.settings[k] ?? true); return s2; }); document.body.classList.toggle('no-captions', get().settings.captions === false); if (k === 'voice') stop(); renderCoach(root); });
@@ -99,6 +107,7 @@ export function renderCoach(root) {
       return regenerateWeek(s2);
     });
     toast('✅ הפרופיל והתוכנית עודכנו');
+    syncReminders().catch(() => {});
     renderCoach(root);
   });
   on(root, 'click', '[data-export]', () => {

@@ -11,6 +11,7 @@ import { say, onSpeaking, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, lineFor } from '../data/voice-lines.js';
 import { startWorkout } from './workout.js';
 import { startRun } from './run.js';
+import { reminderPromptHtml, bindReminderPrompt } from './reminders-ui.js';
 
 export function nextSession(s) {
   const done = new Set(s.plan.completedDays);
@@ -94,6 +95,7 @@ export function renderHome(root) {
       </div></div>`
     : html`<div class="card hud"><div class="empty"><div class="e">🏆</div><b>השבוע הושלם!</b><div>מנוחה — השבוע הבא נטען אוטומטית.</div></div></div>`}
 
+    ${reminderPromptHtml()}
     <div class="week" style="margin-top:12px">${s.plan.week.sessions.map((x) => `<div class="d ${doneDays.has(x.day) ? 'done' : ns?.day === x.day ? 'next' : ''}"><span class="n">${doneDays.has(x.day) ? '✓' : x.day}</span>${x.run ? '🏃' : '🏋️'}</div>`)}</div>
 
     <button class="btn block" style="margin-top:12px" data-act="field">🎒 אין חדר כושר היום? אימון שטח בלי ציוד</button>
@@ -112,6 +114,7 @@ export function renderHome(root) {
   const off = onSpeaking((v) => root.querySelector('.speak')?.classList.toggle('speaking', v));
   root._cleanup = off;
 
+  bindReminderPrompt(root, () => renderHome(root));
   on(root, 'click', '[data-act]', (e, el) => {
     unlock();
     const a = el.dataset.act;

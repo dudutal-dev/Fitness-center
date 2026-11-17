@@ -107,3 +107,12 @@ test('stats', () => {
 test('voice lines exist for every exercise', () => {
   for (const e of EXERCISES) assert.ok(VOICE_LINES[`ex_${e.id}`]);
 });
+
+test('every voice clip (incl. female + names) exists on disk', async () => {
+  const { manifest } = await import('../tools/voice_manifest.mjs');
+  const { existsSync } = await import('node:fs');
+  const { FEMALE, VOICE_LINES } = await import('../js/data/voice-lines.js');
+  for (const k of Object.keys(FEMALE)) assert.ok(VOICE_LINES[k], `female variant without base: ${k}`);
+  const missing = Object.keys(manifest()).filter((k) => !existsSync(new URL(`../assets/voice/${k}.mp3`, import.meta.url)));
+  assert.deepEqual(missing, []);
+});

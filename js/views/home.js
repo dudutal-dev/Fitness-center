@@ -1,7 +1,7 @@
 // מסך הבית: מאמן הולוגרפי, מדד כשירות קרבית, משימת היום, שבוע, מעקבים מהירים.
 import { html, esc, on, sheet, toast, greeting, icon, fmtDate } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
-import { get, set, daily, setDaily, today, addXP, XP } from '../store.js';
+import { get, set, daily, setDaily, today, addXP, XP, g } from '../store.js';
 import { COACHES, demoPoster } from '../data/coaches.js';
 import { EX } from '../data/exercises.js';
 import { combatReadiness, rankFor, streak, readinessScore } from '../engine/stats.js';
@@ -26,10 +26,10 @@ function coachLine(s) {
   const p = s.profile;
   const st = streak([...s.sessions, ...s.runs]);
   const ns = nextSession(s);
-  if (!s.sessions.length && !s.runs.length) return { key: 'workout_start', text: `<b>${esc(p.name)}</b>, התוכנית שלך מוכנה. האימון הראשון הוא הכי חשוב — בוא נעשה אותו יחד.` };
+  if (!s.sessions.length && !s.runs.length) return { key: 'workout_start', text: `<b>${esc(p.name)}</b>, התוכנית שלך מוכנה. האימון הראשון הוא הכי חשוב — ${g('בוא', 'בואי')} נעשה אותו יחד.` };
   if (st >= 3) return { key: 'streak', text: `רצף של <b>${st} ימים</b>! ככה בונים לוחם. ${ns ? `היום: ${esc(ns.name)}.` : ''}` };
   const key = MOTIVATION_KEYS[new Date().getDate() % MOTIVATION_KEYS.length];
-  return { key, text: `${esc(lineFor(key, p.coach))} ${ns ? `<br>המשימה הבאה: <b>${esc(ns.name)}</b>.` : ''}` };
+  return { key, text: `${esc(lineFor(key, p.coach, p.sex))} ${ns ? `<br>המשימה הבאה: <b>${esc(ns.name)}</b>.` : ''}` };
 }
 
 export function renderHome(root) {
@@ -88,7 +88,7 @@ export function renderHome(root) {
       <div class="body">
         <div class="stats"><div><b>${estMinutes(ns)}</b>דקות</div><div><b>${ns.items.length}</b>תרגילים</div>
           <div><b>${ns.items.reduce((a, b) => a + b.sets, 0)}</b>סטים</div>${ns.run ? `<div><b>${ns.run.icon}</b>${esc(ns.run.name)}</div>` : ''}</div>
-        <button class="btn primary block xl" data-act="start">${icon('play', 'width="22" height="22"')} צא לאימון</button>
+        <button class="btn primary block xl" data-act="start">${icon('play', 'width="22" height="22"')} ${g('צא', 'צאי')} לאימון</button>
         ${ns.run ? `<button class="btn block" style="margin-top:8px" data-act="run">🏃 רק ריצה: ${esc(ns.run.name)}</button>` : ''}
       </div></div>`
     : html`<div class="card hud"><div class="empty"><div class="e">🏆</div><b>השבוע הושלם!</b><div>מנוחה — השבוע הבא נטען אוטומטית.</div></div></div>`}
@@ -134,7 +134,7 @@ export function checkIn(cb, onlyLog = false) {
   const q = { sleep: 3, energy: 3, soreness: 3, stress: 3 };
   const Q = [['sleep', 'איך ישנת?', ['😵', '😴', '😐', '🙂', '😎']], ['energy', 'רמת אנרגיה', ['🪫', '😮‍💨', '😐', '⚡', '🔥']],
     ['soreness', 'כאבי שרירים', ['✨', '🙂', '😐', '😣', '🥵']], ['stress', 'עומס בצבא / לחץ', ['🧘', '🙂', '😐', '😤', '🤯']]];
-  sheet(html`<div class="eyebrow">צ׳ק־אין לפני אימון</div><div class="h1" style="font-size:24px">איך אתה מרגיש היום?</div>
+  sheet(html`<div class="eyebrow">צ׳ק־אין לפני אימון</div><div class="h1" style="font-size:24px">${g('איך אתה מרגיש', 'איך את מרגישה')} היום?</div>
     <p class="sub">המאמן יתאים את עומס האימון למצב שלך — אחרי יום שטח קשה מורידים, ביום טוב מגבירים.</p>
     ${Q.map(([k, t, em]) => html`<div style="margin:14px 0 6px;font-weight:700">${t}</div>
       <div class="rpe" style="grid-template-columns:repeat(5,1fr)" data-q="${k}">${em.map((x, i) => `<button data-v="${i + 1}" class="${q[k] === i + 1 ? 'on' : ''}"><span>${x}</span></button>`)}</div>`)}
@@ -160,7 +160,7 @@ export function weightSheet(cb) {
   const s = get();
   const last = s.weights[s.weights.length - 1]?.kg ?? s.profile.weightKg;
   let v = last;
-  sheet(html`<div class="eyebrow">שקילה</div><div class="h1" style="font-size:24px">כמה אתה שוקל היום?</div>
+  sheet(html`<div class="eyebrow">שקילה</div><div class="h1" style="font-size:24px">${g('כמה אתה שוקל', 'כמה את שוקלת')} היום?</div>
     <p class="sub">הכי מדויק: בבוקר, אחרי שירותים, לפני אוכל. המגמה חשובה יותר מכל שקילה בודדת.</p>
     <div class="stepper" style="margin:18px 0"><button data-d="-0.1">−</button><div class="val"><span id="wv">${v.toFixed(1)}</span><small>ק״ג</small></div><button data-d="0.1">+</button></div>
     <div class="row"><button class="btn sm" data-d="-1">−1</button><button class="btn sm" data-d="-0.5">−0.5</button><span class="spacer"></span><button class="btn sm" data-d="0.5">+0.5</button><button class="btn sm" data-d="1">+1</button></div>

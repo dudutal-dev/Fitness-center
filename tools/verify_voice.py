@@ -4,7 +4,7 @@ import json, os, re, sys, difflib, uuid, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-LINES = json.load(open(sys.argv[1]))
+LINES = {k: (v["text"] if isinstance(v, dict) else v) for k, v in json.load(open(sys.argv[1])).items()}
 ONLY = sys.argv[2:]
 DIG = {str(i): w for i, w in enumerate(["", "אחת", "שתיים", "שלוש", "ארבע", "חמש", "שש", "שבע", "שמונה", "תשע", "עשר", "אחת עשרה",
        "שתים עשרה", "שלוש עשרה", "ארבע עשרה", "חמש עשרה", "שש עשרה", "שבע עשרה", "שמונה עשרה", "תשע עשרה", "עשרים"]) if i}
@@ -40,7 +40,7 @@ def check(key):
     return key, {"text": LINES[key], "heard": heard, "score": round(difflib.SequenceMatcher(None, a, b).ratio(), 3)}
 
 if __name__ == "__main__":
-    keys = [k for k in LINES if not ONLY or k.split("/")[1] in ONLY]
+    keys = [k for k in LINES if not ONLY or k.split("/")[-1] in ONLY or ("/names/" in k and "names" in ONLY)]
     out_f = os.path.join(ROOT, "assets", "_src", "voice_check.json")
     res = json.load(open(out_f)) if os.path.exists(out_f) else {}
     with ThreadPoolExecutor(6) as ex:

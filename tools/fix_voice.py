@@ -28,13 +28,13 @@ def score(text, path):
     return round(difflib.SequenceMatcher(None, norm(text), norm(heard)).ratio(), 3), heard
 
 def fix(key):
-    coach, k = key.split("/")
+    coach, k = key.split("/")[0], key.split("/")[-1]
     L = LINES[key]
     best = (check[key].get("score", 0), check[key].get("heard"), None)
-    texts = [t for t in [L["spoken"], L["text"]] if t]
+    texts = list(dict.fromkeys(t for t in [L["spoken"], L["text"]] if t))
     cands = [(m, t) for m in ("eleven_v4", "eleven_v3") for t in texts] + [("eleven_v4", texts[0])]
     for i, (model, text) in enumerate(cands):
-        out = os.path.join(TMP, f"{coach}_{k}_{i}.mp3")
+        out = os.path.join(TMP, f"{key.replace('/', '_')}_{i}.mp3")
         try:
             tts(text, VOICES[coach], model, out)
             sc, heard = score(L["text"], out)
@@ -45,12 +45,12 @@ def fix(key):
         if sc >= 0.95:
             break
     if best[2]:
-        os.replace(best[2], os.path.join(ROOT, "assets", "voice", coach, f"{k}.mp3"))
+        os.replace(best[2], os.path.join(ROOT, "assets", "voice", key + ".mp3"))
         check[key] = {"text": L["text"], "heard": best[1], "score": best[0], "fixed": True}
     return key, best[0], best[1]
 
 if __name__ == "__main__":
-    keys = [k for k, v in check.items() if (v.get("score", 0) < TH) and (not ONLY or k.split("/")[1] in ONLY)]
+    keys = [k for k, v in check.items() if (v.get("score", 0) < TH) and (not ONLY or k.split("/")[-1] in ONLY)]
     print("fixing", len(keys))
     with ThreadPoolExecutor(6) as ex:
         for key, sc, heard in ex.map(fix, keys):

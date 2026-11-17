@@ -1,10 +1,12 @@
-// מייצר את כל קבצי הקול של המאמנים ב-ElevenLabs (eleven_v3, עברית).
-// הרצה: node tools/gen_voice.mjs   (מדלג על קבצים קיימים)
+// מייצר את כל קבצי הקול של המאמנים ב-ElevenLabs (eleven_v3, עברית): משפטים רגילים, גרסאות נקבה, ומשפטים עם שמות מתאמנים.
+// הרצה: NODE_USE_ENV_PROXY=1 node tools/gen_voice.mjs [--force key1,key2]   (מדלג על קבצים קיימים)
+// אחרי יצירה מומלץ: node tools/voice_manifest.mjs m.json && python3 tools/verify_voice.py m.json && python3 tools/fix_voice.py m.json 0.9
 import { mkdir, writeFile, access } from 'node:fs/promises';
-import { VOICE_LINES, SPOKEN } from '../js/data/voice-lines.js';
+import { manifest, VOICES } from './voice_manifest.mjs';
 
-const VOICES = { ori: 'PBHwEnXdzx0yfhIO2UCH' /* Dorian */, noa: 's0T0DT6EAPeX57MQpn3I' /* Danit */ };
 const OUT = new URL('../assets/voice/', import.meta.url);
+const fi = process.argv.indexOf('--force');
+const FORCE = new Set(fi > 0 ? process.argv[fi + 1].split(',') : []);
 
 async function exists(u) { try { await access(u); return true; } catch { return false; } }
 
@@ -19,28 +21,19 @@ async function tts(text, voiceId) {
   return Buffer.from(await res.arrayBuffer());
 }
 
-const jobs = [];
-for (const coach of Object.keys(VOICES)) {
-  await mkdir(new URL(`${coach}/`, OUT), { recursive: true });
-  for (const [key, val] of Object.entries(VOICE_LINES)) {
-    if (key.startsWith('hello_') && key !== `hello_${coach}`) continue;
-    const text = SPOKEN[key] ?? (typeof val === 'string' ? val : val[coach]);
-    jobs.push({ coach, key, text });
-  }
-}
-
-let i = 0, done = 0;
+const jobs = Object.entries(manifest()).map(([path, v]) => ({ path, coach: path.split('/')[0], key: path.split('/').pop(), text: v.spoken }));
+let i = 0, made = 0;
 async function worker() {
   while (i < jobs.length) {
     const j = jobs[i++];
-    const file = new URL(`${j.coach}/${j.key}.mp3`, OUT);
-    if (await exists(file)) { done++; continue; }
+    const file = new URL(`${j.path}.mp3`, OUT);
+    if (!FORCE.has(j.key) && await exists(file)) continue;
+    await mkdir(new URL('.', file), { recursive: true });
     for (let attempt = 0; attempt < 3; attempt++) {
-      try { await writeFile(file, await tts(j.text, VOICES[j.coach])); break; }
-      catch (e) { console.error(j.coach, j.key, e.message); await new Promise((r) => setTimeout(r, 2000)); }
+      try { await writeFile(file, await tts(j.text, VOICES[j.coach])); made++; break; }
+      catch (e) { console.error(j.path, e.message); await new Promise((r) => setTimeout(r, 2000)); }
     }
-    done++;
   }
 }
 await Promise.all(Array.from({ length: 4 }, worker));
-console.log(`voice clips: ${done}/${jobs.length}`);
+console.log(`generated ${made} clips (total ${jobs.length})`);

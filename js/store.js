@@ -47,6 +47,9 @@ export function set(fn) {
 }
 export const subscribe = (fn) => (subs.add(fn), () => subs.delete(fn));
 
+// טקסט לפי מין המתאמן: g('צא', 'צאי')
+export const g = (m, f) => (state.profile?.sex === 'f' ? f : m);
+
 export const today = () => new Date().toISOString().slice(0, 10);
 
 export function daily(date = today()) {

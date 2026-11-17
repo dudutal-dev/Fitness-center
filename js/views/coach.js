@@ -8,6 +8,7 @@ import { say, stop, unlock } from '../coach/voice.js';
 import { parse3k } from './onboarding.js';
 import { fmtTime } from '../ui/dom.js';
 import { watchCard, bindWatchCard } from './garmin.js';
+import { nameEntry } from '../data/names.js';
 
 export function renderCoach(root) {
   const s = get();
@@ -33,6 +34,9 @@ export function renderCoach(root) {
 
     <div class="h2">👤 פרופיל ויעדים</div>
     <div class="card">
+      <label class="field"><span>המאמן פונה אליך בלשון</span><div class="seg" data-seg="sex">
+        <button data-v="m" class="${p.sex !== 'f' ? 'on' : ''}">זכר</button><button data-v="f" class="${p.sex === 'f' ? 'on' : ''}">נקבה</button></div></label>
+      <div class="sub" style="font-size:12px;margin:-6px 0 12px">${nameEntry(p) ? `🎙️ ל${esc(COACHES[p.coach].name)} יש הקלטות שבהן ${p.coach === 'noa' ? 'היא קוראת' : 'הוא קורא'} לך "${esc(p.name)}"` : `🎙️ אין עדיין הקלטה אישית לשם "${esc(p.name)}" — המאמן יפנה בלי שם. אפשר להוסיף שמות (tools/names)`}</div>
       <div class="grid2">
         ${field('name', 'שם', p.name, 'text')}${field('age', 'גיל', p.age)}
         ${field('heightCm', 'גובה (ס״מ)', p.heightCm)}${field('targetWeight', 'משקל יעד', p.targetWeight)}
@@ -65,10 +69,10 @@ export function renderCoach(root) {
   on(root, 'click', '[data-toggle]', (e, b) => { const k = b.dataset.toggle; set((s2) => { s2.settings[k] = !s2.settings[k]; return s2; }); if (k === 'voice') stop(); renderCoach(root); });
   root.querySelector('[data-vol]').addEventListener('change', (e) => set((s2) => { s2.settings.volume = Number(e.target.value); return s2; }));
   on(root, 'click', '[data-test]', () => { unlock(); say('m1', { priority: true }); });
-  const draft = { goal: p.goal, days: p.days, sessionMin: p.sessionMin, injuries: [...p.injuries] };
+  const draft = { goal: p.goal, days: p.days, sessionMin: p.sessionMin, injuries: [...p.injuries], sex: p.sex || 'm' };
   on(root, 'click', '[data-seg] button', (e, b) => {
     const k = b.closest('[data-seg]').dataset.seg;
-    draft[k] = k === 'goal' ? b.dataset.v : Number(b.dataset.v);
+    draft[k] = ['goal', 'sex'].includes(k) ? b.dataset.v : Number(b.dataset.v);
     b.parentElement.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
   });
   on(root, 'click', '[data-inj]', (e, b) => { const i = draft.injuries.indexOf(b.dataset.inj); i >= 0 ? draft.injuries.splice(i, 1) : draft.injuries.push(b.dataset.inj); b.classList.toggle('on'); });

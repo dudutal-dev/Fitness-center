@@ -42,8 +42,10 @@ export function renderOnboarding(root, done) {
           <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
       <p class="sub" style="margin-top:14px">💬 ${esc(COACHES[d.coach].bio)}</p>`,
     // 2 — פרטים
-    () => html`<div class="eyebrow">שלב 2 · נכיר</div><div class="q">ספר לי על עצמך</div>
-      <label class="field"><span>שם</span><input class="input" name="name" value="${esc(d.name)}" placeholder="איך לקרוא לך?" autocomplete="given-name"></label>
+    () => html`<div class="eyebrow">שלב 2 · נכיר</div><div class="q">נעים להכיר 🤝</div>
+      <label class="field"><span>המאמן יפנה אליך בלשון</span><div class="seg" data-seg="sex">
+        <button data-v="m" class="${d.sex === 'm' ? 'on' : ''}">🙋‍♂️ זכר</button><button data-v="f" class="${d.sex === 'f' ? 'on' : ''}">🙋‍♀️ נקבה</button></div></label>
+      <label class="field"><span>שם (המאמן יקרא לך בשם)</span><input class="input" name="name" value="${esc(d.name)}" placeholder="איך לקרוא לך?" autocomplete="given-name"></label>
       <div class="grid2">
         <label class="field"><span>גיל</span><input class="input num" name="age" type="number" inputmode="numeric" value="${d.age}"></label>
         <label class="field"><span>גובה (ס״מ)</span><input class="input num" name="heightCm" type="number" inputmode="numeric" value="${d.heightCm}"></label>
@@ -55,7 +57,7 @@ export function renderOnboarding(root, done) {
       ${Object.entries(GOALS).map(([id, g]) => html`<button class="goal-card ${d.goal === id ? 'on' : ''}" data-goal="${id}">
         <div class="gi">${g.icon}</div><div><b>${g.name}</b><span>${GOAL_DESC[id]}</span></div></button>`)}`,
     // 4 — מבדק רמה
-    () => html`<div class="eyebrow">שלב 4 · מבדק רמה</div><div class="q">איפה אתה עומד היום?</div>
+    () => html`<div class="eyebrow">שלב 4 · מבדק רמה</div><div class="q">איפה ${d.sex === 'f' ? 'את עומדת' : 'אתה עומד'} היום?</div>
       <p class="sub">התשובות קובעות את רמת הקושי ההתחלתית (1–5). האפליקציה תעדכן אותה אוטומטית לפי הביצועים שלך.</p>
       <label class="field"><span>ניסיון בחדר כושר</span><div class="seg" data-seg="years">
         ${[[0, 'אין'], [0.5, 'חצי שנה'], [1, 'שנה+'], [3, '3 שנים+']].map(([v, t]) => `<button data-v="${v}" class="${d.years == v ? 'on' : ''}">${t}</button>`)}</div></label>
@@ -65,7 +67,7 @@ export function renderOnboarding(root, done) {
       </div>
       <label class="field"><span>זמן ריצת 3 ק״מ (דק:שנ׳) — אפשר להשאיר ריק</span><input class="input num" name="run3kStr" placeholder="למשל 13:30" value="${esc(d.run3kStr)}" inputmode="numeric"></label>`,
     // 5 — לו"ז
-    () => html`<div class="eyebrow">שלב 5 · זמנים</div><div class="q">כמה אתה יכול להתאמן?</div>
+    () => html`<div class="eyebrow">שלב 5 · זמנים</div><div class="q">כמה ${d.sex === 'f' ? 'את יכולה' : 'אתה יכול'} להתאמן?</div>
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${d.days == v ? 'on' : ''}">${v}</button>`)}</div></label>
       <label class="field"><span>משך אימון (דקות)</span><div class="seg" data-seg="sessionMin">${[45, 60, 75, 90].map((v) => `<button data-v="${v}" class="${d.sessionMin == v ? 'on' : ''}">${v}</button>`)}</div></label>
       <div class="card tight" style="margin-top:8px"><b>💡 בצבא הלו״ז משתנה.</b><div class="sub">אין בעיה — האימונים לא צמודים לימים בשבוע. פשוט עושים את האימון הבא בתור. ואם אין חדר כושר, יש "אימון שטח" בלי ציוד.</div></div>`,
@@ -75,8 +77,8 @@ export function renderOnboarding(root, done) {
       <div class="chips">${Object.entries(INJURIES).map(([id, x]) => `<button class="chip no ${d.injuries.includes(id) ? 'on' : ''}" data-inj="${id}">${x.name}</button>`)}</div>
       <p class="sub" style="margin-top:14px">${d.injuries.length ? '' : '✅ אין פציעות — מצוין.'}</p>`,
     // 7 — תזונה
-    () => html`<div class="eyebrow">שלב 7 · תזונה</div><div class="q">מה אתה <span style="color:var(--red)">לא</span> אוכל?</div>
-      <p class="sub">סמן הכל — התפריט ייבנה רק ממה שאתה כן אוכל, עם חלופות חכמות (למשל: לא אוכל ירקות? נשלים ויטמינים ממקורות אחרים).</p>
+    () => html`<div class="eyebrow">שלב 7 · תזונה</div><div class="q">מה ${d.sex === 'f' ? 'את' : 'אתה'} <span style="color:var(--red)">לא</span> ${d.sex === 'f' ? 'אוכלת' : 'אוכל'}?</div>
+      <p class="sub">${d.sex === 'f' ? 'סמני הכל — התפריט ייבנה רק ממה שאת כן אוכלת' : 'סמן הכל — התפריט ייבנה רק ממה שאתה כן אוכל'}, עם חלופות חכמות (למשל: לא אוכל ירקות? נשלים ויטמינים ממקורות אחרים).</p>
       <div class="chips">${Object.entries(DISLIKE_TAGS).map(([id, t]) => `<button class="chip no ${d.dislikes.includes(id) ? 'on' : ''}" data-dis="${id}">${t}</button>`)}</div>`,
     // 8 — בנייה
     () => html`<div class="build-anim"><div class="core"></div>
@@ -122,7 +124,8 @@ export function renderOnboarding(root, done) {
   on(root, 'click', '[data-goal]', (e, t) => { d.goal = t.dataset.goal; paint(); });
   on(root, 'click', '[data-seg] button', (e, t) => {
     readInputs();
-    d[t.closest('[data-seg]').dataset.seg] = Number(t.dataset.v);
+    const v = t.dataset.v;
+    d[t.closest('[data-seg]').dataset.seg] = Number.isNaN(Number(v)) ? v : Number(v);
     paint();
   });
   on(root, 'click', '[data-inj]', (e, t) => { toggle(d.injuries, t.dataset.inj); paint(); });

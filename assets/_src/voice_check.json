@@ -1657,5 +1657,37 @@
   "text": "עומר, הדופק התאושש. אתה מוכן לסט הבא.",
   "heard": "עומר הדופק התאושש. אתה מוכן לסט הבא",
   "score": 1.0
+ },
+ "ori/pull": {
+  "text": "משיכה!",
+  "heard": "משיכה",
+  "score": 1.0,
+  "fixed": true
+ },
+ "ori/press": {
+  "text": "לחיצה!",
+  "heard": "לחיצה",
+  "score": 1.0
+ },
+ "ori/release": {
+  "text": "שחרור לאט...",
+  "heard": "שחרור לאט",
+  "score": 1.0,
+  "fixed": true
+ },
+ "noa/pull": {
+  "text": "משיכה!",
+  "heard": "משיכה?",
+  "score": 1.0
+ },
+ "noa/press": {
+  "text": "לחיצה!",
+  "heard": "לחיצה",
+  "score": 1.0
+ },
+ "noa/release": {
+  "text": "שחרור לאט...",
+  "heard": "שחרור לאט",
+  "score": 1.0
  }
 }

@@ -25,7 +25,7 @@ def demo(job):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     if os.path.exists(src + ".mp4") and not os.path.exists(dst + ".mp4"):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src + ".mp4", "-an", "-vf", "scale=540:-2,fps=24",
-                        "-c:v", "libx264", "-preset", "slow", "-crf", "29", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                        "-c:v", "libx264", "-preset", "slow", "-crf", "29", "-g", "12", "-keyint_min", "6", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
                         dst + ".mp4"], check=True)
     if os.path.exists(src + ".png") and not os.path.exists(dst + ".webp"):
         im = Image.open(src + ".png").convert("RGB"); im.thumbnail((540, 960)); im.save(dst + ".webp", quality=76)

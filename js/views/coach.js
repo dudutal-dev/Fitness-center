@@ -9,6 +9,7 @@ import { parse3k } from './onboarding.js';
 import { fmtTime } from '../ui/dom.js';
 import { watchCard, bindWatchCard } from './garmin.js';
 import { nameEntry } from '../data/names.js';
+import { APP_VERSION } from '../version.js';
 
 export function renderCoach(root) {
   const s = get();
@@ -58,7 +59,7 @@ export function renderCoach(root) {
       <div class="grid2"><button class="btn sm" data-export>⬇ גיבוי לקובץ</button><label class="btn sm">⬆ שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>
-    <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM v1.0 · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
+    <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
   bindWatchCard(root, () => renderCoach(root));
   on(root, 'click', '[data-coach]', (e, b) => {

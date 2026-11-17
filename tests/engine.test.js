@@ -116,3 +116,25 @@ test('every voice clip (incl. female + names) exists on disk', async () => {
   const missing = Object.keys(manifest()).filter((k) => !existsSync(new URL(`../assets/voice/${k}.mp3`, import.meta.url)));
   assert.deepEqual(missing, []);
 });
+
+test('release version is consistent (version.json / js/version.js / sw.js)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { APP_VERSION } = await import('../js/version.js');
+  const vj = JSON.parse(readFileSync(new URL('../version.json', import.meta.url)));
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  assert.equal(vj.v, APP_VERSION);
+  assert.ok(sw.includes(`lohem-${APP_VERSION}`));
+  assert.ok(sw.includes(`lohem-media-${vj.media}`));
+});
+
+test('demo timing: every rep-based exercise video has rep segments for both coaches', async () => {
+  const { DEMO_TIMING } = await import('../js/data/demo-timing.js');
+  for (const e of EXERCISES) {
+    if (['time', 'cardio'].includes(e.type)) continue;
+    for (const c of ['ori', 'noa']) {
+      const segs = DEMO_TIMING[c][e.id].segs;
+      assert.ok(segs.length >= 1, `${c}/${e.id}`);
+      for (const [a, t, b] of segs) assert.ok(a < t && t < b && b <= 4.01, `${c}/${e.id} ${a},${t},${b}`);
+    }
+  }
+});

@@ -14,11 +14,16 @@ npm test             # בדיקות יחידה למנועים
 אין תלויות ואין build. כל תיקייה סטטית (GitHub Pages / Cloudflare Pages / Netlify) מתאימה לאירוח.
 בטלפון: לפתוח את הכתובת → "הוספה למסך הבית" → נפתחת כמו אפליקציה, עובדת גם בלי קליטה.
 
+## פרסום
+כל push לענף מתפרסם ב-GitHub Pages: https://dudutal-dev.github.io/Fitness-center/
+לפני כל commit: `node tools/release.mjs "תיאור"` (הוסף `--media` אם קבצי וידאו/קול השתנו) — כך האפליקציות המותקנות מתעדכנות לבד.
+
 ## יצירת הנכסים מחדש (ElevenLabs)
 ```bash
 python3 tools/gen_coaches.py                      # דיוקנאות המאמנים
 python3 tools/gen_demos.py [exercise_id ...]      # פריים + וידאו 4 שנ׳ לכל תרגיל ולכל מאמן (ממשיך מאיפה שעצר)
 python3 tools/build_assets.py                     # כיווץ לווב (mp4 540p, webp, אייקונים)
+python3 tools/analyze_demos.py                    # זיהוי קטעי החזרות בכל וידאו (לסנכרון עם הספירה)
 NODE_USE_ENV_PROXY=1 node tools/gen_voice.mjs     # 246 קבצי קול (eleven_v3, עברית, ניקוד למילים קצרות)
 python3 tools/verify_voice.py lines.json          # בדיקת הגייה: תמלול חוזר והשוואה
 python3 tools/fix_voice.py lines2.json 0.9        # יצירה מחדש של קבצים חלשים (best-of-N)

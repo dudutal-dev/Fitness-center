@@ -9,6 +9,7 @@ import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/prog
 import { applyReadiness, blockedSet, LEVEL_NAMES } from '../engine/program.js';
 import { say, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
+import { DEMO_TIMING } from '../data/demo-timing.js';
 import { startRun } from './run.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
@@ -153,6 +154,35 @@ export function startWorkout(workout, { readiness = null } = {}) {
     }
   }
 
+  // ───── סנכרון וידאו לספירה ─────
+  // כל חזרה שנספרת מנגנת קטע חזרה אחד מהווידאו (חלק מהסרטונים כוללים 2–3 חזרות), מתוח בדיוק לזמני הטמפו:
+  // שלב ראשון = התחלה→נקודת מפנה, החזקה = עצירה בנקודת המפנה, שלב שני = נקודת מפנה→סוף.
+  const segsFor = (id) => DEMO_TIMING[coach]?.[id]?.segs || [];
+  let vSync = null; // { seg, to }
+  function videoPhase(seg, part, secs) {
+    if (!seg || video.style.display === 'none') return;
+    video.loop = false;
+    const [a, turn, b] = seg;
+    if (part === 'hold') { video.pause(); vSync = { to: turn }; return; }
+    const from = part === 'A' ? a : turn, to = part === 'A' ? turn : b;
+    if (part === 'A' || Math.abs(video.currentTime - from) > 0.12) { try { video.currentTime = from; } catch { /* */ } }
+    video.playbackRate = Math.min(4, Math.max(0.25, (to - from) / Math.max(0.2, secs)));
+    vSync = { to };
+    video.play().catch(() => {});
+  }
+  function videoFree() {
+    vSync = null;
+    video.loop = true;
+    video.playbackRate = 1;
+    if (video.paused) video.play().catch(() => {});
+  }
+  // שומר שהווידאו לא "יקדים" את הספירה: בדיקה בכל פריים (ספארי שולח timeupdate רק ~4 פעמים בשנייה)
+  (function guard() {
+    if (!root.isConnected) return;
+    if (vSync && !video.paused && video.currentTime >= vSync.to - 0.03) video.pause();
+    requestAnimationFrame(guard);
+  })();
+
   function startSet() {
     mode = 'active'; paint();
     countedReps = 0;
@@ -160,10 +190,19 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (it.unit === 'sec') return runTimed(sl.reps);
     if (!get().settings.tempoCount) { $('#ph').textContent = 'בצע בקצב שלך'; return; }
     say('go', { priority: true });
-    const [down, hold, up] = e.tempo;
-    const rep = (down + hold + up) * 1000;
+    const [ecc, hold, con] = e.tempo;
+    // שלבי החזרה לפי סדר התרגיל
+    const conFirst = e.first === 'con';
+    const P = conFirst
+      ? [{ k: 'con', secs: con, cue: e.cueCon, part: 'A' }, { k: 'hold', secs: hold, cue: 'hold', part: 'hold' }, { k: 'ecc', secs: ecc, cue: e.cueEcc, part: 'B' }]
+      : [{ k: 'ecc', secs: ecc, cue: e.cueEcc, part: 'A' }, { k: 'hold', secs: hold, cue: 'hold', part: 'hold' }, { k: 'con', secs: con, cue: e.cueCon, part: 'B' }];
+    const LABEL = { down: '⬇ ירידה', up: '⬆ עלייה', pull: '⟵ משיכה', press: '⬇ לחיצה', release: '↺ שחרור', hold: '⏸ החזק' };
+    const rep = (ecc + hold + con) * 1000;
     const target = sl.reps;
-    let startAt = Date.now() + 2600;
+    const segs = segsFor(e.id);
+    // לפני ההתחלה: הווידאו עומד בתנוחת המוצא
+    if (segs.length) { video.loop = false; video.pause(); vSync = null; try { video.currentTime = segs[0][0]; } catch { /* */ } }
+    const startAt = Date.now() + 2600;
     let lastPhase = '';
     timer = setInterval(() => {
       const t = Date.now() - startAt;
@@ -171,17 +210,20 @@ export function startWorkout(workout, { readiness = null } = {}) {
       const r = Math.floor(t / rep);
       const within = t - r * rep;
       if (r >= target) { countedReps = target; say(`n${Math.min(20, target)}`); endSet(); return; }
-      const phase = within < down * 1000 ? 'down' : within < (down + hold) * 1000 ? 'hold' : 'up';
-      const key = `${r}-${phase}`;
+      let acc = 0, pi = 0;
+      while (pi < 2 && within >= (acc + P[pi].secs) * 1000) { acc += P[pi].secs; pi++; }
+      const ph = P[pi];
+      const key = `${r}-${pi}`;
       const ringNode = $('.counter .ring');
       setRing(ringNode, (r + within / rep) / target);
       if (key !== lastPhase) {
         lastPhase = key;
-        const ph = $('#ph');
-        ph.className = `phase-lbl ${phase}`;
-        ph.textContent = phase === 'down' ? '⬇ ירידה' : phase === 'hold' ? '⏸ החזק' : '⬆ עלייה';
-        if (r < 2 && down + up >= 3) say(phase === 'down' ? 'down' : phase === 'hold' ? 'hold' : 'up');
-        if (phase === 'down' && r > 0) {
+        if (segs.length) videoPhase(segs[r % segs.length], ph.part, ph.secs);
+        const lbl = $('#ph');
+        lbl.className = `phase-lbl ${ph.k === 'hold' ? 'hold' : ph.k === 'ecc' ? 'down' : 'up'}`;
+        lbl.textContent = LABEL[ph.cue];
+        if (r < 2 && ecc + con >= 3 && ph.secs > 0) say(ph.cue);
+        if (pi === 0 && r > 0) {
           countedReps = r;
           ringNode.querySelector('.big').textContent = r;
           say(`n${Math.min(20, r)}`);
@@ -190,7 +232,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
           vibrate(15);
         }
       }
-    }, 50);
+    }, 40);
   }
 
   function runTimed(secs) {
@@ -217,6 +259,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
 
   function endSet(manual = false) {
     clearInterval(timer); timer = null;
+    videoFree();
     const sl = setLog(), it = item();
     if (it.unit === 'sec' && manual) {
       // נעצר מוקדם

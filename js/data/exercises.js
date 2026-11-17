@@ -157,4 +157,16 @@ export const EXERCISES = [
     cues: ['כתפיים רפויות', 'נחיתה מתחת לגוף', 'נשימה קצבית'] }),
 ];
 
+// סדר שלבי החזרה: רוב התרגילים מתחילים בירידה (אקסצנטרי). בתרגילים שמתחילים מלמטה/ממצב מתוח — מתחילים במאמץ (קונצנטרי).
+// cueCon/cueEcc: מילת הקריאה של המאמן לכל שלב.
+const CON_FIRST = ['leg_ext', 'leg_curl', 'calf_raise', 'hip_thrust', 'pullup', 'lat_pulldown', 'cable_row', 'bb_row', 'db_row', 'face_pull',
+  'cable_fly', 'ohp', 'lateral_raise', 'rear_delt_fly', 'bb_curl', 'hammer_curl', 'rope_pushdown', 'hanging_leg_raise', 'woodchop'];
+const PULL = ['lat_pulldown', 'cable_row', 'bb_row', 'db_row', 'face_pull', 'rear_delt_fly'];
+const PRESS = ['rope_pushdown', 'cable_fly', 'woodchop'];
+for (const e of EXERCISES) {
+  e.first = CON_FIRST.includes(e.id) ? 'con' : 'ecc';
+  e.cueCon = PULL.includes(e.id) ? 'pull' : PRESS.includes(e.id) ? 'press' : 'up';
+  e.cueEcc = PULL.includes(e.id) || PRESS.includes(e.id) ? 'release' : 'down';
+}
+
 export const EX = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));

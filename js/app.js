@@ -9,6 +9,7 @@ import { renderNutrition } from './views/nutrition.js';
 import { renderCoach } from './views/coach.js';
 import { startWorkout } from './views/workout.js';
 import { unlock } from './coach/voice.js';
+import { initUpdater } from './updater.js';
 
 const ROUTES = { home: renderHome, plan: renderPlan, progress: renderProgress, nutrition: renderNutrition, coach: renderCoach };
 const app = document.getElementById('app');
@@ -58,6 +59,4 @@ addEventListener('hashchange', route);
 addEventListener('pointerdown', unlock, { once: true });
 route();
 
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-}
+initUpdater();

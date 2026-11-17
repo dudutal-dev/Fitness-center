@@ -23,7 +23,7 @@
       var t = (JSON.parse(localStorage.getItem('golani_fit_v1') || '{}').settings || {}).theme || 'dark';
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       document.documentElement.dataset.theme = t;
-      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f2f4ef');
+      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#e2e7dc');
     } catch (e) {}
   </script>
 </head>

@@ -10,7 +10,7 @@ export function resolvedTheme(pref = get().settings?.theme || 'dark') {
 export function applyTheme() {
   const t = resolvedTheme();
   document.documentElement.dataset.theme = t;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#f2f4ef' : '#06080b');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#e2e7dc' : '#06080b');
 }
 
 mq.addEventListener?.('change', () => { if ((get().settings?.theme || 'dark') === 'auto') applyTheme(); });

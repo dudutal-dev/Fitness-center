@@ -50,10 +50,10 @@ export function renderHome(root) {
 
   root.innerHTML = html`
     <div class="topbar">
-      <div class="brand"><span class="brand-mark">L</span>LOHEM</div>
-      <div class="row">
-        <span class="tag orange">🔥 <span class="num">${st}</span></span>
-        <span class="tag lime">${rank.icon} ${rank.name}</span>
+      <div class="brand"><span class="brand-mark">L</span><span class="brand-word">LOHEM</span></div>
+      <div class="top-actions">
+        <span class="tag orange" title="רצף ימים">🔥 <span class="num">${st}</span></span>
+        <span class="tag lime" title="${rank.name}">${rank.icon}<span class="rank-name"> ${rank.name}</span></span>
         <a href="#/guide" class="icon-btn help-btn" aria-label="מדריך שימוש">?</a>
         <a href="#/coach" class="avatar" aria-label="המאמן והגדרות"><img src="${coach.face}" alt=""></a>
       </div>

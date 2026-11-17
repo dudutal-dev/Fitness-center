@@ -10,6 +10,7 @@ import { renderCoach } from './views/coach.js';
 import { startWorkout } from './views/workout.js';
 import { unlock } from './coach/voice.js';
 import { initUpdater } from './updater.js';
+import { openGuide } from './views/guide.js';
 
 const ROUTES = { home: renderHome, plan: renderPlan, progress: renderProgress, nutrition: renderNutrition, coach: renderCoach };
 const app = document.getElementById('app');
@@ -27,6 +28,14 @@ function shell() {
 
 function route() {
   const s = get();
+  // מדריך: בפתיחה הראשונה (וגם אחרי איפוס), או כשמבקשים #/guide
+  if (!s.guideSeen || location.hash === '#/guide') {
+    if (!document.querySelector('.guide')) {
+      const first = !s.guideSeen;
+      openGuide({ first, onDone: () => { if (location.hash === '#/guide') history.replaceState(null, '', '#/home'); route(); } });
+    }
+    if (!s.guideSeen) return;
+  }
   document.body.classList.toggle('no-captions', s.settings?.captions === false);
   if (!s.profile?.name || !s.plan) {
     app.innerHTML = '';

@@ -53,6 +53,8 @@ export function renderCoach(root) {
       <div class="sub" style="font-size:12px;margin-top:8px">רמה נוכחית: ${p.level} (${LEVEL_NAMES[p.level]}) · שינוי מטרה/ימים בונה מחדש את השבוע הנוכחי.</div>
     </div>
 
+    <a class="card tight row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit"><span style="font-size:24px">📖</span><div><b>מדריך שימוש</b><div class="sub" style="font-size:13px">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="spacer"></span><span class="sub">‹</span></a>
+
     <div class="h2">💾 נתונים</div>
     <div class="card">
       <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים אוטומטית במכשיר. מומלץ לגבות מדי פעם (למשל לפני החלפת טלפון).</div>

@@ -80,6 +80,22 @@ const lines = {
 
 // שמות תרגילים — "התרגיל הבא: ..."
 for (const e of EXERCISES) lines[`ex_${e.id}`] = `${e.name}. ${e.cues[0]}.`;
+// דגש ביצוע שני לכל תנועת חימום/מתיחה — נאמר כמה שניות אחרי "מתחילים!", כדי שהמאמן ידריך ולא רק יספור
+export const MOBILITY_TIPS = {
+  jumping_jacks: 'ידיים עד מעל הראש, בקצב נוח ואחיד.',
+  arm_circles: 'מעגלים גדולים ומבוקרים. באמצע מחליפים כיוון.',
+  leg_swings: 'רגל ישרה קדימה ואחורה. הטווח גדל בהדרגה.',
+  inchworm: 'הולכים עם הידיים עד פלאנק, וחוזרים לאט.',
+  bw_squat: 'עקבים על הרצפה, ידיים קדימה לאיזון.',
+  high_knees: 'ידיים עובדות בקצב. נשימה קצבית.',
+  quad_stretch: 'ברכיים צמודות, אגן מעט קדימה.',
+  hamstring_stretch: 'גב ארוך. מעמיקים בכל נשיפה.',
+  hip_flexor_stretch: 'מכווצים ישבן ודוחפים אגן קדימה. גו זקוף.',
+  chest_stretch: 'מסובבים את הגו בעדינות. בלי כאב, רק מתיחה.',
+  shoulder_stretch: 'כתפיים למטה, רחוק מהאוזניים.',
+  child_pose: 'ידיים מושטות קדימה. נשימות איטיות לגב.',
+};
+for (const [id, text] of Object.entries(MOBILITY_TIPS)) lines[`tip_${id}`] = text;
 
 export const VOICE_LINES = lines;
 

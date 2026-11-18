@@ -11,6 +11,7 @@ import { watchCard, bindWatchCard } from './garmin.js';
 import { nameEntry } from '../data/names.js';
 import { APP_VERSION } from '../version.js';
 import { applyTheme } from '../theme.js';
+import { backupNow, lastBackupText } from '../backup.js';
 import { reminderCard, bindReminders } from './reminders-ui.js';
 import { syncReminders } from '../reminders.js';
 
@@ -67,7 +68,7 @@ export function renderCoach(root) {
     <a class="card tight set-row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit;border-bottom:0"><div class="grow"><b>מדריך שימוש</b><div class="sub">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="chev">${icon('chev', 'width="20" height="20"')}</span></a>
 
     ${sec('data', 'נתונים וגיבוי', 'גיבוי, שחזור ואיפוס', html`<div class="card">
-      <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים אוטומטית במכשיר. מומלץ לגבות מדי פעם (למשל לפני החלפת טלפון).</div>
+      <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים רק במכשיר הזה. גיבוי שומר קובץ ב"קבצים", ב-iCloud או בכל מקום שתבחר; האפליקציה תזכיר פעם בחודש.<br><b>${esc(lastBackupText(s))}</b></div>
       <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>`)}
@@ -129,14 +130,7 @@ export function renderCoach(root) {
     syncReminders().catch(() => {});
     renderCoach(root);
   });
-  on(root, 'click', '[data-export]', () => {
-    const blob = new Blob([exportData()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `lohem-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  });
+  on(root, 'click', '[data-export]', async () => { if (await backupNow()) { toast('הגיבוי נשמר'); renderCoach(root); } });
   root.querySelector('[data-import]').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;

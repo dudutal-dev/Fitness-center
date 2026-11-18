@@ -12,6 +12,7 @@ import { MOTIVATION_KEYS, lineFor } from '../data/voice-lines.js';
 import { startWorkout } from './workout.js';
 import { startRun } from './run.js';
 import { reminderPromptHtml, bindReminderPrompt } from './reminders-ui.js';
+import { backupDue, backupNow, snoozeBackup } from '../backup.js';
 
 export function nextSession(s) {
   const done = new Set(s.plan.completedDays);
@@ -87,6 +88,8 @@ export function renderHome(root) {
       <button class="speak" data-act="speak" data-key="${line.key}" aria-label="השמע את ${coach.name}"><span class="wave"><i></i><i></i><i></i><i></i></span></button>
     </div>
     ${reminderPromptHtml()}
+    ${backupDue(s) && !reminderPromptHtml() ? html`<div class="card tight rem-prompt"><div class="row">${ib('save', 'acc', 'lg')}<div style="flex:1"><b>כדאי לגבות את הנתונים</b><div class="sub" style="font-size:13px">${s.sessions.length + s.runs.length} אימונים שמורים רק בטלפון הזה. ${s.lastBackupAt ? 'עבר חודש מהגיבוי האחרון.' : 'עדיין לא בוצע גיבוי.'}</div></div></div>
+      <div class="row" style="margin-top:10px"><button class="btn sm primary" data-act="backup">גבה עכשיו</button><button class="btn sm ghost" data-act="backup-later">אחר כך</button></div></div>` : ''}
 
     <div class="h2">היום</div>
     <div class="grid2">
@@ -125,6 +128,8 @@ export function renderHome(root) {
     if (a === 'water') { setDaily({ water: dd.water + 250 }); if (dd.water + 250 >= t.waterL * 1000 && dd.water < t.waterL * 1000) { addXP(XP.water * 4); toast('יעד השתייה הושלם!'); } renderHome(root); }
     if (a === 'food') location.hash = '#/nutrition';
     if (a === 'weight') weightSheet(() => renderHome(root));
+    if (a === 'backup') backupNow().then((ok) => { if (ok) toast('הגיבוי נשמר'); renderHome(root); });
+    if (a === 'backup-later') { snoozeBackup(7); renderHome(root); }
     if (a === 'checkin') checkIn(() => renderHome(root), true);
   });
 }

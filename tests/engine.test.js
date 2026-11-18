@@ -278,3 +278,38 @@ test('trendAdvice compares the real weight trend with the recommended rate', asy
   assert.equal(stuck.step, -150);
   assert.equal(trendAdvice(w([80, 80.1, 80, 80.1]), { goal: 'cut', kcalAdjust: -450 }, now).step, 0);
 });
+
+test('no-equipment workout uses only bodyweight exercises, for every level and injury', async () => {
+  const { buildFieldWorkout, isBodyweight, INJURIES } = await import('../js/engine/program.js');
+  for (let level = 1; level <= 5; level++) for (const injuries of [[], ...Object.keys(INJURIES).map((k) => [k])]) {
+    const w = buildFieldWorkout({ ...P, level, injuries });
+    assert.ok(w.items.length >= 3, `too few exercises (level ${level}, ${injuries})`);
+    for (const it of w.items) assert.ok(isBodyweight(it.exId), `${it.exId} needs equipment (level ${level}, ${injuries})`);
+    for (const [id] of w.finisher?.items || []) assert.ok(isBodyweight(id), `finisher ${id} needs equipment`);
+    const main = new Set(w.items.map((it) => it.exId));
+    for (const m of w.warmup) assert.ok(!main.has(m.exId), `warm-up repeats ${m.exId}`);
+  }
+});
+
+test('weekSummary compares the last 7 days with the 7 before', async () => {
+  const { weekSummary } = await import('../js/engine/summary.js');
+  const now = new Date(2026, 10, 18, 12).getTime(), d = (n) => new Date(now - n * 864e5).toISOString();
+  const key = (n) => { const x = new Date(now - n * 864e5); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+  const state = {
+    profile: { ...P, customFoods: [] }, plan: { week: { sessions: [1, 2, 3, 4] } },
+    sessions: [{ date: d(0), durationSec: 3000, volume: 5000, prs: ['bench_press'] }, { date: d(2), durationSec: 2400, volume: 4000, prs: [] }, { date: d(6), durationSec: 2400, volume: 3000 },
+      { date: d(8), durationSec: 2400, volume: 2000, prs: [] }, { date: d(20), durationSec: 2400, volume: 9000 }],
+    runs: [{ date: d(1), durationSec: 1500, distanceKm: 4.2 }, { date: d(9), durationSec: 1200, distanceKm: 3 }],
+    daily: { [key(0)]: { foods: [{ id: 'chicken_breast', qty: 2 }], water: 2000 }, [key(1)]: { foods: [{ id: 'chicken_breast', qty: 1 }], water: 1000 }, [key(9)]: { foods: [{ id: 'rice', qty: 1 }] } },
+    weights: [{ date: key(10), kg: 73 }, { date: key(3), kg: 72.4 }],
+  };
+  const s = weekSummary(state, now);
+  assert.equal(s.cur.workouts, 3); assert.equal(s.prev.workouts, 1);
+  assert.equal(s.cur.runs, 1); assert.equal(s.cur.runKm, 4.2);
+  assert.equal(s.cur.volume, 12000); assert.equal(s.cur.prs, 1); assert.equal(s.cur.activeDays, 4);
+  assert.equal(s.cur.foodDays, 2); assert.equal(s.cur.kcal, Math.round((480 + 240) / 2)); assert.equal(s.cur.waterL, 1.5);
+  assert.deepEqual(s.weight, { kg: 72.4, delta: -0.6 });
+  assert.ok(s.verdict.length > 5);
+  const empty = weekSummary({ profile: P, sessions: [], runs: [], daily: {}, weights: [] }, now);
+  assert.equal(empty.cur.workouts, 0); assert.equal(empty.cur.kcal, null); assert.equal(empty.weight, null);
+});

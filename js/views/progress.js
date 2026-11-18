@@ -5,20 +5,21 @@ import { get } from '../store.js';
 import { EX, MUSCLES } from '../data/exercises.js';
 import { bestSet } from '../engine/progression.js';
 import { weightTrend, muscleLoad } from '../engine/stats.js';
+import { weekSummary } from '../engine/summary.js';
 import { next3kTarget } from '../engine/running.js';
 import { weightSheet } from './home.js';
 import { pickAndImport, garminHelp } from './garmin.js';
 import { openSessionEditor, openRunEditor } from './history.js';
 import { fmtPace } from '../engine/running.js';
 
-let tab = 'weight';
+let tab = 'week';
 let liftSel = null;
 let showAll = false;
 
 export function renderProgress(root) {
   const s = get();
   const p = s.profile;
-  const tabs = [['weight', 'משקל'], ['strength', 'כוח'], ['run', 'ריצה'], ['body', 'גוף']];
+  const tabs = [['week', 'שבוע'], ['weight', 'משקל'], ['strength', 'כוח'], ['run', 'ריצה'], ['body', 'גוף']];
   root.innerHTML = html`<div class="page-head"><div class="eyebrow">מעקב ומדדים</div><div class="h1">ההתקדמות שלך</div></div>
     <div class="seg" style="margin-bottom:14px">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`)}</div>
     <div id="tabc">${TABS[tab](s, p)}</div>
@@ -34,6 +35,29 @@ export function renderProgress(root) {
 }
 
 const TABS = {
+  // סיכום שבועי: 7 הימים האחרונים מול השבוע שלפניו
+  week(s) {
+    const w = weekSummary(s), c = w.cur, pv = w.prev;
+    const delta = (a, b, unit = '') => { const d = Math.round((a - b) * 10) / 10; return d ? `<small class="${d > 0 ? 'up' : 'down'}"><span class="ltr">${d > 0 ? '+' : ''}${d.toLocaleString('he-IL')}</span>${unit} מהשבוע שעבר</small>` : '<small>כמו בשבוע שעבר</small>'; };
+    const kpi = (ic, tone, val, label, sub) => `<div class="wk"><div class="row">${ib(ic, tone, 'sm')}<span class="sub t-cap">${label}</span></div><b class="num">${val}</b>${sub || ''}</div>`;
+    const pct = (v, of) => Math.min(100, Math.round((v / Math.max(1, of)) * 100));
+    return html`<div class="card tight advice"><b>${esc(w.verdict)}</b></div>
+      <div class="wk-grid">
+        ${kpi('dumbbell', 'pri', `${c.workouts}${w.planned ? `<small> / ${w.planned}</small>` : ''}`, 'אימוני כוח', delta(c.workouts, pv.workouts))}
+        ${kpi('clock', '', c.minutes, 'דקות אימון', delta(c.minutes, pv.minutes))}
+        ${kpi('chart', 'pri', c.volume.toLocaleString('he-IL'), 'ק״ג נפח', delta(c.volume, pv.volume))}
+        ${kpi('trophy', 'pri', c.prs, 'שיאים אישיים', '')}
+        ${kpi('run', 'acc', c.runKm || c.runs, c.runKm ? 'ק״מ ריצה' : 'ריצות', delta(c.runKm || c.runs, pv.runKm || pv.runs))}
+        ${kpi('scale', '', w.weight ? w.weight.kg : '—', 'משקל (ק״ג)', w.weight?.delta != null ? `<small><span class="ltr">${w.weight.delta > 0 ? '+' : ''}${w.weight.delta}</span> מהשקילה הקודמת</small>` : '<small>אין שקילה השבוע</small>')}
+      </div>
+      <div class="card" style="margin-top:12px"><b>תזונה — ממוצע יומי</b>
+        ${c.foodDays ? html`<div class="sub t-foot" style="margin-bottom:10px">לפי ${c.foodDays} ימים שנרשמו השבוע</div>
+          <div class="meter"><div class="row"><span>קלוריות</span><span>${c.kcal.toLocaleString('he-IL')} / ${w.targets.kcal.toLocaleString('he-IL')}</span></div><div class="bar"><i style="width:${pct(c.kcal, w.targets.kcal)}%"></i></div></div>
+          <div class="meter"><div class="row"><span>חלבון</span><span>${c.protein} / ${w.targets.protein} ג׳</span></div><div class="bar"><i style="width:${pct(c.protein, w.targets.protein)}%"></i></div></div>
+          ${c.waterL != null ? `<div class="meter"><div class="row"><span>מים</span><span>${c.waterL} / ${w.targets.waterL} ל׳</span></div><div class="bar"><i style="width:${pct(c.waterL, w.targets.waterL)}%;background:var(--blue)"></i></div></div>` : ''}`
+        : '<div class="sub t-foot" style="margin-top:6px">לא נרשם אוכל השבוע. רישום של כמה ימים מספיק כדי לראות ממוצע מול היעד.</div>'}
+      </div>`;
+  },
   weight(s, p) {
     const W = weightTrend(s.weights);
     const first = W[0]?.kg, last = W[W.length - 1];

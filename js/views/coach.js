@@ -48,7 +48,7 @@ export function renderCoach(root) {
       <div class="voice-dl" data-voice-dl><div class="grow"><b>קובצי הקול במכשיר</b><div class="sub" data-vdl-status>בודק…</div><div class="bar" style="margin-top:6px"><i data-vdl-bar style="width:0%"></i></div></div>
         <button class="btn sm" data-vdl>${icon('download')} הורד</button></div>
     </div>`)}
-    ${sec('watch', 'Garmin ושעון חכם', 'דופק חי וייבוא פעילויות', watchCard())}
+    ${sec('watch', 'שעון, Garmin ו-Apple Health', 'דופק חי וייבוא פעילויות ושקילות', watchCard())}
     ${sec('profile', 'פרופיל ויעדים', `${esc(GOALS[p.goal].name)} · ${p.days} אימונים בשבוע`, html`<div class="card">
       <label class="field"><span>המאמן פונה אליך בלשון</span><div class="seg" data-seg="sex">
         <button data-v="m" class="${p.sex !== 'f' ? 'on' : ''}">זכר</button><button data-v="f" class="${p.sex === 'f' ? 'on' : ''}">נקבה</button></div></label>

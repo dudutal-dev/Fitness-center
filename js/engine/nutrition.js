@@ -151,10 +151,11 @@ function fitQuantities(meals, t, minMealP) {
 }
 
 // בניית תפריט יומי. ctx: base | field | home
+// התפריט נבנה רק מהמאכלים שנבחרו לו ידנית; מאכלי הרחבת המאגר (plan: false) משמשים לחיפוש וליומן בלבד.
 export function mealPlan(profile, { ctx = 'base', seed = 1 } = {}) {
   const t = targets(profile);
   const rnd = seeded(seed);
-  const pool = FOODS.filter((f) => allowed(f, profile.dislikes, profile.dislikedFoods) && f.ctx.includes(ctx) && f.cat !== 'meal' && !NOT_IN_PLAN.has(f.id));
+  const pool = FOODS.filter((f) => allowed(f, profile.dislikes, profile.dislikedFoods) && f.ctx.includes(ctx) && f.cat !== 'meal' && f.plan !== false && !NOT_IN_PLAN.has(f.id));
   const usedToday = new Set();
   const pick = (opts) => { const f = opts[Math.floor(rnd() * opts.length)]; usedToday.add(f.id); return { id: f.id, qty: 1 }; };
   const meals = MEALS.map((m) => {

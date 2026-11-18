@@ -1,4 +1,4 @@
-// מסך תזונה: יעדים מול מה שנאכל בפועל (יומן אכילה עם חיפוש ב-190+ מזונות), תפריט יומי לפי הקשר (בסיס/שטח/בית),
+// מסך תזונה: יעדים מול מה שנאכל בפועל (יומן אכילה עם חיפוש ב-600+ מזונות), תפריט יומי לפי הקשר (בסיס/שטח/בית),
 // "לא אוכל", מזונות אישיים, מעקב שתייה, טיפים.
 import { html, esc, on, toast, sheet, icon, ib, em, emi, vibrate } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
@@ -14,7 +14,7 @@ let seed = new Date().getDate();
 let editDislikes = false;
 let dislikeQuery = '';
 
-const CATS = [['', 'הכל'], ['meal', 'מנות'], ['protein', 'חלבון'], ['dairy', 'חלב'], ['carb', 'פחמימה'], ['fruit', 'פירות'], ['veg', 'ירקות'], ['fat', 'שומנים'], ['snack', 'חטיפים'], ['custom', 'שלי']];
+const CATS = [['', 'הכל'], ['meal', 'מנות'], ['protein', 'חלבון'], ['dairy', 'חלב'], ['carb', 'פחמימה'], ['fruit', 'פירות'], ['veg', 'ירקות'], ['fat', 'שומנים'], ['sauce', 'רטבים'], ['snack', 'חטיפים ומשקאות'], ['custom', 'שלי']];
 const QTYS = [0.5, 1, 1.5, 2, 3];
 const MEAL_SLOTS = [['breakfast', 'בוקר'], ['lunch', 'צהריים'], ['dinner', 'ערב'], ['snack', 'ביניים']];
 

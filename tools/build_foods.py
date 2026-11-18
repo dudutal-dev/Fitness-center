@@ -190,10 +190,20 @@ def grams_of(code, unit, count):
         raise SystemExit(f'קוד {code}: אין יחידה "{unit}" במאגר. קיימות: {list(w)}')
     return w[unit] * count
 
+# ── הרחבת המאגר (tools/foods_extra.json) ──
+# מאכלים שנוספו במחקר לפי סוגי מזון: כל אחד מצביע על קוד/ים במאגר משרד הבריאות ועל מנה, בדיוק כמו SPEC.
+# הם משמשים לחיפוש, ליומן ולסריקה — אבל לא נכנסים לתפריט המומלץ (plan: false), שנשאר מבוסס על הרשימה שנבחרה ידנית.
+EXTRA = json.load(open(os.path.join(os.path.dirname(__file__), 'foods_extra.json'), encoding='utf-8'))
+EXTRA_IDS = {e['id'] for e in EXTRA}
+dup = EXTRA_IDS & {s[0] for s in SPEC}
+if dup:
+    raise SystemExit(f'מזהים כפולים בין SPEC ל-foods_extra.json: {sorted(dup)}')
+ALL_SPEC = SPEC + [(e['id'], e['name'], e['portion'], e['cat'], e['tags'], e['ctx'], e['meals'], [tuple(c) for c in e['comps']]) for e in EXTRA]
+
 out, report = [], []
-for fid, name, portion, cat, tags, ctx, meals, comps in SPEC:
+for fid, name, portion, cat, tags, ctx, meals, comps in ALL_SPEC:
     tot = {'kcal': 0, 'p': 0, 'c': 0, 'f': 0, 'fib': 0}
-    srcs, grams_total = [], 0
+    srcs, grams_total, alc = [], 0, 0
     for code, unit, count in comps:
         f = FOODS.get(code)
         if not f:
@@ -202,6 +212,7 @@ for fid, name, portion, cat, tags, ctx, meals, comps in SPEC:
         grams_total += g
         for k, col in (('kcal', 'food_energy'), ('p', 'protein'), ('c', 'carbohydrates'), ('f', 'total_fat'), ('fib', 'total_dietary_fiber')):
             tot[k] += (float(f[col] or 0)) * g / 100
+        alc += float(f.get('alcohol') or 0) * g / 100
         srcs.append({'code': int(code), 'name': f['shmmitzrach'].replace('\n', ' ').strip(), 'g': round(g)})
     r = lambda v, d=0: round(v, d) if d else round(v)
     item = {'id': fid, 'name': name, 'portion': f'{portion} · {round(grams_total)} ג׳', 'g': round(grams_total), 'kcal': r(tot['kcal']), 'p': r(tot['p'], 1), 'c': r(tot['c'], 1), 'f': r(tot['f'], 1), 'fib': r(tot['fib'], 1),
@@ -209,6 +220,10 @@ for fid, name, portion, cat, tags, ctx, meals, comps in SPEC:
     # במאגר, ערך הסיבים של הפריטים האלה זהה לערך הפחמימות (כנראה שגיאת הזנה) — לא נספר כסיבים
     if fid in ('chicken_meatballs',):
         item['fib'] = 0.0
+    if fid in EXTRA_IDS:
+        item['plan'] = False
+    if alc >= 0.5:
+        item['alc'] = round(alc, 1)   # גרם אלכוהול (7 קק״ל לגרם) — מסביר את הפער בין הקלוריות למאקרו במשקאות
     out.append(item)
     report.append(item)
 

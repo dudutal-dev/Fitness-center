@@ -24,7 +24,8 @@ export function renderCoach(root) {
   const p = s.profile;
   const st = s.settings;
   if (sessionStorage.getItem('scrollTo') === 'reminders') openSec.add('reminders');
-  root.innerHTML = html`<div class="page-head"><div class="h1">המאמן וההגדרות</div></div>
+  root.innerHTML = html`<div class="page-head"><div class="h1">הגדרות</div></div>
+    <div class="h2" style="margin-top:0">המאמן שלך</div>
     <div class="coach-pick">${Object.values(COACHES).map((c) => html`
       <button class="coach-card ${p.coach === c.id ? 'on' : ''}" data-coach="${c.id}"><img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
         <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>

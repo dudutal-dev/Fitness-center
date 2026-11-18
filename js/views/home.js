@@ -61,7 +61,7 @@ export function renderHome(root) {
       <div class="hello"><div class="sub">${greeting()}</div><div class="h1">${esc(p.name)}</div></div>
       <div class="top-actions">
         ${st ? `<span class="tag orange" title="רצף ימים">${icon('flame')} <span class="num">${st}</span></span>` : ''}
-        <a href="#/coach" class="avatar" aria-label="המאמן והגדרות"><img src="${coach.face}" alt=""></a>
+        <a href="#/coach" class="set-btn" aria-label="הגדרות">${icon('gear')}<span>הגדרות</span></a>
       </div>
     </div>
 

@@ -229,3 +229,52 @@ test('meal plan: no chicken / meat / fish at breakfast; foods fit their meal; no
   }
 });
 
+
+// ───── תזונה: התאמה למחקר ─────
+test('menu hits the calorie and protein targets it prescribes', async () => {
+  const { mealPlan } = await import('../js/engine/nutrition.js');
+  const profiles = [
+    { weightKg: 78, heightCm: 178, age: 24, sex: 'm', goal: 'combat', days: 4 },
+    { weightKg: 78, heightCm: 178, age: 24, sex: 'm', goal: 'muscle', days: 5 },
+    { weightKg: 95, heightCm: 178, age: 30, sex: 'm', goal: 'cut', days: 3 },
+    { weightKg: 60, heightCm: 165, age: 22, sex: 'f', goal: 'cut', days: 3 },
+  ];
+  for (const base of profiles) for (const ctx of ['base', 'field', 'home']) for (let seed = 1; seed <= 12; seed++) {
+    const plan = mealPlan({ ...base, dislikes: [], dislikedFoods: [] }, { ctx, seed });
+    const t = plan.targets;
+    assert.ok(Math.abs(plan.total.kcal / t.kcal - 1) <= 0.12, `kcal ${plan.total.kcal} vs ${t.kcal} (${base.goal}/${ctx}/${seed})`);
+    assert.ok(plan.total.p >= t.protein * 0.85, `protein ${plan.total.p} vs ${t.protein} (${base.goal}/${ctx}/${seed})`);
+    for (const m of plan.meals) for (const it of m.items) assert.ok(it.qty >= 0.5 && it.qty <= 2.5);
+  }
+});
+
+test('targets: activity derives from training days, protein is capped for high BMI, floors hold', async () => {
+  const { targets, activityKey, goalDelta } = await import('../js/engine/nutrition.js');
+  assert.equal(activityKey({ days: 2 }), 'light');
+  assert.equal(activityKey({ days: 4 }), 'base');
+  assert.equal(activityKey({ days: 6 }), 'training');
+  assert.equal(activityKey({ days: 2, activityLevel: 'field' }), 'field');
+  const heavy = targets({ weightKg: 130, heightCm: 180, age: 35, sex: 'm', goal: 'cut', days: 3 });
+  assert.ok(heavy.protein < 130 * 2.2 && heavy.protein === Math.round(30 * 1.8 * 1.8 * 2.2));
+  const lean = targets({ weightKg: 75, heightCm: 180, age: 25, sex: 'm', goal: 'cut', days: 4 });
+  assert.equal(lean.protein, Math.round(75 * 2.2));
+  assert.ok(lean.kcal >= lean.bmr && lean.fat >= 0.5 * 75);
+  assert.equal(lean.fiber, Math.round(lean.kcal / 1000 * 14));
+  const surplus = goalDelta('muscle', 78, 2900);
+  assert.ok(surplus >= 250 && surplus <= 450);
+  assert.equal(targets({ weightKg: 75, heightCm: 180, age: 25, sex: 'm', goal: 'combat', days: 4, kcalAdjust: 150 }).kcal - targets({ weightKg: 75, heightCm: 180, age: 25, sex: 'm', goal: 'combat', days: 4 }).kcal, 150);
+});
+
+test('trendAdvice compares the real weight trend with the recommended rate', async () => {
+  const { trendAdvice } = await import('../js/engine/nutrition.js');
+  const now = new Date('2026-11-18').getTime();
+  assert.equal(trendAdvice([{ date: '2026-11-10', kg: 80 }, { date: '2026-11-17', kg: 79.5 }], { goal: 'cut' }, now), null);
+  const w = (kgs) => kgs.map((kg, i) => ({ date: `2026-11-${String(1 + i * 5).padStart(2, '0')}`, kg }));
+  const ok = trendAdvice(w([80, 79.7, 79.4, 79.1]), { goal: 'cut' }, now);   // ~-0.42 ק״ג/שבוע ≈ -0.53%
+  assert.ok(ok.onTrack && ok.step === 0);
+  const fast = trendAdvice(w([80, 79, 78, 77]), { goal: 'cut' }, now);        // ~-1.75%/שבוע
+  assert.equal(fast.step, 150);
+  const stuck = trendAdvice(w([80, 80.1, 80, 80.1]), { goal: 'cut' }, now);
+  assert.equal(stuck.step, -150);
+  assert.equal(trendAdvice(w([80, 80.1, 80, 80.1]), { goal: 'cut', kcalAdjust: -450 }, now).step, 0);
+});

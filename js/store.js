@@ -1,6 +1,6 @@
 // מאגר מצב מרכזי עם שמירה אוטומטית ל-localStorage (כל שינוי + כל 3 שניות + ביציאה).
 import { buildWeek } from './engine/program.js';
-import { rankFor, XP } from './engine/stats.js';
+import { rankFor, XP, dayKey } from './engine/stats.js';
 
 const KEY = 'golani_fit_v1';
 
@@ -14,7 +14,7 @@ const DEFAULT = {
   daily: {},              // 'YYYY-MM-DD' -> { water, protein, checkin }
   xp: 0,
   events: [],             // התראות/הודעות מאמן אחרונות
-  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, theme: 'dark', units: 'kg' },
+  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, theme: 'dark', themeV: 4, units: 'kg' },
 };
 
 let state = load();
@@ -24,7 +24,12 @@ let dirty = false;
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...structuredClone(DEFAULT), ...JSON.parse(raw) };
+    if (raw) {
+      const st = { ...structuredClone(DEFAULT), ...JSON.parse(raw) };
+      // עיצוב v4: מעבר חד-פעמי לערכה הכהה החדשה; אפשר לשנות בהגדרות ← מראה
+      if (st.settings && st.settings.themeV !== 4) { st.settings.theme = 'dark'; st.settings.themeV = 4; }
+      return st;
+    }
   } catch { /* מצב פרטי / חסום */ }
   return structuredClone(DEFAULT);
 }
@@ -50,7 +55,8 @@ export const subscribe = (fn) => (subs.add(fn), () => subs.delete(fn));
 // טקסט לפי מין המתאמן: g('צא', 'צאי')
 export const g = (m, f) => (state.profile?.sex === 'f' ? f : m);
 
-export const today = () => new Date().toISOString().slice(0, 10);
+// תאריך מקומי (לא UTC) — אחרת היום מתחלף ב-02:00/03:00 בלילה שעון ישראל
+export const today = () => dayKey();
 
 export function daily(date = today()) {
   return state.daily[date] || { water: 0, protein: 0, checkin: null };
@@ -63,7 +69,7 @@ export function addXP(amount, reason) {
   const before = rankFor(state.xp).idx;
   set((s) => { s.xp += amount; return s; });
   const after = rankFor(state.xp);
-  if (after.idx > before) pushEvent({ type: 'rank', text: `עלית דרגה: ${after.icon} ${after.name}!` });
+  if (after.idx > before) pushEvent({ type: 'rank', text: `עלית דרגה: ${after.name}!` });
   return { amount, reason, rankUp: after.idx > before ? after : null };
 }
 

@@ -1,5 +1,5 @@
 // כרטיס התזכורות במסך המאמן + הצעה במסך הבית.
-import { html, on, toast, sheet } from '../ui/dom.js';
+import { html, on, toast, sheet, ib } from '../ui/dom.js';
 import { get, set, g } from '../store.js';
 import { reminders, enableReminders, disableReminders, testReminder, saveReminderSettings, needsInstall, pushSupported, buildICS } from '../reminders.js';
 import { COACHES } from '../data/coaches.js';
@@ -13,8 +13,8 @@ export function reminderCard() {
   if (!r.enabled) {
     return html`<div class="card">
       <div><div><b>תזכורות מהמאמן</b><div class="sub t-foot">אימון, שתייה ושקילה — גם כשהאפליקציה סגורה</div></div></div>
-      ${needsInstall() ? html`<div class="g-tip" style="margin-top:12px"><span>📲</span><div>באייפון, תזכורות עובדות רק כשהאפליקציה <b>מותקנת במסך הבית</b>: שיתוף ⬆️ ← "הוסף למסך הבית", ואז לפתוח משם ולהפעיל כאן.</div></div>`
-        : !pushSupported() ? '<div class="sub" style="margin-top:10px">הדפדפן הזה לא תומך בתזכורות. אפשר להשתמש בלוח השנה 👇</div>'
+      ${needsInstall() ? html`<div class="g-tip" style="margin-top:12px">${ib('phone', 'acc', 'sm')}<div>באייפון, תזכורות עובדות רק כשהאפליקציה <b>מותקנת במסך הבית</b>: שיתוף ⬆️ ← "הוסף למסך הבית", ואז לפתוח משם ולהפעיל כאן.</div></div>`
+        : !pushSupported() ? '<div class="sub" style="margin-top:10px">הדפדפן הזה לא תומך בתזכורות. אפשר להשתמש בלוח השנה</div>'
         : '<button class="btn primary block" style="margin-top:12px" data-rem="on">הפעל תזכורות</button>'}
       <button class="btn sm ghost block" style="margin-top:8px" data-rem="ics">או: הוסף ללוח השנה</button>
     </div>`;
@@ -46,14 +46,14 @@ export function bindReminders(root, rerender) {
     const a = b.dataset.rem;
     if (a === 'on') {
       b.disabled = true; b.textContent = 'מפעיל…';
-      try { await enableReminders(); toast('🔔 התזכורות פעילות'); testReminder().catch(() => {}); }
+      try { await enableReminders(); toast('התזכורות פעילות'); testReminder().catch(() => {}); }
       catch (err) {
         toast(err.message === 'denied' ? 'לא אושרו התראות. אפשר לאשר בהגדרות הטלפון ← התראות.' : err.message === 'install' ? 'קודם להתקין במסך הבית' : `לא הצלחתי להפעיל: ${err.message}`, 4500);
       }
       rerender();
     }
-    if (a === 'test') { try { await testReminder(); toast('📨 נשלחה תזכורת לדוגמה — אמורה להגיע תוך כמה שניות'); } catch (err) { toast(`שליחה נכשלה: ${err.message}`, 4000); rerender(); } }
-    if (a === 'off') { await disableReminders(); toast('🔕 התזכורות כבויות'); rerender(); }
+    if (a === 'test') { try { await testReminder(); toast('נשלחה תזכורת לדוגמה — אמורה להגיע תוך כמה שניות'); } catch (err) { toast(`שליחה נכשלה: ${err.message}`, 4000); rerender(); } }
+    if (a === 'off') { await disableReminders(); toast('התזכורות כבויות'); rerender(); }
     if (a === 'ics') downloadICS();
   });
   on(root, 'click', '[data-rtog]', (e, b) => edit((s) => { const k = b.dataset.rtog; s[k] = { ...s[k], on: !s[k]?.on }; }));
@@ -75,14 +75,14 @@ function downloadICS() {
   a.download = 'lohem-reminders.ics';
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 3000);
-  toast('📅 הקובץ ירד — לפתוח אותו ולבחור "הוסף הכל" ללוח השנה', 4500);
+  toast('הקובץ ירד — לפתוח אותו ולבחור "הוסף הכל" ללוח השנה', 4500);
 }
 
 // הצעה חד־פעמית במסך הבית
 export function reminderPromptHtml() {
   const s = get();
   if (reminders().enabled || s.reminderPromptDismissed || !s.sessions?.length) return '';
-  return html`<div class="card tight rem-prompt"><div class="row"><span style="font-size:26px">🔔</span><div style="flex:1"><b>${g('רוצה', 'רוצה')} שאזכיר לך להתאמן?</b><div class="sub" style="font-size:13px">תזכורת אימון, שתייה ושקילה — גם כשהאפליקציה סגורה</div></div></div>
+  return html`<div class="card tight rem-prompt"><div class="row">${ib('bell', 'pri', 'lg')}<div style="flex:1"><b>${g('רוצה', 'רוצה')} שאזכיר לך להתאמן?</b><div class="sub" style="font-size:13px">תזכורת אימון, שתייה ושקילה — גם כשהאפליקציה סגורה</div></div></div>
     <div class="row" style="margin-top:10px"><a class="btn sm primary" href="#/coach" data-remgo>כן, להגדרות</a><button class="btn sm ghost" data-remno>לא עכשיו</button></div></div>`;
 }
 export function bindReminderPrompt(root, rerender) {

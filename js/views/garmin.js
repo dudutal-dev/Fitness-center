@@ -1,6 +1,7 @@
 // Garmin: ייבוא פעילויות מקבצים, כרטיס הגדרות שעון, והוראות.
-import { html, esc, on, sheet, toast, fmtTime, fmtDate, icon } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, fmtTime, fmtDate, icon, em } from '../ui/dom.js';
 import { get, set, addXP, XP } from '../store.js';
+import { dayKey } from '../engine/stats.js';
 import { importActivityFile } from '../devices/importer.js';
 import { summarizeHR, maxHrFor, supported, isConnected, disconnect } from '../devices/hr.js';
 import { connectWatch, watchStatusText, isIOS } from '../devices/ui.js';
@@ -28,22 +29,22 @@ function previewSheet(a, onDone) {
   const s = get();
   const dup = s.runs.some((r) => r.importId === a.start) || s.sessions.some((x) => x.importId === a.start);
   const pace = a.distanceKm ? a.durationSec / a.distanceKm : null;
-  const sameDay = s.sessions.filter((x) => x.date.slice(0, 10) === a.start.slice(0, 10) && !x.imported);
+  const sameDay = s.sessions.filter((x) => dayKey(x.date) === dayKey(a.start) && !x.imported);
   const looksTest = a.sport === 'running' && a.distanceKm >= 2.9 && a.distanceKm <= 3.3;
   const hr = a.hrSamples?.length ? summarizeHR(a.hrSamples, null, maxHrFor(s.profile)) : a.avgHr ? { avg: a.avgHr, max: a.maxHr, zones: [0, 0, 0, 0, 0], samples: [] } : null;
   const vol = a.sets.reduce((t, x) => t + (x.kg || 0) * (x.reps || 0), 0);
   sheet(html`<div class="eyebrow">⌚ ייבוא מ-Garmin</div><div class="h1" style="font-size:24px">${SPORT_HE[a.sport] || 'פעילות'} · ${fmtDate(a.start)}</div>
-    ${dup ? '<div class="tag orange" style="margin:6px 0">⚠️ הפעילות הזו כבר יובאה</div>' : ''}
+    ${dup ? '<div class="tag orange" style="margin:6px 0">הפעילות הזו כבר יובאה</div>' : ''}
     <div class="kpis" style="margin:14px 0">
       <div class="kpi"><b>${fmtTime(a.durationSec)}</b><span>זמן</span></div>
       <div class="kpi"><b>${a.distanceKm ?? '—'}</b><span>ק״מ</span></div>
       <div class="kpi"><b>${pace ? fmtPace(pace) : a.calories ?? '—'}</b><span>${pace ? 'קצב לק״מ' : 'קלוריות'}</span></div></div>
     ${a.avgHr || hr ? `<div class="card tight"><b>❤ דופק ממוצע ${hr?.avg ?? a.avgHr} · מקסימום ${hr?.max ?? a.maxHr}</b>${a.calories ? `<div class="sub">🔥 ${a.calories} קלוריות</div>` : ''}</div>` : ''}
-    ${a.sets.length ? `<div class="card tight" style="margin-top:10px"><b>🏋️ ${a.sets.length} סטים</b><div class="sub">${a.sets.reduce((t, x) => t + (x.reps || 0), 0)} חזרות · ${Math.round(vol)} ק״ג נפח</div></div>` : ''}
+    ${a.sets.length ? `<div class="card tight" style="margin-top:10px"><b>${a.sets.length} סטים</b><div class="sub">${a.sets.reduce((t, x) => t + (x.reps || 0), 0)} חזרות · ${Math.round(vol)} ק״ג נפח</div></div>` : ''}
     <div class="stack" style="margin-top:16px">
       ${a.sport === 'strength' && sameDay.length ? `<button class="btn primary block" data-imp="attach">צרף דופק לאימון "${esc(sameDay[sameDay.length - 1].name)}"</button>` : ''}
       ${a.sport === 'strength' ? '<button class="btn block" data-imp="session">שמור כאימון כוח</button>' : ''}
-      ${looksTest ? '<button class="btn primary block" data-imp="test">🏁 שמור כמבדק 3 ק״מ</button>' : ''}
+      ${looksTest ? '<button class="btn primary block" data-imp="test">שמור כמבדק 3 ק״מ</button>' : ''}
       ${a.sport !== 'strength' ? `<button class="btn ${looksTest ? '' : 'primary'} block" data-imp="run">שמור כ${a.sport === 'running' ? 'ריצה' : 'פעילות אירובית'}</button>` : ''}
       <button class="btn ghost block" data-close>ביטול</button>
     </div>`, {
@@ -57,7 +58,7 @@ function previewSheet(a, onDone) {
         } else if (k === 'attach') {
           const target = sameDay[sameDay.length - 1];
           set((st) => { const x = st.sessions.find((y) => y.date === target.date); Object.assign(x, { hr, calories: a.calories, importId: a.start }); return st; });
-          toast('❤ הדופק צורף לאימון');
+          toast('הדופק צורף לאימון');
         } else if (k === 'session') {
           set((st) => {
             st.sessions.push({ date: a.start, name: 'אימון כוח (Garmin)', day: null, field: false, imported: true, durationSec: a.durationSec, volume: Math.round(vol),
@@ -65,7 +66,7 @@ function previewSheet(a, onDone) {
             return st;
           });
           addXP(XP.workout, 'import');
-          toast('🏋️ האימון נשמר');
+          toast('האימון נשמר');
         }
         close(); onDone?.();
       });
@@ -76,14 +77,14 @@ function previewSheet(a, onDone) {
 export function garminHelp() {
   sheet(html`<div class="eyebrow">⌚ Garmin</div><div class="h1" style="font-size:24px">איך מחברים את השעון</div>
     <div class="h2">1 · דופק חי באימון ובריצה</div>
-    <div class="tip"><div class="ti">📡</div><div><b>הפעלת שידור דופק בשעון</b><span>בשעון: לחיצה ארוכה על MENU → הגדרות → בריאות ובריאות גופנית / דופק משורש כף היד → <b>שידור דופק (Broadcast Heart Rate)</b>. בחלק מהדגמים: מתוך פעילות → הגדרות → "שידור בזמן פעילות".</span></div></div>
-    <div class="tip"><div class="ti">🔗</div><div><b>חיבור לאפליקציה</b><span>בטלפון: "חבר שעון" → לבחור את השעון מהרשימה. עובד ב-Chrome באנדרואיד. גם רצועת חזה (HRM-Pro/Dual) עובדת, וחלקן משדרות גם מהירות ומרחק.</span></div></div>
-    ${isIOS() ? '<div class="tip"><div class="ti">🍏</div><div><b>באייפון</b><span>ספארי לא תומך ב-Bluetooth מהדפדפן. לדופק חי: להתקין את הדפדפן החינמי <b>Bluefy</b> ולפתוח בו את האפליקציה. כל השאר (GPS, ייבוא) עובד גם בספארי.</span></div></div>' : ''}
+    <div class="tip"><div class="ti">${em('📡', 'acc')}</div><div><b>הפעלת שידור דופק בשעון</b><span>בשעון: לחיצה ארוכה על MENU → הגדרות → בריאות ובריאות גופנית / דופק משורש כף היד → <b>שידור דופק (Broadcast Heart Rate)</b>. בחלק מהדגמים: מתוך פעילות → הגדרות → "שידור בזמן פעילות".</span></div></div>
+    <div class="tip"><div class="ti">${em('🔗', 'acc')}</div><div><b>חיבור לאפליקציה</b><span>בטלפון: "חבר שעון" → לבחור את השעון מהרשימה. עובד ב-Chrome באנדרואיד. גם רצועת חזה (HRM-Pro/Dual) עובדת, וחלקן משדרות גם מהירות ומרחק.</span></div></div>
+    ${isIOS() ? `<div class="tip"><div class="ti">${em('🍏', 'acc')}</div><div><b>באייפון</b><span>ספארי לא תומך ב-Bluetooth מהדפדפן. לדופק חי: להתקין את הדפדפן החינמי <b>Bluefy</b> ולפתוח בו את האפליקציה. כל השאר (GPS, ייבוא) עובד גם בספארי.</span></div></div>` : ''}
     <div class="h2">2 · מרחק וקצב בריצה</div>
-    <div class="tip"><div class="ti">🛰️</div><div><b>GPS של הטלפון</b><span>מופעל אוטומטית במצב ריצה (לאשר הרשאת מיקום). במבדק 3 ק״מ המאמן מזהה לבד את סוף ה-3 ק״מ. להשאיר את המסך דלוק.</span></div></div>
+    <div class="tip"><div class="ti">${em('🛰️', 'acc')}</div><div><b>GPS של הטלפון</b><span>מופעל אוטומטית במצב ריצה (לאשר הרשאת מיקום). במבדק 3 ק״מ המאמן מזהה לבד את סוף ה-3 ק״מ. להשאיר את המסך דלוק.</span></div></div>
     <div class="h2">3 · ייבוא אימונים מ-Garmin Connect</div>
-    <div class="tip"><div class="ti">📤</div><div><b>ייצוא מהאתר</b><span>connect.garmin.com → פעילות → ⚙️ (גלגל שיניים) → <b>Export Original</b> (קובץ ZIP), או Export to TCX/GPX. ואז כאן: "ייבוא מ-Garmin" ולבחור את הקובץ.</span></div></div>
-    <div class="tip"><div class="ti">📈</div><div><b>מה נכנס</b><span>זמן, מרחק, קצב, דופק ממוצע/מקסימלי ואזורי דופק, קלוריות. ריצות נכנסות לגרפים ולמדד הכשירות; ריצת ~3 ק״מ אפשר לשמור כמבדק. באימוני כוח — סטים, חזרות ומשקלים.</span></div></div>
+    <div class="tip"><div class="ti">${em('📤', 'acc')}</div><div><b>ייצוא מהאתר</b><span>connect.garmin.com → פעילות → ⚙️ (גלגל שיניים) → <b>Export Original</b> (קובץ ZIP), או Export to TCX/GPX. ואז כאן: "ייבוא מ-Garmin" ולבחור את הקובץ.</span></div></div>
+    <div class="tip"><div class="ti">${em('📈', 'acc')}</div><div><b>מה נכנס</b><span>זמן, מרחק, קצב, דופק ממוצע/מקסימלי ואזורי דופק, קלוריות. ריצות נכנסות לגרפים ולמדד הכשירות; ריצת ~3 ק״מ אפשר לשמור כמבדק. באימוני כוח — סטים, חזרות ומשקלים.</span></div></div>
     <button class="btn block" style="margin-top:14px" data-close>הבנתי</button>`);
 }
 

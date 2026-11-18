@@ -20,10 +20,10 @@ export const WEEK_IN_BLOCK = [
 ];
 
 export const GOALS = {
-  combat: { name: 'כושר קרבי', icon: '⚔️', runs: 3, finisher: true, phaseOrder: ['base', 'strength', 'power'] },
-  muscle: { name: 'מסה ושריר', icon: '💪', runs: 1, finisher: false, phaseOrder: ['base', 'base', 'strength'] },
-  strength: { name: 'כוח מקסימלי', icon: '🏋️', runs: 1, finisher: false, phaseOrder: ['base', 'strength', 'strength'] },
-  cut: { name: 'חיטוב והורדת שומן', icon: '🔥', runs: 2, finisher: true, phaseOrder: ['base', 'power', 'base'] },
+  combat: { name: 'כושר קרבי', icon: 'shield', runs: 3, finisher: true, phaseOrder: ['base', 'strength', 'power'] },
+  muscle: { name: 'מסה ושריר', icon: 'dumbbell', runs: 1, finisher: false, phaseOrder: ['base', 'base', 'strength'] },
+  strength: { name: 'כוח מקסימלי', icon: 'bolt', runs: 1, finisher: false, phaseOrder: ['base', 'strength', 'strength'] },
+  cut: { name: 'חיטוב והורדת שומן', icon: 'flame', runs: 2, finisher: true, phaseOrder: ['base', 'power', 'base'] },
 };
 
 // ───── תבניות פיצול ─────

@@ -1,5 +1,5 @@
 // מסך התקדמות: משקל עם מגמה, כוח (1RM משוער), ריצה, מפת שרירים, היסטוריה.
-import { html, esc, on, fmtDate, fmtTime } from '../ui/dom.js';
+import { html, esc, on, fmtDate, fmtTime, ib, icon } from '../ui/dom.js';
 import { lineChart, bars, bodyMap } from '../ui/charts.js';
 import { get } from '../store.js';
 import { EX, MUSCLES } from '../data/exercises.js';
@@ -44,14 +44,14 @@ const TABS = {
         <div class="kpi"><b>${p.targetWeight}</b><span>יעד (${toGo > 0 ? '+' : ''}${toGo})</span></div></div>
       <div class="card" style="margin-top:12px">${lineChart([
         { values: W.map((x) => ({ x: fmtDate(x.date), y: x.kg })), color: 'rgba(var(--fg-rgb),.35)', width: 1.5 },
-        { values: W.map((x) => ({ x: fmtDate(x.date), y: x.trend })), color: '#c8ff3c', fill: true, dots: false, width: 3 }], { target: p.targetWeight })}
-        <div class="legend"><span><i style="background:#c8ff3c"></i>מגמה</span><span><i style="background:rgba(var(--fg-rgb),.35)"></i>שקילה</span><span><i style="background:#ff8a3d"></i>יעד</span></div></div>
+        { values: W.map((x) => ({ x: fmtDate(x.date), y: x.trend })), color: 'var(--pri)', fill: true, dots: false, width: 3 }], { target: p.targetWeight })}
+        <div class="legend"><span><i style="background:var(--pri)"></i>מגמה</span><span><i style="background:rgba(var(--fg-rgb),.35)"></i>שקילה</span><span><i style="background:var(--acc)"></i>יעד</span></div></div>
       <button class="btn primary block" style="margin-top:12px" data-act="weigh">+ שקילה חדשה</button>
       <p class="sub t-foot" style="margin-top:10px">המגמה (ממוצע נע) מסננת תנודות של מים ומלח — זה המספר האמיתי. קצב בריא: ${p.goal === 'cut' ? 'ירידה של 0.3–0.7 ק״ג בשבוע' : 'עלייה של 0.2–0.4 ק״ג בשבוע'}.</p>`;
   },
   strength(s) {
     const lifts = Object.keys(s.history).filter((id) => EX[id]?.type === 'weight' && s.history[id].length);
-    if (!lifts.length) return '<div class="card"><div class="empty"><div class="e">🏋️</div>אחרי האימון הראשון יופיעו כאן גרפי כוח ושיאים</div></div>';
+    if (!lifts.length) return `<div class="card"><div class="empty"><div class="e">${ib('dumbbell', 'pri', 'xl')}</div>אחרי האימון הראשון יופיעו כאן גרפי כוח ושיאים</div></div>`;
     const sel = liftSel && lifts.includes(liftSel) ? liftSel : lifts.sort((a, b) => s.history[b].length - s.history[a].length)[0];
     const h = s.history[sel];
     const pts = h.map((x) => ({ x: fmtDate(x.date), y: Math.round(bestSet(x.sets)?.e1rm || 0) }));
@@ -63,7 +63,7 @@ const TABS = {
     }).filter(Boolean).sort((a, b) => b.b.e1rm - a.b.e1rm);
     return html`<div class="chips scroll" style="margin-bottom:10px">${lifts.map((id) => `<button class="chip ${id === sel ? 'on' : ''}" data-lift="${id}">${EX[id].name}</button>`)}</div>
       <div class="kpis"><div class="kpi up"><b>${best}</b><span>1RM משוער</span></div><div class="kpi"><b>${h.length}</b><span>אימונים</span></div><div class="kpi ${gain > 0 ? 'up' : ''}"><b>${gain > 0 ? '+' : ''}${gain}%</b><span>שיפור</span></div></div>
-      <div class="card" style="margin-top:12px">${lineChart([{ values: pts, color: '#c8ff3c', fill: true }])}<div class="sub" style="font-size:12px">1RM משוער (נוסחת Epley) — המשקל המקסימלי לחזרה אחת</div></div>
+      <div class="card" style="margin-top:12px">${lineChart([{ values: pts, color: 'var(--pri)', fill: true }])}<div class="sub" style="font-size:12px">1RM משוער (נוסחת Epley) — המשקל המקסימלי לחזרה אחת</div></div>
       <div class="h2">שיאים אישיים</div>
       <div class="card tight">${prs.map(({ id, b }) => `<div class="ex-row"><div><div class="t">${EX[id].name}</div><div class="s">${b.w} ק״ג × ${b.reps}</div></div><div class="w">${Math.round(b.e1rm)}<small>1RM</small></div></div>`).join('')}</div>`;
   },
@@ -74,11 +74,11 @@ const TABS = {
     const weekly = lastWeeks(8).map((wk) => ({ x: wk.label, y: Math.round(s.runs.filter((r) => inWeek(r.date, wk)).reduce((a, r) => a + r.durationSec, 0) / 60) }));
     return html`<div class="kpis"><div class="kpi up"><b>${best ? fmtTime(best) : '—'}</b><span>3 ק״מ שיא</span></div>
         <div class="kpi"><b>${best ? fmtTime(next3kTarget(best)) : '14:00'}</b><span>יעד הבא</span></div><div class="kpi"><b>${s.runs.length}</b><span>ריצות</span></div></div>
-      <div class="card" style="margin-top:12px"><b>מבדקי 3 ק״מ</b>${tests.length ? lineChart([{ values: tests.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.timeSec / 60) * 100) / 100 })), color: '#ff8a3d', fill: false }]) : '<div class="empty">המבדק הראשון יגיע בשבוע הפריקה (שבוע 4)</div>'}
+      <div class="card" style="margin-top:12px"><b>מבדקי 3 ק״מ</b>${tests.length ? lineChart([{ values: tests.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.timeSec / 60) * 100) / 100 })), color: 'var(--orange)', fill: false }]) : '<div class="empty">המבדק הראשון יגיע בשבוע הפריקה (שבוע 4)</div>'}
         <div class="sub" style="font-size:12px">זמן בדקות — נמוך יותר = טוב יותר</div></div>
-      ${paced.length ? html`<div class="card" style="margin-top:12px"><b>קצב ממוצע לק״מ</b>${lineChart([{ values: paced.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.durationSec / r.distanceKm / 60) * 100) / 100 })), color: '#22e6d0', fill: true }])}
+      ${paced.length ? html`<div class="card" style="margin-top:12px"><b>קצב ממוצע לק״מ</b>${lineChart([{ values: paced.map((r) => ({ x: fmtDate(r.date), y: Math.round((r.durationSec / r.distanceKm / 60) * 100) / 100 })), color: 'var(--acc)', fill: true }])}
         <div class="sub" style="font-size:12px">דקות לק״מ — נמוך יותר = מהיר יותר · אחרון: ${fmtPace(paced[paced.length - 1].durationSec / paced[paced.length - 1].distanceKm)}</div></div>` : ''}
-      <div class="card" style="margin-top:12px"><b>דקות ריצה בשבוע</b>${bars(weekly, { color: '#22e6d0' })}</div>
+      <div class="card" style="margin-top:12px"><b>דקות ריצה בשבוע</b>${bars(weekly, { color: 'var(--acc)' })}</div>
       <div class="card tight" style="margin-top:12px"><div class="row"><div style="flex:1"><b>יש לך שעון Garmin?</b><div class="sub t-foot">ייבוא ריצות עם דופק ומרחק, או חיבור השעון לדופק חי.</div></div><button class="btn sm" data-act="garmin-help">איך?</button></div></div>`;
   },
   body(s) {
@@ -97,12 +97,12 @@ const TABS = {
 
 function history(s) {
   const items = [
-    ...s.sessions.map((x, i) => ({ key: `s:${i}`, date: x.date, ico: x.field ? '🎒' : '🏋️', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}${x.hr ? ` · ❤ ${x.hr.avg}` : ''}${x.source === 'garmin' ? ' · ⌚' : ''}` })),
-    ...s.runs.map((r, i) => ({ key: `r:${i}`, date: r.date, ico: '🏃', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}${r.hr ? ` · ❤ ${r.hr.avg}` : ''}${r.source === 'garmin' ? ' · ⌚' : ''}` })),
+    ...s.sessions.map((x, i) => ({ key: `s:${i}`, date: x.date, ico: x.field ? 'pack' : 'dumbbell', t: x.name, sub: `${fmtTime(x.durationSec)} · ${x.setsDone} סטים · ${(x.volume || 0).toLocaleString('he-IL')} ק״ג${x.prs?.length ? ` · ${x.prs.length} שיאים` : ''}${x.hr ? ` · ❤ ${x.hr.avg}` : ''}${x.source === 'garmin' ? ' · ⌚' : ''}` })),
+    ...s.runs.map((r, i) => ({ key: `r:${i}`, date: r.date, ico: 'run', t: r.name, sub: `${fmtTime(r.durationSec)}${r.distanceKm ? ` · ${r.distanceKm} ק״מ` : ''}${r.timeSec ? ` · 3 ק״מ ב-${fmtTime(r.timeSec)}` : ''}${r.hr ? ` · ❤ ${r.hr.avg}` : ''}${r.source === 'garmin' ? ' · ⌚' : ''}` })),
   ].sort((a, b) => b.date.localeCompare(a.date));
   const shown = showAll ? items : items.slice(0, 15);
-  if (!items.length) return '<div class="empty"><div class="e">🗓️</div>עוד אין אימונים. הראשון מחכה לך!</div>';
-  return shown.map((x) => `<button class="it" data-h="${x.key}"><div class="ico">${x.ico}</div><div style="flex:1;text-align:right"><div style="font-weight:800">${esc(x.t)}</div><div class="sub" style="font-size:12px">${fmtDate(x.date)} · ${esc(x.sub)}</div></div><span class="sub" aria-hidden="true">✎</span></button>`).join('')
+  if (!items.length) return `<div class="empty"><div class="e">${ib('plan', 'pri', 'xl')}</div>עוד אין אימונים. הראשון מחכה לך!</div>`;
+  return shown.map((x) => `<button class="it" data-h="${x.key}">${ib(x.ico, x.ico === 'run' ? 'acc' : 'pri')}<div style="flex:1;text-align:right"><div style="font-weight:800">${esc(x.t)}</div><div class="sub" style="font-size:12px">${fmtDate(x.date)} · ${esc(x.sub)}</div></div><span class="sub" aria-hidden="true">${icon('edit')}</span></button>`).join('')
     + (items.length > 15 ? `<button class="btn sm ghost block" data-act="hist-all">${showAll ? 'הצג פחות' : `הצג הכל (${items.length})`}</button>` : '')
     + '<div class="sub" style="font-size:12px;text-align:center;margin-top:6px">לחיצה על אימון — עריכה או מחיקה</div>';
 }

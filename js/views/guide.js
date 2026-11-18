@@ -1,5 +1,5 @@
 // מדריך שימוש: נפתח אוטומטית בפתיחה הראשונה, ואפשר לפתוח שוב בכל רגע (כפתור "?" במסך הבית / מסך המאמן / #/guide).
-import { html, el, on, icon } from '../ui/dom.js';
+import { html, el, on, icon, em } from '../ui/dom.js';
 import { COACHES } from '../data/coaches.js';
 import { get, set } from '../store.js';
 import { unlock } from '../coach/voice.js';
@@ -8,7 +8,7 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.p
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
 const step = (n, t, d) => `<div class="g-step"><span class="g-n num">${n}</span><div><b>${t}</b>${d ? `<span>${d}</span>` : ''}</div></div>`;
-const tip = (i, t) => `<div class="g-tip"><span>${i}</span><div>${t}</div></div>`;
+const tip = (i, t) => `<div class="g-tip">${em(i, 'acc', 'sm')}<div>${t}</div></div>`;
 
 function slides() {
   const p = get().profile;
@@ -18,11 +18,11 @@ function slides() {
       id: 'welcome', title: 'ברוכים הבאים ל-LOHEM', eyebrow: 'מדריך · 1 דקה',
       visual: `<div class="g-duo"><img src="${COACHES.ori.img}" alt=""><img src="${COACHES.noa.img}" alt=""></div>`,
       body: `<p>מאמן אישי וירטואלי שבונה לך תוכנית אימונים, מדגים כל תרגיל, <b>סופר איתך כל חזרה בקול</b>, מודד מנוחות — ומשנה את התוכנית לפי ההתקדמות.</p>
-        ${tip('🧭', 'המדריך מסביר מה להגדיר ואיך עובדים. אפשר לחזור אליו תמיד דרך כפתור <b>?</b> במסך הבית.')}`,
+        ${tip('🧭', 'המדריך מסביר מה להגדיר ואיך עובדים. אפשר לחזור אליו תמיד: תמונת המאמן במסך הבית ← <b>מדריך שימוש</b>.')}`,
     },
     {
       id: 'install', title: 'שלב 1 · מתקינים על הטלפון', eyebrow: 'פעם אחת',
-      visual: `<div class="g-icon">📲</div>`,
+      visual: `${em('📲', 'pri', 'xl')}`,
       body: (standalone() ? tip('✅', 'האפליקציה כבר מותקנת על המסך הראשי. מעולה!') : '') +
         (isIOS()
           ? step(1, 'פותחים את הכתובת בספארי', 'dudutal-dev.github.io/Fitness-center') + step(2, 'לוחצים על כפתור השיתוף ⬆️', 'בתחתית המסך') + step(3, 'בוחרים "הוסף למסך הבית"', 'ומאשרים "הוסף"')
@@ -33,7 +33,7 @@ function slides() {
     },
     {
       id: 'setup', title: 'שלב 2 · ההגדרות הראשונות', eyebrow: '2 דקות',
-      visual: `<div class="g-icon">⚙️</div>`,
+      visual: `${em('⚙️', 'pri', 'xl')}`,
       body: step(1, 'בוחרים מאמן', 'אורי או נועה — אפשר להחליף אחר כך') +
         step(2, 'פרטים אישיים', 'לשון פנייה (זכר/נקבה), שם, גיל, גובה, משקל ומשקל יעד') +
         step(3, 'מטרה', 'כושר קרבי / מסה / כוח / חיטוב') +
@@ -44,13 +44,12 @@ function slides() {
     },
     {
       id: 'home', title: 'מסך הבית', eyebrow: 'כל יום',
-      visual: `<div class="g-mock"><div class="gm-row"><span class="gm-ring num">72</span><div><b>מדד כשירות קרבית</b><small>כוח · סבולת · עקביות · גוף</small></div></div>
-        <div class="gm-card"><small>🎯 משימת היום</small><b>פלג עליון A</b><span class="gm-btn">צא לאימון ▶</span></div></div>`,
-      body: tip('🎯', '<b>משימת היום</b> — האימון הבא בתור. לא צמוד לימים בשבוע: פשוט עושים את הבא.') +
-        tip('💧', '<b>מעקבים מהירים</b> — מים, חלבון, שקילה. לחיצה אחת.') +
-        tip('🎒', '<b>אין חדר כושר?</b> כפתור "אימון שטח" — אימון בלי ציוד.') +
-        tip('👤', `<b>תמונת ${coach.name} למעלה</b> — הגדרות, החלפת מאמן, מראה בהיר/כהה, שעון, גיבוי ואיפוס.`) +
-        tip('❓', '<b>כפתור ?</b> — המדריך הזה.'),
+      visual: `<div class="g-mock"><div class="gm-row"><span class="gm-ring num">72</span><div><b>הכושר שלך</b><small>כוח · סבולת · עקביות · גוף</small></div></div>
+        <div class="gm-card"><small>האימון הבא</small><b>פלג עליון A</b><span class="gm-btn">התחל אימון</span></div></div>`,
+      body: tip('🎯', '<b>האימון הבא</b> — תמיד בראש המסך. לא צמוד לימים בשבוע: פשוט עושים את הבא.') +
+        tip('💧', '<b>היום</b> — מים, קלוריות, משקל ומוכנות. הקשה אחת על אריח.') +
+        tip('🎒', '<b>אין חדר כושר?</b> כפתור "אימון בלי ציוד".') +
+        tip('👤', `<b>תמונת ${coach.name} למעלה</b> — הגדרות, החלפת מאמן, מראה בהיר/כהה, שעון, גיבוי והמדריך הזה.`),
     },
     {
       id: 'workout', title: 'איך מתאמנים עם המאמן', eyebrow: 'הכי חשוב',
@@ -67,11 +66,11 @@ function slides() {
     },
     {
       id: 'run', title: 'ריצה', eyebrow: 'משולבת בתוכנית',
-      visual: `<div class="g-icon">🏃</div>`,
-      body: tip('⚡', 'אינטרוולים, טמפו וריצה קלה — המאמן מכריז על כל קטע ("ספרינט!", "הליכה", "עוד דקה").') +
+      visual: `${em('🏃', 'pri', 'xl')}`,
+      body: tip('', 'אינטרוולים, טמפו וריצה קלה — המאמן מכריז על כל קטע ("ספרינט!", "הליכה", "עוד דקה").') +
         tip('📡', 'מאשרים <b>הרשאת מיקום</b> — מרחק וקצב מה-GPS. להשאיר את המסך דלוק.') +
         tip('🏁', 'בשבוע הרביעי של כל בלוק — <b>מבדק 3 ק״מ</b>. המאמן מזהה לבד כשמגיעים ל-3 ק״מ.') +
-        tip('⌚', 'יש שעון Garmin? אפשר לחבר דופק חי או לייבא ריצות (מסך המאמן ← Garmin).'),
+        tip('❤', 'יש שעון Garmin? אפשר לחבר דופק חי או לייבא ריצות (מסך המאמן ← Garmin).'),
     },
     {
       id: 'progress', title: 'התוכנית מתקדמת איתך', eyebrow: 'אוטומטי',
@@ -84,11 +83,11 @@ function slides() {
     },
     {
       id: 'food', title: 'תזונה', eyebrow: 'דלק ללוחם',
-      visual: `<div class="g-icon">🍽️</div>`,
+      visual: `${em('🍽️', 'pri', 'xl')}`,
       body: tip('🎯', 'יעד קלוריות וחלבון יומי מחושב לפי המשקל והמטרה.') +
-        tip('📒', '<b>יומן אכילה</b>: "＋ מה אכלתי" — חיפוש ב-190+ מאכלים (שניצל בפיתה, שווארמה, קוטג׳…), או "אכלתי את זה" על ארוחה מהתפריט.') +
-        tip('🪖', 'תפריט לפי מקום: <b>בבסיס</b> (חדר אוכל), <b>בשטח</b>, <b>בבית</b>. "🎲 תפריט אחר" לרעיונות.') +
-        tip('🚫', '"מה אני לא אוכל" — מסמנים, וזה לא יופיע לעולם. בלי ירקות? יש טיפים להשלמה.'),
+        tip('📒', '<b>היום</b>: "הוספת אוכל" — חיפוש ב-190+ מאכלים, עם אחרונים ומועדפים. בלשונית <b>תפריט</b>: "אכלתי" רושם ארוחה שלמה.') +
+        tip('🪖', 'תפריט לפי מקום: <b>בבסיס</b> (חדר אוכל), <b>בשטח</b>, <b>בבית</b>. "תפריט אחר" לרעיונות.') +
+        tip('🚫', 'בלשונית <b>העדפות</b>: "מה אני לא אוכל" — מסמנים, וזה לא יופיע לעולם. בלי ירקות? יש טיפים להשלמה.'),
     },
     {
       id: 'go', title: 'מוכנים?', eyebrow: 'עוד דבר אחד',
@@ -118,7 +117,7 @@ export function openGuide({ onDone, first = false } = {}) {
   const paint = () => {
     root.querySelectorAll('.g-dots i').forEach((d, j) => d.classList.toggle('on', j <= i));
     root.querySelector('[data-g="prev"]').style.visibility = i ? 'visible' : 'hidden';
-    root.querySelector('[data-g="next"]').textContent = i === S.length - 1 ? (first ? 'בוא נתחיל ⚡' : 'סיום ✓') : 'הבא';
+    root.querySelector('[data-g="next"]').textContent = i === S.length - 1 ? (first ? 'בוא נתחיל' : 'סיום ✓') : 'הבא';
   };
   const go = (n) => {
     i = Math.max(0, Math.min(S.length - 1, n));

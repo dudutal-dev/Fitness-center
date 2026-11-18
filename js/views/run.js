@@ -1,6 +1,6 @@
 // מצב ריצה חי: מקטעים (חימום/ספרינט/הליכה/טמפו), טיימר, הנחיות קוליות, מבדק 3 ק״מ,
 // מרחק וקצב מ-GPS (או מחיישן ריצה), דופק משעון Garmin ואימון לפי אזורי דופק.
-import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el, emi } from '../ui/dom.js';
 import { get, set, addXP, XP, pushEvent } from '../store.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { SEG_LABEL, fmtPace, runLevelFrom3k, next3kTarget } from '../engine/running.js';
@@ -46,7 +46,7 @@ export function startRun(run, { day = null } = {}) {
       <div class="hud-top"><button class="icon-btn" data-act="exit">${icon('close', 'width="20" height="20"')}</button><span class="spacer"></span>
         <span class="clock num" id="tot">0:00</span></div>
       <div class="coach-pip"><img src="${COACHES[coach].face}" alt=""></div><div class="say"></div>
-      <div class="title"><div class="eyebrow">${run.icon} ${esc(run.name)}</div><div class="name" style="font-size:22px">קצב יעד: <span class="num" id="pace"></span></div></div></div>
+      <div class="title"><div class="eyebrow">${emi(run.icon)} ${esc(run.name)}</div><div class="name" style="font-size:22px">קצב יעד: <span class="num" id="pace"></span></div></div></div>
     <div class="panel" style="flex:1;display:flex;flex-direction:column">
       <div class="segs">${segs.map((x, j) => `<i class="${x.kind}" style="flex-grow:${Math.max(30, x.sec || 600)}" data-i="${j}"></i>`).join('')}</div>
       <div class="run-kind" id="kind"></div><div class="run-big" id="big">0:00</div><div class="sub" style="text-align:center" id="lbl"></div>
@@ -60,7 +60,7 @@ export function startRun(run, { day = null } = {}) {
       <div class="row" style="gap:10px;margin-top:10px">
         <button class="btn xl" style="flex:1" data-act="pause" id="pauseBtn">${icon('pause', 'width="22" height="22"')} השהה</button>
         <button class="btn xl" style="flex:1" data-act="skip">${icon('skip', 'width="22" height="22"')} דלג</button></div>
-      <button class="btn primary block xl" style="margin-top:10px;display:none" data-act="test-done" id="testDone">🏁 סיימתי 3 ק״מ</button>
+      <button class="btn primary block xl" style="margin-top:10px;display:none" data-act="test-done" id="testDone">סיימתי 3 ק״מ</button>
     </div></div>`);
   document.body.append(root);
   document.body.style.overflow = 'hidden';
@@ -108,7 +108,7 @@ export function startRun(run, { day = null } = {}) {
     const c = hrNow();
     const pc = hasRSC() && c.speed > 0.5 ? Math.round(1000 / c.speed) : gps.paceSec;
     $('#cpace').textContent = pc && pc < 1200 ? fmtPace(pc) : '—';
-    if (gpsOn && !hasRSC()) { const st = gps.status; $('#gpsst').textContent = st.error ? `GPS: ${st.error}` : st.ok ? `📡 GPS · דיוק ${st.accuracy} מ׳` : '📡 מחפש GPS…'; }
+    if (gpsOn && !hasRSC()) { const st = gps.status; $('#gpsst').textContent = st.error ? 'אין גישה למיקום — המרחק לא יימדד. אפשר לאשר מיקום בהגדרות הדפדפן.' : st.ok ? `GPS · דיוק ${st.accuracy} מ׳` : 'מחפש GPS…'; }
     if (c.hr) {
       const z = zoneOf(c.hr, hrMax);
       $('#hr').textContent = c.hr; $('#hrz').textContent = `Z${z.z} · ${z.name}`; $('#hr').style.color = z.color;
@@ -162,14 +162,14 @@ export function startRun(run, { day = null } = {}) {
     const dur = Math.round(elapsed / 1000);
     const measured = distM();
     const distGuess = testSec ? 3 : measured >= 200 ? Math.round(measured / 10) / 100 : '';
-    $('.panel').innerHTML = html`<div class="h1" style="text-align:center;margin-top:8px">ריצה הושלמה 🏁</div>
+    $('.panel').innerHTML = html`<div class="h1" style="text-align:center;margin-top:8px">ריצה הושלמה</div>
       <div class="kpis" style="margin:14px 0"><div class="kpi"><b>${fmtTime(dur)}</b><span>זמן כולל</span></div>
         ${testSec ? `<div class="kpi up"><b>${fmtTime(testSec)}</b><span>3 ק״מ</span></div>` : `<div class="kpi"><b>${distGuess || '—'}</b><span>ק״מ</span></div>`}
         <div class="kpi"><b>+${XP.run}</b><span>XP</span></div></div>
       ${hrSummaryHtml(hr)}
       <label class="field" style="margin-top:12px"><span>מרחק (ק״מ) ${measured >= 200 ? '— נמדד ב-GPS, אפשר לתקן' : '— לא חובה'}</span><input class="input num" id="dist" type="number" step="0.01" inputmode="decimal" value="${distGuess}" placeholder="למשל 5.2"></label>
       <div class="sub" style="margin-bottom:6px">כמה קשה היה?</div>
-      <div class="rpe">${[['😎', 'קל', 6], ['💪', 'טוב', 7.5], ['😤', 'קשה', 9], ['🥵', 'מקסימום', 10]].map(([e, t, v]) => `<button data-rpe="${v}"><span>${e}</span>${t}</button>`).join('')}</div>`;
+      <div class="rpe">${[[icon('effort1'), 'קל', 6], [icon('effort2'), 'טוב', 7.5], [icon('effort3'), 'קשה', 9], [icon('effort4'), 'מקסימום', 10]].map(([e, t, v]) => `<button data-rpe="${v}"><span>${e}</span>${t}</button>`).join('')}</div>`;
     on($('.panel'), 'click', '[data-rpe]', (e, b) => {
       const dist = Number($('#dist').value) || null;
       saveRun({ type: run.type, name: run.name, durationSec: dur, distanceKm: dist, timeSec: testSec, rpe: Number(b.dataset.rpe), day, hr, gps: measured >= 200 });
@@ -223,6 +223,6 @@ export function saveRun(r) {
   pingWorkout();
   if (r.timeSec) pushEvent({ type: isPR ? 'pr' : 'coach', text: `${isPR ? 'שיא חדש ב-3 ק״מ' : 'מבדק 3 ק״מ'}: ${fmtTime(r.timeSec)}. היעד הבא: ${fmtTime(next3kTarget(r.timeSec))}` });
   if (isPR) say('pr');
-  toast('🏃 הריצה נשמרה');
+  toast('הריצה נשמרה');
   return isPR;
 }

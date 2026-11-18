@@ -44,7 +44,7 @@ js/data/                     exercises · foods · voice-lines · coaches
 js/views/                    onboarding · home · plan · workout · run · progress · nutrition · coach
 js/coach/voice.js            תור השמעת המאמן
 js/devices/                  Garmin: דופק BLE, GPS, מפענח FIT/TCX/GPX/ZIP
-assets/                      coaches · demos/{ori,noa} · voice/{ori,noa} · icons
+assets/                      coaches · demos/{ori,noa} · voice/{ori,noa} · icons · fonts (Heebo, Rubik — OFL)
 tools/                       סקריפטי יצירת נכסים
 tests/                       בדיקות
 ```

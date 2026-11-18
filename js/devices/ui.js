@@ -56,7 +56,7 @@ export function hrPill() {
 export function hrSummaryHtml(hr) {
   if (!hr) return '';
   const total = hr.zones.reduce((a, b) => a + b, 0) || 1;
-  const cols = ['#8b95a1', '#5aa9ff', '#22e6d0', '#ff8a3d', '#ff4d5e'];
+  const cols = ['#8b95a1', '#5aa9ff', '#2bb673', '#ff8a3d', '#ff4d5e'];
   return `<div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:22px">❤</span><b>דופק ממוצע <span class="num">${hr.avg}</span> · מקסימום <span class="num">${hr.max}</span></b></div>
     <div class="zbar">${hr.zones.map((s, i) => `<i style="flex:${s || 0.0001};background:${cols[i]}" title="Z${i + 1}"></i>`).join('')}</div>
     <div class="row between sub" style="font-size:11px">${hr.zones.map((s, i) => `<span>Z${i + 1} ${Math.round((s / total) * 100)}%</span>`).join('')}</div></div>`;

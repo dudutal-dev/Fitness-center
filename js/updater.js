@@ -43,7 +43,7 @@ export function initUpdater() {
   // הודעה אחרי עדכון
   try {
     const to = sessionStorage.getItem(KEY);
-    if (to && to === APP_VERSION) setTimeout(() => toast('✨ האפליקציה עודכנה לגרסה החדשה'), 800);
+    if (to && to === APP_VERSION) setTimeout(() => toast('האפליקציה עודכנה לגרסה החדשה'), 800);
     sessionStorage.removeItem(KEY);
   } catch { /* */ }
 

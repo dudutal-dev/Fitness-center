@@ -1,8 +1,8 @@
 // מצב אימון חי: הדגמת וידאו של המאמן, ספירת חזרות בטמפו עם קול, מדידת מנוחות, רישום ביצועים
 // והתאמת משקל בזמן אמת (אוטו־רגולציה בין סטים).
-import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el, ib } from '../ui/dom.js';
 import { ring, setRing } from '../ui/charts.js';
-import { get, set, addXP, XP, pushEvent, regenerateWeek } from '../store.js';
+import { get, set, addXP, XP, pushEvent, regenerateWeek, today } from '../store.js';
 import { EX, EXERCISES, MUSCLES } from '../data/exercises.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
@@ -15,7 +15,7 @@ import { pingWorkout, syncReminders } from '../reminders.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 
-const RPE = [{ v: 6.5, e: '😎', t: 'קל' }, { v: 8, e: '💪', t: 'טוב' }, { v: 9, e: '😤', t: 'קשה' }, { v: 10, e: '🥵', t: 'עד הקצה' }];
+const RPE = [{ v: 6.5, e: icon('effort1'), t: 'קל' }, { v: 8, e: icon('effort2'), t: 'טוב' }, { v: 9, e: icon('effort3'), t: 'קשה' }, { v: 10, e: icon('effort4'), t: 'עד הקצה' }];
 
 export function startWorkout(workout, { readiness = null } = {}) {
   unlock();
@@ -127,7 +127,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     $('.title').innerHTML = html`<div class="row" style="gap:6px;margin-bottom:6px">
         ${it.role === 'warmup' || it.role === 'cooldown'
     ? `<span class="tag teal">${it.role === 'warmup' ? 'חימום' : 'מתיחות'} <span class="num">${mobilityIdx(it.role).indexOf(cur().ii) + 1}/${mobilityIdx(it.role).length}</span></span>${e.unilateral ? '<span class="tag">20 שנ׳ לכל צד</span>' : ''}`
-    : html`${it.role === 'finisher' ? `<span class="tag orange">🔥 ${esc(w.finisher.name)}</span>` : `<span class="tag lime">${it.role === 'main' ? 'תרגיל מרכזי' : it.role === 'second' ? 'משני' : it.role === 'core' ? 'ליבה' : 'עזר'}</span>`}
+    : html`${it.role === 'finisher' ? `<span class="tag orange">${icon('flame')} ${esc(w.finisher.name)}</span>` : `<span class="tag lime">${it.role === 'main' ? 'תרגיל מרכזי' : it.role === 'second' ? 'משני' : it.role === 'core' ? 'ליבה' : 'עזר'}</span>`}
         <span class="tag">${it.role === 'finisher' ? 'סבב' : 'סט'} <span class="num">${setNo}/${it.sets}</span></span>`}
         <button class="tag teal" data-act="info">${icon('info', 'width="12" height="12"')} הסבר</button></div>
       <div class="name">${esc(e.name)}</div>
@@ -144,8 +144,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (mode === 'ready') {
       const sg = log[cur().ii].sg;
       p.innerHTML = html`
-        ${cur().si === 0 && sg.why ? `<div class="sub" style="margin:6px 0 10px;color:var(--teal);font-weight:700">🧠 ${esc(sg.why)}</div>` : ''}
-        ${intraMsg ? `<div class="sub" style="margin:6px 0 10px;color:var(--lime);font-weight:700">⚡ ${esc(intraMsg)}</div>` : ''}
+        ${cur().si === 0 && sg.why ? `<div class="sub" style="margin:6px 0 10px;color:var(--acc-ink);font-weight:700">${icon('sparkle')} ${esc(sg.why)}</div>` : ''}
+        ${intraMsg ? `<div class="sub" style="margin:6px 0 10px;color:var(--pri-ink);font-weight:700">${icon('bolt')} ${esc(intraMsg)}</div>` : ''}
         <div class="target">
           ${e.type === 'weight' || e.load ? html`<div><div class="sub" style="font-size:12px;margin-bottom:4px">משקל</div>
             <div class="stepper"><button data-w="-">−</button><div class="val"><span>${sl.w}</span><small>ק״ג</small></div><button data-w="+">+</button></div></div>` : ''}
@@ -158,14 +158,14 @@ export function startWorkout(workout, { readiness = null } = {}) {
     : it.role === 'cooldown' ? `<button class="btn sm" data-act="skip-cool">${icon('skip', 'width="16" height="16"')} דלג על המתיחות</button>`
     : it.role !== 'finisher' ? `<button class="btn sm" data-act="swap">${icon('swap', 'width="16" height="16"')} החלף תרגיל</button>` : ''}
           <span class="spacer"></span>
-          ${!timed ? `<button class="btn sm ghost" data-act="manual">סיימתי בלי ספירה ✓</button>` : ''}
+          ${!timed ? `<button class="btn sm ghost" data-act="manual">סיימתי בלי ספירה</button>` : ''}
         </div>`;
     } else if (mode === 'active') {
       p.innerHTML = html`<div class="counter">${ring(0, { size: 190, stroke: 14, big: timed ? sl.reps : '0', lbl: timed ? 'שניות' : `מתוך ${sl.reps}` })}
         <div class="phase-lbl" id="ph">היכון…</div></div>
         <button class="btn block xl" data-act="finish-set">${timed ? 'עצור' : 'סיימתי את הסט'}</button>`;
     } else if (mode === 'log') {
-      p.innerHTML = html`<div class="h2" style="margin:6px 0 10px">איך היה? 📝</div>
+      p.innerHTML = html`<div class="h2" style="margin:6px 0 10px">איך היה?</div>
         <div class="target">
           ${e.type === 'weight' || e.load ? html`<div><div class="stepper"><button data-w="-">−</button><div class="val"><span>${sl.w}</span><small>ק״ג</small></div><button data-w="+">+</button></div></div>` : ''}
           <div><div class="stepper"><button data-r="-">−</button><div class="val"><span>${sl.reps}</span><small>${timed ? 'שנ׳' : 'חזרות'}</small></div><button data-r="+">+</button></div></div>
@@ -349,7 +349,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     else if (!autoNext && prevRole !== 'warmup') say('set_done');
     if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
-    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: '#22e6d0' })}</div>
+    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: 'var(--acc)' })}</div>
       <div class="row"><button class="btn sm" data-act="rest-minus">−15</button><span class="spacer"></span>
         <button class="btn sm teal" data-act="rest-skip">${icon('skip', 'width="16" height="16"')} דלג</button><span class="spacer"></span>
         <button class="btn sm" data-act="rest-plus">+30</button></div>
@@ -428,7 +428,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (workout.day != null && !partial && !s2.plan.completedDays.includes(workout.day)) s2.plan.completedDays.push(workout.day);
       return s2;
     });
-    prs.forEach((id) => pushEvent({ type: 'pr', text: `שיא אישי ב${EX[id].name}! 🏆` }));
+    prs.forEach((id) => pushEvent({ type: 'pr', text: `שיא אישי ב${EX[id].name}!` }));
     pingWorkout();
     const rk = addXP(gained, 'workout');
     const weekMsg = maybeAdvanceWeek();
@@ -450,9 +450,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
         <div class="kpi up"><b>${Math.round(volume).toLocaleString('he-IL')}</b><span>ק״ג נפח</span></div></div>
       ${hrSummaryHtml(hr)}
       ${prs.length ? html`<div class="card tight" style="margin-top:12px">${prs.map((id) => `<div class="row" style="padding:4px 0"><span class="pr-badge">PR</span><b>${esc(EX[id].name)}</b><span class="spacer"></span><span class="num">${bestSet(exercises.find((x) => x.exId === id).sets).w} ק״ג</span></div>`)}</div>` : ''}
-      <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:26px">⭐</span><div><b>+${gained} XP</b>${rk.rankUp ? `<div class="sub">עלית דרגה: ${rk.rankUp.icon} ${rk.rankUp.name}!</div>` : ''}</div></div>
-        ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--lime);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
-      ${workout.run && !partial ? `<button class="btn teal block xl" style="margin-top:14px" data-act="run-now">🏃 המשך לריצה: ${esc(workout.run.name)}</button>` : ''}
+      <div class="card tight" style="margin-top:12px"><div class="row">${ib('star', 'pri', 'lg')}<div><b>+${gained} XP</b>${rk.rankUp ? `<div class="sub">עלית דרגה: ${rk.rankUp.name}!</div>` : ''}</div></div>
+        ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--pri-ink);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
+      ${workout.run && !partial ? `<button class="btn teal block xl" style="margin-top:14px" data-act="run-now">${icon('run')} המשך לריצה: ${esc(workout.run.name)}</button>` : ''}
       <button class="btn primary block xl" style="margin-top:10px" data-act="close">סיום</button>`;
   }
 
@@ -568,7 +568,7 @@ export function infoSheet(exId, coach) {
 export function maybeAdvanceWeek() {
   const s = get();
   if (s.plan.completedDays.length < s.plan.week.sessions.length) return '';
-  let msg = 'שבוע הושלם! 🎉 השבוע הבא נבנה לפי הביצועים שלך.';
+  let msg = 'שבוע הושלם! השבוע הבא נבנה לפי הביצועים שלך.';
   set((s2) => {
     s2.plan.weekInBlock += 1;
     if (s2.plan.weekInBlock >= 4) {
@@ -582,7 +582,7 @@ export function maybeAdvanceWeek() {
       msg = `בלוק הושלם! ${ev.msg}`;
     }
     s2.plan.completedDays = [];
-    s2.plan.weekStart = new Date().toISOString().slice(0, 10);
+    s2.plan.weekStart = today();
     regenerateWeek(s2);
     return s2;
   });

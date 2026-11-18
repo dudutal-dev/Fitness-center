@@ -2,6 +2,7 @@
 // ימי התוכנית שסומנו כבוצעו, נקודות XP ורמת הריצה.
 import { EX } from '../data/exercises.js';
 import { runLevelFrom3k } from './running.js';
+import { dayKey } from './stats.js';
 
 const WORKOUT_XP = 120, RUN_XP = 90;
 
@@ -56,7 +57,7 @@ export function deleteSession(state, index) {
   stripHistory(state, s, (s.exercises || []).map((e) => e.exId));
   state.sessions.splice(index, 1);
   // אם האימון היה מהשבוע הנוכחי — היום חוזר להיות "לא בוצע"
-  if (s.day != null && state.plan && !s.partial && s.date.slice(0, 10) >= (state.plan.weekStart || '')) {
+  if (s.day != null && state.plan && !s.partial && dayKey(s.date) >= (state.plan.weekStart || '')) {
     state.plan.completedDays = state.plan.completedDays.filter((d) => d !== s.day);
   }
   state.xp = Math.max(0, (state.xp || 0) - WORKOUT_XP);

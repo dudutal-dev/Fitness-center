@@ -3,12 +3,12 @@ import { EX } from '../data/exercises.js';
 import { bestSet } from './progression.js';
 
 export const RANKS = [
-  { xp: 0, name: 'טירון', icon: '🔰' },
-  { xp: 600, name: 'לוחם', icon: '🎖️' },
-  { xp: 1800, name: 'לוחם ותיק', icon: '🛡️' },
-  { xp: 4000, name: 'לוחם עילית', icon: '⚔️' },
-  { xp: 7500, name: 'מפקד כוח', icon: '🦅' },
-  { xp: 12000, name: 'אגדת חטיבה', icon: '👑' },
+  { xp: 0, name: 'טירון', icon: 'rank1' },
+  { xp: 600, name: 'לוחם', icon: 'medal' },
+  { xp: 1800, name: 'לוחם ותיק', icon: 'shield' },
+  { xp: 4000, name: 'לוחם עילית', icon: 'rank3' },
+  { xp: 7500, name: 'מפקד כוח', icon: 'star' },
+  { xp: 12000, name: 'אגדת חטיבה', icon: 'crown' },
 ];
 
 export function rankFor(xp) {
@@ -21,13 +21,20 @@ export function rankFor(xp) {
 
 export const XP = { workout: 120, run: 90, pr: 50, weight: 10, checkin: 10, water: 5, perfectWeek: 200 };
 
+// מפתח יום לפי השעון המקומי (לא UTC — אחרת אימון ב-01:00 בלילה נרשם ליום הקודם). מקבל Date, חותמת זמן ISO או 'YYYY-MM-DD'.
+export function dayKey(d = new Date()) {
+  if (typeof d === 'string' && d.length === 10) return d;
+  const x = d instanceof Date ? d : new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
 // ימי רצף: ימים רצופים עם פעילות כלשהי (אימון/ריצה) מאפשרים יום מנוחה אחד בין אימונים
 export function streak(sessions, today = new Date()) {
-  const days = new Set(sessions.map((s) => s.date.slice(0, 10)));
+  const days = new Set(sessions.map((s) => dayKey(s.date)));
   let count = 0, gap = 0;
   const d = new Date(today);
   for (let i = 0; i < 120; i++) {
-    const key = d.toISOString().slice(0, 10);
+    const key = dayKey(d);
     if (days.has(key)) { count++; gap = 0; } else if (++gap > 2) break;
     d.setDate(d.getDate() - 1);
   }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e1217">
+  <meta name="theme-color" content="#f5f2ec">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,10 +20,11 @@
   <script>
     // ערכת נושא לפני הציור הראשון (בלי הבהוב)
     try {
-      var t = (JSON.parse(localStorage.getItem('golani_fit_v1') || '{}').settings || {}).theme || 'dark';
+      var st = JSON.parse(localStorage.getItem('golani_fit_v1') || '{}').settings || {};
+      var t = st.themeV === 3 ? st.theme || 'auto' : 'auto';
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       document.documentElement.dataset.theme = t;
-      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#e2e7dc');
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f5f2ec' : '#13141c');
     } catch (e) {}
   </script>
 </head>

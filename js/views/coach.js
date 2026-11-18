@@ -14,26 +14,27 @@ import { applyTheme } from '../theme.js';
 import { reminderCard, bindReminders } from './reminders-ui.js';
 import { syncReminders } from '../reminders.js';
 
+// אילו סעיפי הגדרות פתוחים — נשמר בין רינדורים כדי שהסעיף לא ייסגר אחרי כל שינוי
+const openSec = new Set();
+const sec = (id, title, sub, body) => `<details class="card acc set-sec" data-sec="${id}" id="${id}" ${openSec.has(id) ? 'open' : ''}><summary><span class="grow"><b>${title}</b><span class="sub">${sub}</span></span></summary><div class="acc-body">${body}</div></details>`;
+
 export function renderCoach(root) {
   const s = get();
   const p = s.profile;
   const st = s.settings;
-  root.innerHTML = html`<div class="page-head"><div class="eyebrow">המאמן האישי שלך</div><div class="h1">${esc(COACHES[p.coach].name)} איתך</div></div>
+  if (sessionStorage.getItem('scrollTo') === 'reminders') openSec.add('reminders');
+  root.innerHTML = html`<div class="page-head"><div class="h1">המאמן וההגדרות</div></div>
     <div class="coach-pick">${Object.values(COACHES).map((c) => html`
       <button class="coach-card ${p.coach === c.id ? 'on' : ''}" data-coach="${c.id}"><img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
         <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
     <p class="sub t-foot" style="margin-top:10px">${esc(COACHES[p.coach].bio)}</p>
 
-    <div class="h2" id="reminders">תזכורות</div>
-    ${reminderCard()}
-
-    <div class="h2">מראה</div>
-    <div class="card"><div class="seg" data-theme-seg>
-      ${[['dark', 'כהה'], ['light', 'בהיר'], ['auto', 'אוטומטי']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'dark') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <div class="sub" style="font-size:12px;margin-top:8px">"אוטומטי" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>
-
-    <div class="h2">קול והנחיות</div>
-    <div class="card">
+    <div class="h2">הגדרות</div>
+    ${sec('reminders', 'תזכורות', 'אימון, שתייה ושקילה', reminderCard())}
+    ${sec('look', 'מראה', 'בהיר, כהה או לפי הטלפון', html`<div class="card"><div class="seg" data-theme-seg>
+      ${[['auto', 'אוטומטי'], ['light', 'בהיר'], ['dark', 'כהה']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'auto') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="sub" style="font-size:12px;margin-top:8px">"אוטומטי" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>`)}
+    ${sec('voice', 'קול והנחיות', 'ספירה, כתוביות ועוצמה', html`<div class="card">
       ${toggleRow('voice', 'הנחיות קוליות', 'המאמן מדבר, סופר ומעודד', st.voice)}
       ${toggleRow('tempoCount', 'ספירה מודרכת בטמפו', '"ירידה… עלייה!" וספירת כל חזרה', st.tempoCount)}
       ${toggleRow('warmup', 'חימום ומתיחות מודרכים', '5 תנועות חימום בהתחלה, מתיחות לפי השרירים בסוף', st.warmup !== false)}
@@ -41,13 +42,9 @@ export function renderCoach(root) {
       <div style="margin-top:12px"><div class="row between"><b>עוצמה</b><span class="num sub">${Math.round(st.volume * 100)}%</span></div>
         <input type="range" min="0.2" max="1" step="0.05" value="${st.volume}" data-vol></div>
       <button class="btn sm teal block" style="margin-top:12px" data-test>${icon('play', 'width="16" height="16"')} בדיקת קול</button>
-    </div>
-
-    <div class="h2">Garmin ושעון חכם</div>
-    ${watchCard()}
-
-    <div class="h2">פרופיל ויעדים</div>
-    <div class="card">
+    </div>`)}
+    ${sec('watch', 'Garmin ושעון חכם', 'דופק חי וייבוא פעילויות', watchCard())}
+    ${sec('profile', 'פרופיל ויעדים', `${esc(GOALS[p.goal].name)} · ${p.days} אימונים בשבוע`, html`<div class="card">
       <label class="field"><span>המאמן פונה אליך בלשון</span><div class="seg" data-seg="sex">
         <button data-v="m" class="${p.sex !== 'f' ? 'on' : ''}">זכר</button><button data-v="f" class="${p.sex === 'f' ? 'on' : ''}">נקבה</button></div></label>
       <div class="sub" style="font-size:12px;margin:-6px 0 12px">${nameEntry(p) ? `ל${esc(COACHES[p.coach].name)} יש הקלטות שבהן ${p.coach === 'noa' ? 'היא קוראת' : 'הוא קורא'} לך "${esc(p.name)}"` : `אין עדיין הקלטה אישית לשם "${esc(p.name)}" — המאמן יפנה בלי שם. אפשר להוסיף שמות (tools/names)`}</div>
@@ -63,18 +60,18 @@ export function renderCoach(root) {
       <label class="field"><span>פציעות / רגישויות</span><div class="chips">${Object.entries(INJURIES).map(([k, x]) => `<button class="chip no ${p.injuries.includes(k) ? 'on' : ''}" data-inj="${k}">${x.name}</button>`).join('')}</div></label>
       <button class="btn primary block" data-save>שמור ועדכן תוכנית</button>
       <div class="sub" style="font-size:12px;margin-top:8px">רמה נוכחית: ${p.level} (${LEVEL_NAMES[p.level]}) · שינוי מטרה/ימים בונה מחדש את השבוע הנוכחי.</div>
-    </div>
+    </div>`)}
 
-    <a class="card tight set-row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit;border-bottom:1px solid var(--line)"><div class="grow"><b>מדריך שימוש</b><div class="sub">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="chev">${icon('chev', 'width="20" height="20"')}</span></a>
+    <a class="card tight set-row" href="#/guide" style="margin-top:12px;text-decoration:none;color:inherit;border-bottom:0"><div class="grow"><b>מדריך שימוש</b><div class="sub">מה להגדיר ואיך מתאמנים עם המאמן</div></div><span class="chev">${icon('chev', 'width="20" height="20"')}</span></a>
 
-    <div class="h2">נתונים וגיבוי</div>
-    <div class="card">
+    ${sec('data', 'נתונים וגיבוי', 'גיבוי, שחזור ואיפוס', html`<div class="card">
       <div class="sub" style="margin-bottom:10px">כל הנתונים נשמרים אוטומטית במכשיר. מומלץ לגבות מדי פעם (למשל לפני החלפת טלפון).</div>
       <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
-    </div>
+    </div>`)}
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
+  root.querySelectorAll('details[data-sec]').forEach((d) => d.addEventListener('toggle', () => { d.open ? openSec.add(d.dataset.sec) : openSec.delete(d.dataset.sec); }));
   bindWatchCard(root, () => renderCoach(root));
   bindReminders(root, () => renderCoach(root));
   if (sessionStorage.getItem('scrollTo') === 'reminders') { sessionStorage.removeItem('scrollTo'); setTimeout(() => root.querySelector('#reminders')?.scrollIntoView({ behavior: 'smooth' }), 100); }

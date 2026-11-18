@@ -144,8 +144,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (mode === 'ready') {
       const sg = log[cur().ii].sg;
       p.innerHTML = html`
-        ${cur().si === 0 && sg.why ? `<div class="sub" style="margin:6px 0 10px;color:var(--teal);font-weight:700">🧠 ${esc(sg.why)}</div>` : ''}
-        ${intraMsg ? `<div class="sub" style="margin:6px 0 10px;color:var(--lime);font-weight:700">⚡ ${esc(intraMsg)}</div>` : ''}
+        ${cur().si === 0 && sg.why ? `<div class="sub" style="margin:6px 0 10px;color:var(--acc-ink);font-weight:700">🧠 ${esc(sg.why)}</div>` : ''}
+        ${intraMsg ? `<div class="sub" style="margin:6px 0 10px;color:var(--pri-ink);font-weight:700">⚡ ${esc(intraMsg)}</div>` : ''}
         <div class="target">
           ${e.type === 'weight' || e.load ? html`<div><div class="sub" style="font-size:12px;margin-bottom:4px">משקל</div>
             <div class="stepper"><button data-w="-">−</button><div class="val"><span>${sl.w}</span><small>ק״ג</small></div><button data-w="+">+</button></div></div>` : ''}
@@ -349,7 +349,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     else if (!autoNext && prevRole !== 'warmup') say('set_done');
     if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
-    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: '#22e6d0' })}</div>
+    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: 'var(--acc)' })}</div>
       <div class="row"><button class="btn sm" data-act="rest-minus">−15</button><span class="spacer"></span>
         <button class="btn sm teal" data-act="rest-skip">${icon('skip', 'width="16" height="16"')} דלג</button><span class="spacer"></span>
         <button class="btn sm" data-act="rest-plus">+30</button></div>
@@ -451,7 +451,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       ${hrSummaryHtml(hr)}
       ${prs.length ? html`<div class="card tight" style="margin-top:12px">${prs.map((id) => `<div class="row" style="padding:4px 0"><span class="pr-badge">PR</span><b>${esc(EX[id].name)}</b><span class="spacer"></span><span class="num">${bestSet(exercises.find((x) => x.exId === id).sets).w} ק״ג</span></div>`)}</div>` : ''}
       <div class="card tight" style="margin-top:12px"><div class="row"><span style="font-size:26px">⭐</span><div><b>+${gained} XP</b>${rk.rankUp ? `<div class="sub">עלית דרגה: ${rk.rankUp.icon} ${rk.rankUp.name}!</div>` : ''}</div></div>
-        ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--lime);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
+        ${weekMsg ? `<div class="sub" style="margin-top:8px;color:var(--pri-ink);font-weight:700">${esc(weekMsg)}</div>` : ''}</div>
       ${workout.run && !partial ? `<button class="btn teal block xl" style="margin-top:14px" data-act="run-now">🏃 המשך לריצה: ${esc(workout.run.name)}</button>` : ''}
       <button class="btn primary block xl" style="margin-top:10px" data-act="close">סיום</button>`;
   }

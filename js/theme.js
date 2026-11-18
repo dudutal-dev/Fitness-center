@@ -3,14 +3,14 @@ import { get } from './store.js';
 
 const mq = matchMedia('(prefers-color-scheme: light)');
 
-export function resolvedTheme(pref = get().settings?.theme || 'dark') {
+export function resolvedTheme(pref = get().settings?.theme || 'auto') {
   return pref === 'auto' ? (mq.matches ? 'light' : 'dark') : pref;
 }
 
 export function applyTheme() {
   const t = resolvedTheme();
   document.documentElement.dataset.theme = t;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#e2e7dc' : '#0e1217');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#f5f2ec' : '#13141c');
 }
 
-mq.addEventListener?.('change', () => { if ((get().settings?.theme || 'dark') === 'auto') applyTheme(); });
+mq.addEventListener?.('change', () => { if ((get().settings?.theme || 'auto') === 'auto') applyTheme(); });

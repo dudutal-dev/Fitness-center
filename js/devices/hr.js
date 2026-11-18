@@ -81,7 +81,7 @@ export const maxHrFor = (profile) => profile.maxHr || Math.round(208 - 0.7 * (pr
 export const ZONES = [
   { z: 1, name: 'התאוששות', from: 0.5, color: '#8b95a1' },
   { z: 2, name: 'אירובי קל', from: 0.6, color: '#5aa9ff' },
-  { z: 3, name: 'אירובי', from: 0.7, color: '#22e6d0' },
+  { z: 3, name: 'אירובי', from: 0.7, color: '#2bb673' },
   { z: 4, name: 'סף', from: 0.8, color: '#ff8a3d' },
   { z: 5, name: 'מקסימום', from: 0.9, color: '#ff4d5e' },
 ];

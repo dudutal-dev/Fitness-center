@@ -14,7 +14,7 @@ const DEFAULT = {
   daily: {},              // 'YYYY-MM-DD' -> { water, protein, checkin }
   xp: 0,
   events: [],             // התראות/הודעות מאמן אחרונות
-  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, theme: 'dark', units: 'kg' },
+  settings: { voice: true, volume: 0.9, tempoCount: true, captions: true, theme: 'auto', themeV: 3, units: 'kg' },
 };
 
 let state = load();
@@ -24,7 +24,12 @@ let dirty = false;
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...structuredClone(DEFAULT), ...JSON.parse(raw) };
+    if (raw) {
+      const st = { ...structuredClone(DEFAULT), ...JSON.parse(raw) };
+      // עיצוב v3: מעבר חד-פעמי ל"אוטומטי" (לפי הגדרת הטלפון); אפשר לשנות בהגדרות
+      if (st.settings && st.settings.themeV !== 3) { st.settings.theme = 'auto'; st.settings.themeV = 3; }
+      return st;
+    }
   } catch { /* מצב פרטי / חסום */ }
   return structuredClone(DEFAULT);
 }
@@ -50,7 +55,9 @@ export const subscribe = (fn) => (subs.add(fn), () => subs.delete(fn));
 // טקסט לפי מין המתאמן: g('צא', 'צאי')
 export const g = (m, f) => (state.profile?.sex === 'f' ? f : m);
 
-export const today = () => new Date().toISOString().slice(0, 10);
+// תאריך מקומי (לא UTC) — אחרת היום מתחלף ב-02:00/03:00 בלילה שעון ישראל
+export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const today = () => localDate();
 
 export function daily(date = today()) {
   return state.daily[date] || { water: 0, protein: 0, checkin: null };

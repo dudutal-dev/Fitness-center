@@ -52,7 +52,7 @@ export function sheet(markup, { onMount, onClose } = {}) {
 
 export function confetti(n = 90) {
   const box = el('<div class="confetti"></div>');
-  const colors = ['#c8ff3c', '#22e6d0', '#ff8a3d', '#ffffff', '#9b7bff'];
+  const colors = ['#5558e3', '#ff7a59', '#ffb454', '#4fd1a1', '#9b7bff'];
   for (let i = 0; i < n; i++) {
     const c = document.createElement('i');
     c.style.left = `${Math.random() * 100}%`;

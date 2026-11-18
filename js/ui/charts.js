@@ -1,10 +1,10 @@
 // גרפים קלים ב-SVG (ללא ספריות): טבעת, קו עם מגמה, עמודות, מפת גוף.
 
-export function ring(pct, { size = 150, stroke = 12, color = 'url(#gLime)', track = 'rgba(var(--fg-rgb),0.08)', big = '', lbl = '', cls = '' } = {}) {
+export function ring(pct, { size = 150, stroke = 12, color = 'var(--pri)', track = 'rgba(var(--fg-rgb),0.08)', big = '', lbl = '', cls = '' } = {}) {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const off = c * (1 - Math.max(0, Math.min(1, pct)));
   return `<div class="ring ${cls}" style="width:${size}px;height:${size}px">
-    <svg viewBox="0 0 ${size} ${size}"><defs><linearGradient id="gLime" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22e6d0"/><stop offset="1" stop-color="#c8ff3c"/></linearGradient></defs>
+    <svg viewBox="0 0 ${size} ${size}">
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" style="stroke:${track}" stroke-width="${stroke}"/>
       <circle class="arc" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" style="stroke:${color}" stroke-width="${stroke}" stroke-linecap="round"
         stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)"/>
@@ -30,12 +30,12 @@ export function lineChart(series, { h = 190, target = null, unit = '' } = {}) {
   const X = (i) => P.l + (n <= 1 ? (W - P.l - P.r) / 2 : (i / (n - 1)) * (W - P.l - P.r));
   const Y = (v) => P.t + (1 - (v - min) / (max - min)) * (H - P.t - P.b);
   let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${h}px">
-    <defs><linearGradient id="fillG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8ff3c" stop-opacity=".28"/><stop offset="1" stop-color="#c8ff3c" stop-opacity="0"/></linearGradient></defs>`;
+    <defs><linearGradient id="fillG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--pri)" stop-opacity=".22"/><stop offset="1" style="stop-color:var(--pri)" stop-opacity="0"/></linearGradient></defs>`;
   for (let i = 0; i <= 3; i++) {
     const v = min + ((max - min) * i) / 3, y = Y(v);
     out += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" style="stroke:rgba(var(--fg-rgb),.08)"/><text x="2" y="${y + 3}">${Math.round(v * 10) / 10}</text>`;
   }
-  if (target != null) out += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(target)}" y2="${Y(target)}" stroke="#ff8a3d" stroke-dasharray="4 4"/>`;
+  if (target != null) out += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(target)}" y2="${Y(target)}" style="stroke:var(--acc)" stroke-dasharray="4 4"/>`;
   for (const s of series) {
     if (!s.values.length) continue;
     const pts = s.values.map((v, i) => [X(i), Y(v.y)]);
@@ -50,13 +50,13 @@ export function lineChart(series, { h = 190, target = null, unit = '' } = {}) {
   return out + '</svg>';
 }
 
-export function bars(values, { h = 120, color = '#22e6d0' } = {}) {
+export function bars(values, { h = 120, color = 'var(--pri)' } = {}) {
   if (!values.length) return '<div class="empty">אין נתונים</div>';
   const W = 340, max = Math.max(...values.map((v) => v.y), 1), bw = (W - 10) / values.length;
   let out = `<svg class="chart" viewBox="0 0 ${W} ${h + 18}" style="height:${h + 18}px">`;
   values.forEach((v, i) => {
     const bh = (v.y / max) * h, x = 5 + i * bw;
-    out += `<rect x="${x + bw * 0.18}" y="${h - bh}" width="${bw * 0.64}" height="${Math.max(2, bh)}" rx="5" fill="${i === values.length - 1 ? '#c8ff3c' : color}" opacity="${i === values.length - 1 ? 1 : 0.55}"/>
+    out += `<rect x="${x + bw * 0.18}" y="${h - bh}" width="${bw * 0.64}" height="${Math.max(2, bh)}" rx="5" style="fill:${color}" opacity="${i === values.length - 1 ? 1 : 0.55}"/>
       <text x="${x + bw / 2}" y="${h + 14}" text-anchor="middle">${v.x}</text>`;
   });
   return out + '</svg>';
@@ -90,7 +90,7 @@ export function bodyMap(load, max = 12) {
   const col = (m) => {
     const v = Math.min(1, (load[m] || 0) / max);
     if (!v) return '';
-    return `style="fill:rgba(${Math.round(34 + (200 - 34) * v)},${Math.round(230 + (255 - 230) * v)},${Math.round(208 - 148 * v)},${0.25 + v * 0.65})"`;
+    return `style="fill:rgba(var(--pri-rgb),${(0.18 + v * 0.72).toFixed(2)})"`;
   };
   const draw = (map) => Object.entries(map).map(([m, ps]) => ps.map((d) => `<path class="m" d="${d}" ${col(m)}><title>${m}</title></path>`).join('')).join('');
   return `<div class="bodymap">

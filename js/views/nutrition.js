@@ -3,9 +3,10 @@
 import { html, esc, on, toast, sheet, icon } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, g } from '../store.js';
-import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY } from '../engine/nutrition.js';
+import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY, activityKey, trendAdvice } from '../engine/nutrition.js';
 import { FOOD, FOODS, DISLIKE_TAGS, NO_VEG_TIPS, ARMY_TIPS, NUTRITION_REFS } from '../data/foods.js';
 
+let tab = 'today';
 let ctx = 'base';
 let seed = new Date().getDate();
 let editDislikes = false;
@@ -31,33 +32,43 @@ export function renderNutrition(root) {
   const ctxs = [['base', 'בבסיס'], ['field', 'בשטח'], ['home', 'בבית']];
   const log = (dd.foods || []).map((it, i) => ({ ...it, i, f: foodLookup(it.id, custom) })).filter((x) => x.f);
   const left = t.kcal - eaten.kcal;
+  const actKey = activityKey(p);
+  const act = ACTIVITY[actKey];
+  const advice = trendAdvice(s.weights, p);
+  const nf = (n) => n.toLocaleString('he-IL');
+  const macro = (name, val, of, unit, color) => `<div class="macro"><div class="row between"><span>${name}</span><b><bdi>${val}</bdi><small> / <bdi>${of} ${unit}</bdi></small></b></div>
+    <div class="bar"><i style="width:${Math.min(100, Math.round((val / Math.max(1, of)) * 100))}%;background:${color}"></i></div></div>`;
+  const goalTag = p.goal === 'cut' ? 'גירעון' : p.goal === 'muscle' ? 'עודף' : 'תחזוקה';
+  const TABS = [['today', 'היום'], ['menu', 'תפריט'], ['prefs', 'העדפות']];
 
-  const act = ACTIVITY[p.activityLevel] || ACTIVITY.training;
-  const actKey = ACTIVITY[p.activityLevel] ? p.activityLevel : 'training';
-  const macro = (pct, color, val, unit, of, name) => `<div class="macro"><span>${name}</span>
-    <b><bdi>${val}</bdi><small> / <bdi>${of} ${unit}</bdi></small></b><div class="bar"><i style="width:${Math.min(100, Math.round(pct * 100))}%;background:${color}"></i></div></div>`;
-
-  root.innerHTML = html`<div class="page-head"><div class="eyebrow">תזונת לוחם</div><div class="h1">דלק לביצועים</div></div>
-    <div class="card hud">
-      <div class="row between" style="align-items:flex-start"><div><div class="sub t-cap">נאכל היום / יעד</div>
-        <div class="kcal-big">${eaten.kcal.toLocaleString('he-IL')}<small> / ${t.kcal.toLocaleString('he-IL')} קק״ל</small></div>
-        <div class="sub t-foot">${left > 0 ? `נשארו <b class="num">${left.toLocaleString('he-IL')}</b> קלוריות` : `עברת את היעד ב-<b class="num">${(-left).toLocaleString('he-IL')}</b>`}</div></div>
-        <span class="tag ${p.goal === 'cut' ? 'orange' : 'lime'}">${p.goal === 'cut' ? 'גירעון' : p.goal === 'muscle' ? 'עודף' : 'תחזוקה'}</span></div>
-      <div class="macro-grid">
-        ${macro(eaten.p / t.protein, 'var(--lime)', eaten.p, 'ג׳', t.protein, 'חלבון')}
-        ${macro(eaten.c / t.carbs, '#22e6d0', eaten.c, 'ג׳', t.carbs, 'פחמימה')}
-        ${macro(eaten.f / t.fat, '#ff8a3d', eaten.f, 'ג׳', t.fat, 'שומן')}
-        ${macro(dd.water / (t.waterL * 1000), '#5aa9ff', (dd.water / 1000).toFixed(1), 'ל׳', t.waterL, 'מים')}
+  const todayTab = () => html`
+    <div class="card">
+      <div class="nut-top">
+        ${ring(eaten.kcal / t.kcal, { size: 124, stroke: 11, color: left < 0 ? 'var(--acc)' : 'var(--pri)', big: nf(Math.abs(left)), lbl: left >= 0 ? 'קק״ל נשארו' : 'קק״ל מעל היעד' })}
+        <div class="nut-macros">
+          ${macro('חלבון', eaten.p, t.protein, 'ג׳', 'var(--pri)')}
+          ${macro('פחמימה', eaten.c, t.carbs, 'ג׳', 'var(--acc)')}
+          ${macro('שומן', eaten.f, t.fat, 'ג׳', 'var(--orange)')}
+        </div>
       </div>
-      <button class="btn primary block mt-4" data-act="add-food">＋ מה אכלתי</button>
-      <div class="actions2"><button class="btn sm" data-add="water">+250 מ״ל מים</button><button class="btn sm" data-add="protein">+20 ג׳ חלבון</button></div>
+      <div class="sub t-foot center-t mt-3">נאכלו <b class="num">${nf(eaten.kcal)}</b> מתוך <b class="num">${nf(t.kcal)}</b> קק״ל · ${goalTag} · סיבים <span class="num">${eaten.fib}</span>/<span class="num">${t.fiber}</span> ג׳</div>
+      <button class="btn primary block mt-4" data-act="add-food">＋ הוספת אוכל</button>
     </div>
 
-    <div class="h2">רמת פעילות</div>
-    <div class="seg" data-activity>${Object.entries(ACTIVITY).map(([k, a]) => `<button data-v="${k}" class="${actKey === k ? 'on' : ''}">${a.name}</button>`).join('')}</div>
-    <div class="sub t-foot mt-2">${esc(act.full)}: ${esc(act.desc)} · משפיע על יעד הקלוריות</div>
+    <div class="card tight water-row">
+      <span class="ic">💧</span>
+      <div class="grow"><div class="row between"><b>מים</b><span class="num sub">${(dd.water / 1000).toFixed(1)} / ${t.waterL} ל׳</span></div>
+        <div class="bar"><i style="width:${Math.min(100, Math.round((dd.water / (t.waterL * 1000)) * 100))}%;background:var(--blue)"></i></div></div>
+      <button class="btn sm" data-add="water">＋ כוס</button>
+    </div>
 
-    <div class="h2">יומן היום${log.length ? `<span class="more" data-act="clear-log">ניקוי</span>` : ''}</div>
+    ${advice ? html`<div class="card tight advice ${advice.step ? 'act' : ''}">
+      <b>${advice.onTrack ? '✓ הקצב שלך מתאים למטרה' : advice.step > 0 ? 'המשקל יורד מהר מהמתוכנן' : advice.step < 0 ? 'המשקל עולה מהר מהמתוכנן' : 'מגמת המשקל'}</b>
+      <div class="sub t-foot">בשבועות האחרונים: <bdi dir="ltr" class="num">${advice.kgWeek > 0 ? '+' : ''}${advice.kgWeek}</bdi> ק״ג לשבוע (<bdi dir="ltr" class="num">${advice.pctWeek}%</bdi>). הטווח המומלץ למטרה: <bdi dir="ltr" class="num">${advice.range[0]}%</bdi> עד <bdi dir="ltr" class="num">${advice.range[1]}%</bdi>.</div>
+      ${advice.step ? `<button class="btn sm block mt-3" data-adjust="${advice.step}">${advice.step > 0 ? 'העלה' : 'הורד'} את היעד ב-${Math.abs(advice.step)} קק״ל</button>` : ''}
+    </div>` : ''}
+
+    <div class="h2">מה אכלתי${log.length ? `<span class="more" data-act="clear-log">ניקוי</span>` : ''}</div>
     <div class="card tight">
       ${log.length ? MEAL_SLOTS.map(([slot, label]) => {
         const items = log.filter((x) => (x.slot || 'snack') === slot);
@@ -65,18 +76,25 @@ export function renderNutrition(root) {
         const k = items.reduce((a, x) => a + x.f.kcal * x.qty, 0);
         return html`<div class="log-slot"><div class="row between"><b>${label}</b><span class="sub num t-cap">${Math.round(k)} קק״ל</span></div>
           ${items.map((x) => html`<button class="log-it" data-log="${x.i}"><span>${esc(x.f.name)}<small> · ${qtyLabel(x.qty)}${esc(x.f.portion)}</small></span>
-            <span class="num sub">${Math.round(x.f.kcal * x.qty)} · ${Math.round(x.f.p * x.qty)}ג׳</span></button>`)}</div>`;
-      }).join('') : `<div class="empty" style="padding:12px 4px">עוד לא נרשם אוכל היום.<br>${g('לחץ', 'לחצי')} "＋ מה אכלתי" או ${g('סמן', 'סמני')} ✓ על ארוחה מהתפריט.</div>`}
-    </div>
+            <span class="num sub">${Math.round(x.f.kcal * x.qty)}</span></button>`)}</div>`;
+      }).join('') : `<div class="empty" style="padding:12px 4px">עוד לא נרשם אוכל היום.<br>אפשר להוסיף אוכל, או לסמן ארוחה שלמה בלשונית "תפריט".</div>`}
+    </div>`;
 
-    <div class="h2">התפריט המומלץ<span class="more" data-act="shuffle">תפריט אחר</span></div>
-    <div class="seg" style="margin-bottom:12px">${ctxs.map(([k, v]) => `<button data-ctx="${k}" class="${ctx === k ? 'on' : ''}">${v}</button>`)}</div>
+  const menuTab = () => html`
+    <div class="seg">${ctxs.map(([k, v]) => `<button data-ctx="${k}" class="${ctx === k ? 'on' : ''}">${v}</button>`)}</div>
+    <div class="row between menu-sum"><div class="sub t-foot">התפריט: <b class="num">${nf(plan.total.kcal)}</b> קק״ל · <b class="num">${plan.total.p}</b> ג׳ חלבון<br>יעד: <span class="num">${nf(t.kcal)}</span> קק״ל · <span class="num">${t.protein}</span> ג׳ חלבון</div>
+      <button class="btn sm" data-act="shuffle">${icon('swap', 'width="16" height="16"')} תפריט אחר</button></div>
     ${plan.meals.map((m, mi) => html`<div class="card tight meal">
-      <div class="meal-head"><div class="grow"><b>${m.icon} ${m.name}</b><span class="num sub t-foot">${m.total.kcal} קק״ל · ${m.total.p}ג׳ חלבון</span></div>
-        <button class="eat-btn" data-eat-meal="${mi}" aria-label="אכלתי את ${esc(m.name)}" title="אכלתי את זה">${icon('check')}</button></div>
+      <div class="meal-head"><div class="grow"><b>${m.icon} ${m.name}</b><span class="num sub t-foot">${m.total.kcal} קק״ל · ${m.total.p} ג׳ חלבון</span></div>
+        <button class="eat-btn" data-eat-meal="${mi}" aria-label="אכלתי את ${esc(m.name)}">${icon('check')} אכלתי</button></div>
       ${m.items.map((it) => { const f = FOOD[it.id]; return `<div class="mi"><span>${esc(f.name)}</span><small>${qtyLabel(it.qty)}${esc(f.portion)}</small></div>`; })}
     </div>`)}
-    <div class="sub t-foot center-t mt-2">סה״כ: <span class="num">${plan.total.kcal}</span> קק״ל · <span class="num">${plan.total.p}</span>ג׳ חלבון · <span class="num">${plan.total.c}</span>ג׳ פחמימה · <span class="num">${plan.total.f}</span>ג׳ שומן</div>
+    <div class="sub t-foot center-t mt-3">סה״כ ביום: <span class="num">${plan.total.c}</span> ג׳ פחמימה · <span class="num">${plan.total.f}</span> ג׳ שומן · <span class="num">${plan.total.fib}</span> ג׳ סיבים (יעד ${t.fiber})</div>`;
+
+  const prefsTab = () => html`
+    <div class="h2" style="margin-top:4px">רמת פעילות</div>
+    <div class="seg" data-activity>${Object.entries(ACTIVITY).map(([k, a]) => `<button data-v="${k}" class="${actKey === k ? 'on' : ''}">${a.name}</button>`).join('')}</div>
+    <div class="sub t-foot mt-2">${esc(act.full)}: ${esc(act.desc)}. קובע את יעד הקלוריות.</div>
 
     <div class="h2">מה אני לא אוכל<span class="more" data-act="edit">${editDislikes ? 'סיום' : 'עריכה'}</span></div>
     <div class="card tight">
@@ -88,21 +106,35 @@ export function renderNutrition(root) {
       : html`<div class="chips">${[...p.dislikes.map((k) => DISLIKE_TAGS[k]), ...(p.dislikedFoods || []).map((id) => FOOD[id]?.name)].filter(Boolean).map((x) => `<span class="chip no on">${esc(x)}</span>`).join('') || '<span class="sub">אוכל הכל</span>'}</div>`}
     </div>
 
-    <div class="h2">מידע וטיפים</div>
+    <div class="h2">מידע</div>
     ${plan.noVeg ? html`<details class="card acc"><summary>בלי ירקות — ככה משלימים</summary><div class="acc-body">${NO_VEG_TIPS.map(tip)}</div></details>` : ''}
     <details class="card acc"><summary>טיפים לחייל</summary><div class="acc-body">${ARMY_TIPS.map(tip)}</div></details>
     <details class="card acc method"><summary>איך זה מחושב</summary><div class="acc-body">
-      <div class="m-row"><b>קלוריות</b><span>BMR לפי Mifflin-St Jeor (<span class="num">${Math.round(t.tdee / t.activity.factor)}</span>) × מקדם פעילות ${t.activity.factor} = <span class="num">${t.tdee}</span>${t.delta ? ` ${t.delta > 0 ? '+' : '−'} <span class="num">${Math.abs(t.delta)}</span> (${p.goal === 'cut' ? 'ירידה של ~0.5% ממשקל הגוף בשבוע' : 'עודף התחלתי — להתאים לפי מגמת המשקל'})` : ' (תחזוקה)'}</span></div>
-      <div class="m-row"><b>חלבון</b><span>${p.goal === 'cut' ? '2.2' : '2.0'} ג׳ לק״ג (ISSN: 1.4–2.0 למתאמנים, יותר בגירעון)</span></div>
-      <div class="m-row"><b>שומן</b><span>25% מהקלוריות (טווח מומלץ 20–35%)</span></div>
+      <div class="m-row"><b>קלוריות</b><span>BMR לפי Mifflin-St Jeor (<span class="num">${t.bmr}</span>) × מקדם פעילות ${t.activity.factor} = <span class="num">${t.tdee}</span>${t.delta ? ` ${t.delta > 0 ? '+' : '−'} <span class="num">${Math.abs(t.delta)}</span> (${p.goal === 'cut' ? 'ירידה של ~0.5% ממשקל הגוף בשבוע' : 'עודף של ~10% — עלייה של 0.25–0.5% בשבוע'})` : ' (תחזוקה)'}${t.adjust ? ` ${t.adjust > 0 ? '+' : '−'} <span class="num">${Math.abs(t.adjust)}</span> (כיול לפי מגמת המשקל שלך)` : ''}</span></div>
+      <div class="m-row"><b>חלבון</b><span>${t.perKg} ג׳ לק״ג${t.refW < Math.round(p.weightKg) ? ` (לפי משקל ייחוס ${t.refW} ק״ג)` : ''} — ISSN: 1.4–2.0 למתאמנים, יותר בגירעון; 20–40 ג׳ בכל ארוחה</span></div>
+      <div class="m-row"><b>שומן</b><span>25% מהקלוריות (טווח מומלץ 20–35%), לא פחות מ-0.5 ג׳ לק״ג</span></div>
+      <div class="m-row"><b>פחמימה</b><span>יתרת הקלוריות — <span class="num">${(t.carbs / (p.weightKg || 70)).toFixed(1)}</span> ג׳ לק״ג (ACSM: 5–7 לאימון בינוני, 3–5 לקל)</span></div>
+      <div class="m-row"><b>סיבים</b><span>14 ג׳ לכל 1,000 קק״ל (IOM)</span></div>
       <div class="m-row"><b>שתייה</b><span>${p.sex === 'f' ? '1.6' : '2.0'} ל׳ ממשקאות (EFSA) + 0.5 ל׳ לשעת אימון (ACSM); בחום ובשטח יותר</span></div>
+      <div class="m-row"><b>כיול</b><span>אחרי שבועיים של שקילות, היעד מושווה לקצב השינוי בפועל ומוצע תיקון של 150 קק״ל</span></div>
       <div class="m-row"><b>ערכי מזון</b><span>מאגר התזונה הלאומי של משרד הבריאות — ${FOODS.length} מאכלים, משקל מנה מטבלת המשקלים של המאגר</span></div>
+      ${t.adjust ? '<button class="btn sm block mt-3" data-adjust="reset">איפוס הכיול האישי</button>' : ''}
       <details style="margin-top:8px"><summary class="sub" style="cursor:pointer;min-height:44px;display:flex;align-items:center">מקורות (${NUTRITION_REFS.length})</summary>
         <ol class="refs">${NUTRITION_REFS.map((r) => `<li><a href="${r.u}" target="_blank" rel="noopener">${esc(r.t)}</a></li>`).join('')}</ol></details>
     </div></details>
     <p class="sub t-cap mt-3">ההמלצות כלליות ואינן תחליף לייעוץ של דיאטנית/רופא.</p>`;
 
+  root.innerHTML = html`<div class="page-head"><div class="h1">תזונה</div></div>
+    <div class="seg tabs" data-tabs>${TABS.map(([k, v]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${v}</button>`).join('')}</div>
+    ${tab === 'menu' ? menuTab() : tab === 'prefs' ? prefsTab() : todayTab()}`;
+
   const rerender = () => renderNutrition(root);
+  on(root, 'click', '[data-tab]', (e, b) => { tab = b.dataset.tab; rerender(); });
+  on(root, 'click', '[data-adjust]', (e, b) => {
+    const v = b.dataset.adjust;
+    set((s2) => { s2.profile.kcalAdjust = v === 'reset' ? 0 : (s2.profile.kcalAdjust || 0) + Number(v); return s2; });
+    toast(v === 'reset' ? 'הכיול אופס' : 'יעד הקלוריות עודכן'); rerender();
+  });
   on(root, 'click', '[data-activity] button', (e, b) => { set((s2) => { s2.profile.activityLevel = b.dataset.v; return s2; }); rerender(); });
   on(root, 'click', '[data-ctx]', (e, b) => { ctx = b.dataset.ctx; rerender(); });
   on(root, 'click', '[data-act="shuffle"]', () => { seed++; rerender(); });
@@ -123,8 +155,7 @@ export function renderNutrition(root) {
   root.querySelector('[data-dq]')?.addEventListener('input', (e) => { dislikeQuery = e.target.value; root.querySelector('#dislikeChips').innerHTML = dislikeChips(get().profile); });
   on(root, 'click', '[data-add]', (e, b) => {
     const d2 = daily();
-    if (b.dataset.add === 'water') setDaily({ water: d2.water + 250 }); else setDaily({ protein: d2.protein + 20 });
-    toast(b.dataset.add === 'water' ? '+250 מ״ל מים נרשמו' : '+20 ג׳ חלבון נרשמו', 1200);
+    setDaily({ water: d2.water + 250 });
     rerender();
   });
 }

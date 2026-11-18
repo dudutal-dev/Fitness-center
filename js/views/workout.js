@@ -74,7 +74,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`)]);
 
   const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
-    <div class="stage"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
+    <div class="stage"><img class="stage-bg" alt="" aria-hidden="true"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
       <div class="hud-top"><button class="icon-btn" data-act="exit" aria-label="יציאה">${icon('close', 'width="20" height="20"')}</button>
         <div class="progress"></div><span class="clock num">0:00</span>
         <button class="icon-btn" data-act="voice" aria-label="קול">${icon(get().settings.voice ? 'vol' : 'mute', 'width="20" height="20"')}</button></div>
@@ -86,7 +86,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   const $ = (q) => root.querySelector(q);
   const pill = hrPill();
   $('.clock').after(pill);
-  const video = $('video'), poster = $('img.poster');
+  const video = $('video'), poster = $('img.poster'), stageBg = $('img.stage-bg');
   video.addEventListener('error', () => { video.style.display = 'none'; });
 
   let sayT;
@@ -110,6 +110,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const id = item().exId;
     video.style.display = '';
     poster.src = demoPoster(coach, id);
+    stageBg.src = poster.src;
     video.src = demoVideo(coach, id);
     video.play().catch(() => {});
   }

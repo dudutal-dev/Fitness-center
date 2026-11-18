@@ -144,7 +144,7 @@ a { color: var(--lime-ink); }
 :root[data-theme="light"] .toast { background: var(--ink); color: #eef3ef; border-color: rgba(200, 255, 60, 0.3); box-shadow: 0 12px 30px rgba(18, 26, 31, 0.25); }
 :root[data-theme="light"] .chart text { fill: var(--mute); }
 :root[data-theme="light"] .mission .media::after { background: linear-gradient(to top, rgba(8, 12, 16, 0.88) 4%, rgba(8, 12, 16, 0.15) 60%, rgba(8, 12, 16, 0.45)); }
-:root[data-theme="light"] .live .stage::after { background: linear-gradient(to bottom, rgba(4, 5, 7, 0.7), transparent 22%, transparent 48%, rgba(4, 5, 7, 0.88) 100%); }
+:root[data-theme="light"] .live .stage::after { background: linear-gradient(to bottom, rgba(4, 5, 7, 0.6), transparent 16%, transparent 66%, rgba(4, 5, 7, 0.85) 100%); }
 :root[data-theme="light"] .live .stage { border-radius: 0 0 26px 26px; }
 :root[data-theme="light"] .guide { background: var(--bg); }
 
@@ -380,8 +380,11 @@ input[type=range] { width: 100%; accent-color: var(--lime-ink); }
 /* ───── מצב אימון חי (מסך מלא) ───── */
 .live { position: fixed; top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: 560px; margin: 0 auto; z-index: 100; background: var(--live-bg); display: flex; flex-direction: column; overflow: hidden; animation: fade 0.3s; }
 .live .stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-.live .stage video, .live .stage img.poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; }
-.live .stage::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(4,5,7,0.75), transparent 22%, transparent 55%, var(--live-bg) 98%); pointer-events: none; }
+/* ההדגמה מוצגת במלואה (9:16) — בלי חיתוך ראש/רגליים; רקע מטושטש של אותה תמונה ממלא את הצדדים */
+.live .stage img.stage-bg { position: absolute; inset: -30px; width: calc(100% + 60px); height: calc(100% + 60px); max-width: none; object-fit: cover; filter: blur(22px) brightness(0.55) saturate(1.2); }
+.live .stage video, .live .stage img.poster { position: absolute; top: calc(58px + var(--safe-t)); bottom: 0; left: 0; right: 0; width: 100%; height: calc(100% - 58px - var(--safe-t)); object-fit: contain; object-position: 50% 0%; }
+@media (max-height: 760px) { .counter .ring { width: 150px !important; height: 150px !important; } .counter .big { font-size: 54px; } .counter { padding: 2px 0 8px; } }
+.live .stage::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(4,5,7,0.6), transparent 16%, transparent 68%, var(--live-bg) 99%); pointer-events: none; }
 .live .hud-top { position: absolute; top: calc(12px + var(--safe-t)); right: 14px; left: 14px; z-index: 3; display: flex; align-items: center; gap: 10px; }
 .live .progress { flex: 1; display: flex; gap: 3px; }
 .live .progress i { flex: 1; height: 4px; border-radius: 4px; background: rgba(var(--fg-rgb),0.18); }

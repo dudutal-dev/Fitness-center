@@ -1,4 +1,4 @@
-"""חיתוך שקט בתחילת ובסוף כל קליפ קול — כדי שהמאמן יישמע בדיוק ברגע הנכון (ספירה בזמן החזרה).
+"""חיתוך שקט בתחילת ובסוף כל קליפ קול — כדי שהמאמן יישמע בדיוק ברגע הנכון (ספירה בזמן החזרה) — והשוואת עוצמה בין כל הקליפים.
 שומר מקור ב-assets/_src/voice_orig (פעם ראשונה) וכותב js/data/voice-timing.js עם משך כל קליפ."""
 import os, subprocess, json, shutil
 import numpy as np
@@ -8,6 +8,12 @@ ROOT = os.path.join(os.path.dirname(__file__), "..")
 VOICE = os.path.join(ROOT, "assets", "voice")
 ORIG = os.path.join(ROOT, "assets", "_src", "voice_orig")
 SR = 22050
+TARGET_RMS_DB = -18
+# שימוש: python3 tools/trim_voice.py                         — חיתוך + השוואת עוצמה לכל הקליפים (אחרי יצירה מחדש של הכול)
+#        python3 tools/trim_voice.py --level-only a/b.mp3 …  — חיתוך רק לקליפים שנוצרו מחדש (ברשימה); לשאר רק השוואת עוצמה
+import sys
+LEVEL_ONLY = '--level-only' in sys.argv
+TRIM = set(a for a in sys.argv[1:] if not a.startswith('--'))
 
 def decode(p):
     raw = subprocess.run(["ffmpeg", "-v", "error", "-i", p, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
@@ -30,10 +36,18 @@ def process(rel):
         os.makedirs(os.path.dirname(src), exist_ok=True)
         shutil.copy2(dst, src)  # מקור חדש/עודכן
     x = decode(src)
-    a, b = bounds(x)
-    a, b = max(0, a - 0.03), min(len(x) / SR, b + 0.08)
+    if LEVEL_ONLY and rel not in TRIM:
+        a, b = 0, len(x) / SR          # קליפ שכבר נחתך — רק משווים עוצמה (חיתוך חוזר מכרסם בסופי מילים)
+    else:
+        a, b = bounds(x)
+        a, b = max(0, a - 0.03), min(len(x) / SR, b + 0.08)
+    # עוצמה אחידה: כל קליפ מובא ל-RMS של ‎-18 dBFS (בלי לחצות שיא של ‎-1 dBFS) — כדי ששני המאמנים וכל המשפטים יישמעו באותה עוצמה
+    seg = x[int(a * SR): int(b * SR)]
+    rms = float(np.sqrt((seg ** 2).mean() + 1e-12)); peak = float(np.abs(seg).max() + 1e-9)
+    gain = min(10 ** (TARGET_RMS_DB / 20) / rms, 10 ** (-1 / 20) / peak)
+    gain_db = float(np.clip(20 * np.log10(gain), -9, 12))
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{a:.3f}", "-to", f"{b:.3f}", "-i", src,
-                    "-af", "afade=t=in:d=0.01,areverse,afade=t=in:d=0.03,areverse", "-ac", "1", "-b:a", "64k", dst], check=True)
+                    "-af", f"volume={gain_db:.2f}dB" + ("" if LEVEL_ONLY and rel not in TRIM else ",afade=t=in:d=0.01,areverse,afade=t=in:d=0.03,areverse"), "-ac", "1", "-b:a", "64k", dst], check=True)
     os.utime(src, None)
     return rel, round(b - a, 3), round(a, 3), round(len(x) / SR - b, 3)
 

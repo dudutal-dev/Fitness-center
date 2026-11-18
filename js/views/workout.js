@@ -7,7 +7,7 @@ import { EX, EXERCISES, MUSCLES } from '../data/exercises.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
 import { applyReadiness, blockedSet, LEVEL_NAMES, warmupFor, cooldownFor } from '../engine/program.js';
-import { say, sayNow, resolve, clipDur, stop, onSpeaking, preload, unlock } from '../coach/voice.js';
+import { say, sayNow, resolve, clipDur, keyDur, stop, onSpeaking, preload, unlock, isSpeaking } from '../coach/voice.js';
 import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
 import { startRun } from './run.js';
@@ -15,6 +15,7 @@ import { pingWorkout, syncReminders } from '../reminders.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 
+const WARM_CHEER = ['m2', 'm5', 'm6', 'm9', 'm10'];
 const RPE = [{ v: 6.5, e: icon('effort1'), t: 'קל' }, { v: 8, e: icon('effort2'), t: 'טוב' }, { v: 9, e: icon('effort3'), t: 'קשה' }, { v: 10, e: icon('effort4'), t: 'עד הקצה' }];
 
 export function startWorkout(workout, { readiness = null } = {}) {
@@ -282,11 +283,18 @@ export function startWorkout(workout, { readiness = null } = {}) {
 
   function runTimed(secs, role, e) {
     const mobility = role === 'warmup' || role === 'cooldown';
-    // חימום/מתיחות: "מתחילים!" אחרי שם התרגיל (לא קוטע אותו); תרגילי זמן רגילים: "מתחילים להחזיק… עכשיו!"
-    if (mobility) say('warm_go'); else say('hold_start', { priority: true });
-    const startAt = Date.now() + (mobility ? 2200 : 1200);
-    let lastSec = -1, half = false;
+    // חימום/מתיחות: השעון לא מתחיל עד שהמאמן סיים להציג את התנועה (עד 15 שנ׳ המתנה), ורק אז "מתחילים!".
+    // תרגילי זמן רגילים: "מתחילים להחזיק… עכשיו!"
+    let startAt = mobility ? null : Date.now() + 1200;
+    if (!mobility) say('hold_start', { priority: true });
+    const waitUntil = Date.now() + 15000;
+    let lastSec = -1, half = false, cheered = false;
     timer = setInterval(() => {
+      if (startAt == null) {
+        if (isSpeaking() && Date.now() < waitUntil) { $('#ph').textContent = 'מתכוננים…'; return; }
+        say('warm_go');
+        startAt = Date.now() + (get().settings.voice ? keyDur('warm_go') * 1000 + 150 : 600);
+      }
       const t = (Date.now() - startAt) / 1000;
       if (t < 0) return;
       const left = Math.max(0, secs - t);
@@ -297,7 +305,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
       const sec = Math.ceil(left);
       if (sec !== lastSec) {
         lastSec = sec;
-        if (!half && t >= secs / 2 && secs >= 20) { half = true; if (mobility && e?.unilateral) { sayNow(['switch_side']); vibrate([60, 40, 60]); } else if (!mobility) say('hold_half'); }
+        if (!half && t >= secs / 2 && secs >= 20) { half = true; if (mobility && e?.unilateral) { sayNow(['switch_side']); vibrate([60, 40, 60]); } else say('hold_half'); }
+        // חימום: מילת עידוד לקראת הסוף, כדי שהמאמן לא ישתוק חצי דקה
+        if (role === 'warmup' && !cheered && sec === 12 && secs >= 30) { cheered = true; say(WARM_CHEER[Math.floor(Math.random() * WARM_CHEER.length)]); }
         if (sec <= 3 && sec >= 1) sayNow([`n${sec}`]);
       }
       if (left <= 0) { countedReps = secs; sayNow(['hold_done']); endSet(); }
@@ -346,10 +356,12 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const autoNext = nIt.role === 'warmup' || nIt.role === 'cooldown';
     if (prevRole === 'warmup' && nIt.role !== 'warmup') say('warm_done');
     else if (nIt.role === 'cooldown' && prevRole !== 'cooldown') say('cool_intro');
+    // חימום/מתיחות: מציגים ומכריזים על התנועה הבאה כבר בתחילת ההפסקה — לא אחרי שהשעון שלה התחיל
+    if (autoNext) { showExercise(); paintTop(); if (prevRole === nIt.role) say('next_ex'); say(`ex_${nIt.exId}`); }
     else if (!autoNext && prevRole !== 'warmup') say('set_done');
     if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
-    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: 'מנוחה', color: 'var(--acc)' })}</div>
+    p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: autoNext ? 'מתכוננים' : 'מנוחה', color: 'var(--acc)' })}</div>
       <div class="row"><button class="btn sm" data-act="rest-minus">−15</button><span class="spacer"></span>
         <button class="btn sm teal" data-act="rest-skip">${icon('skip', 'width="16" height="16"')} דלג</button><span class="spacer"></span>
         <button class="btn sm" data-act="rest-plus">+30</button></div>
@@ -381,12 +393,12 @@ export function startWorkout(workout, { readiness = null } = {}) {
         lastSec = sec;
         if (sec === 30 && total >= 60) say('rest_30');
         if (sec === 10 && total >= 25) say('rest_10');
-        if (sec <= 3 && sec >= 1) { sayNow([`n${sec}`]); vibrate(20); }
+        if (sec <= 3 && sec >= 1 && !autoNext) { sayNow([`n${sec}`]); vibrate(20); }
       }
       if (left <= 0) {
         clearInterval(timer); timer = null;
         mode = 'ready';
-        if (autoNext) { say(`ex_${nIt.exId}`); paint(); startSet(); return; }
+        if (autoNext) { paint(); startSet(); return; }
         if (newEx) { say('next_ex'); say(`ex_${nIt.exId}`); } else {
           const last = nxt.si === nIt.sets - 1;
           say(last ? 'last_set' : `set${Math.min(6, nxt.si + 1)}`);

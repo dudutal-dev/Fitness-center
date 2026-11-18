@@ -201,7 +201,7 @@ test('food database: every item has a MoH source, sane values, search and day to
     assert.ok(Array.isArray(f.src) && f.src.length && f.src.every((x) => Number.isInteger(x.code) && x.g > 0), `${f.id} has no source`);
     assert.ok(f.g > 0 && f.kcal >= 0 && Array.isArray(f.meals) && f.meals.length, f.id);
     // אנרגיה ממאקרו (4/4/9 + סיבים 2) קרובה לערך האנרגיה במאגר — פער גדול = טעות מיפוי או פריט חשוד במאגר.
-    const est = f.p * 4 + f.c * 4 + f.f * 9 + (f.fib || 0) * 2;
+    const est = f.p * 4 + f.c * 4 + f.f * 9 + (f.fib || 0) * 2 + (f.alc || 0) * 7; // אלכוהול: 7 קק״ל לגרם
     if (f.kcal > 40) assert.ok(Math.abs(est - f.kcal) / f.kcal < 0.15, `${f.id}: ${f.kcal} vs ${Math.round(est)}`);
   }
   assert.ok(searchFoods('שניצל').some((f) => f.id === 'schnitzel_pita'));
@@ -355,4 +355,28 @@ test('fitness score: nothing measured → no score; parts appear as data arrives
   assert.ok(combatReadiness({ profile: { ...fresh, weightKg: 75, lifts: { bench_press: { w: 80, reps: 8 } } }, history: hist, sessions: [], runs: [], weights: [] }).parts.strength < lifts.parts.strength);
   // שתי שקילות → רכיב הגוף
   assert.ok(combatReadiness({ profile: fresh, history: {}, sessions: [], runs: [], weights: [{ date: 'a', kg: 74 }, { date: 'b', kg: 72 }] }).parts.body != null);
+});
+
+test('expanded food database: every food is sourced, sane and searchable; the menu still uses only the curated set', async () => {
+  const { FOODS } = await import('../js/data/foods.js');
+  const { mealPlan, searchFoods } = await import('../js/engine/nutrition.js');
+  assert.ok(FOODS.length >= 600, `only ${FOODS.length} foods`);
+  const ids = new Set(), names = new Set();
+  const CATS = new Set(['protein', 'dairy', 'carb', 'fruit', 'veg', 'fat', 'snack', 'meal', 'sauce']);
+  for (const f of FOODS) {
+    assert.ok(!ids.has(f.id), `duplicate id ${f.id}`); ids.add(f.id);
+    assert.ok(!names.has(f.name), `duplicate name ${f.name}`); names.add(f.name);
+    assert.ok(CATS.has(f.cat), `${f.id}: cat ${f.cat}`);
+    assert.ok(f.src?.length >= 1 && f.src.every((s) => s.code > 0 && s.g > 0), `${f.id}: no source`);   // אין ערך בלי מקור
+    assert.ok(f.g >= 5 && f.g <= 800 && f.kcal >= 0 && f.kcal <= 1400, `${f.id}: portion ${f.g} g / ${f.kcal} kcal`);
+    assert.ok(f.ctx.length && f.meals.length, `${f.id}: ctx/meals`);
+  }
+  const curated = new Set(FOODS.filter((f) => f.plan !== false).map((f) => f.id));
+  assert.equal(curated.size, 153);
+  assert.ok(FOODS.length - curated.size >= 450);
+  for (const ctx of ['base', 'field', 'home']) for (let seed = 1; seed <= 20; seed++) {
+    for (const m of mealPlan({ ...P, dislikes: [] }, { ctx, seed }).meals) for (const it of m.items) assert.ok(curated.has(it.id), `${it.id} in menu`);
+  }
+  for (const q of ['יוגורט', 'קטשופ', 'שווארמה בלאפה', 'ביצה קשה', 'קינדר', 'מרק', 'לחם שיפון', 'קשיו', 'אפרסק']) assert.ok(searchFoods(q).length >= 1, `search "${q}"`);
+  assert.ok(searchFoods('', [], { cat: 'sauce' }).length >= 10);
 });

@@ -34,6 +34,12 @@ python3 tools/trim_voice.py [--level-only a/b.mp3 …]  # חיתוך שקט + ה
 ```
 מפתח: משתנה סביבה `XI_API_KEY`.
 
+## מאגר המזון
+```bash
+python3 tools/build_foods.py moh.json   # בונה את js/data/foods.js ואת docs/NUTRITION_SOURCES.md
+```
+`moh.json` = שלוש טבלאות ממאגר התזונה הלאומי ב-data.gov.il (`foods`, `units`, `weights`). הרשימה שנבחרה ידנית נמצאת בסקריפט (`SPEC`); הרחבת המאגר ב-`tools/foods_extra.json`.
+
 ## מבנה
 ```
 index.html · manifest.webmanifest · sw.js

@@ -3,6 +3,7 @@ import { html, esc, on, sheet, toast, fmtTime, fmtDate, icon, em } from '../ui/d
 import { get, set, addXP, XP } from '../store.js';
 import { dayKey } from '../engine/stats.js';
 import { importActivityFile } from '../devices/importer.js';
+import { readHealthExport, mergeHealth } from '../devices/health.js';
 import { summarizeHR, maxHrFor, supported, isConnected, disconnect } from '../devices/hr.js';
 import { connectWatch, watchStatusText, isIOS } from '../devices/ui.js';
 import { fmtPace } from '../engine/running.js';
@@ -88,6 +89,49 @@ export function garminHelp() {
     <button class="btn block" style="margin-top:14px" data-close>הבנתי</button>`);
 }
 
+// ───── Apple Health: ייבוא מקובץ הייצוא של אפליקציית "בריאות" ─────
+export function healthSheet(onDone) {
+  const DAYS = 180;
+  sheet(html`<div class="eyebrow">Apple Health</div><div class="h1" style="font-size:22px">ייבוא מאפליקציית "בריאות"</div>
+    <p class="sub">אפליקציה שרצה בדפדפן לא יכולה להתחבר ל-Apple Health ישירות, ולכן מייבאים מקובץ. הקובץ נקרא במכשיר בלבד — שום דבר לא נשלח החוצה.</p>
+    <div class="g-step"><span class="g-n num">1</span><div><b>פותחים את "בריאות"</b><span>לוחצים על תמונת הפרופיל למעלה</span></div></div>
+    <div class="g-step"><span class="g-n num">2</span><div><b>"ייצוא כל נתוני הבריאות"</b><span>בתחתית המסך. ההכנה לוקחת כדקה</span></div></div>
+    <div class="g-step"><span class="g-n num">3</span><div><b>"שמירה בקבצים"</b><span>ואז בוחרים כאן את הקובץ export.zip</span></div></div>
+    <div class="sub t-foot" style="margin-top:10px">ייובאו: כל השקילות, ואימונים מ-${DAYS} הימים האחרונים (ריצה, הליכה, כוח ועוד). שקילה או אימון שכבר קיימים לא יוחלפו.</div>
+    <div class="src-line" data-hmsg style="display:none"></div>
+    <label class="btn primary block xl" style="margin-top:14px" data-hpick>בחירת הקובץ<input type="file" accept=".zip,.xml,application/zip,text/xml" hidden data-hfile></label>
+    <button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {
+    onMount(sh, close) {
+      const msg = (x) => { const m = sh.querySelector('[data-hmsg]'); m.style.display = ''; m.textContent = x; };
+      sh.querySelector('[data-hfile]').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const pick = sh.querySelector('[data-hpick]');
+        pick.style.display = 'none';
+        msg(`קורא את הקובץ (${Math.round(f.size / 1048576) || 1} מ״ב)…`);
+        try {
+          const data = await readHealthExport(f, { since: Date.now() - DAYS * 864e5, onProgress: (n) => msg(`קורא… ${Math.round(n / 1048576)} מ״ב נסרקו`) });
+          const s = get();
+          const days = new Set(s.weights.map((w) => w.date)), have = new Set([...s.runs, ...s.sessions].map((x) => x.importId).filter(Boolean));
+          const newW = data.weights.filter((w) => !days.has(w.date)).length, newK = data.workouts.filter((w) => !have.has(w.id)).length;
+          msg(`נמצאו ${data.weights.length} שקילות (${newW} חדשות) ו-${data.workouts.length} אימונים (${newK} חדשים).`);
+          if (!newW && !newK) { pick.style.display = ''; toast('אין נתונים חדשים לייבא'); return; }
+          const go = document.createElement('button');
+          go.className = 'btn primary block xl'; go.style.marginTop = '14px';
+          go.textContent = `ייבא ${newW ? `${newW} שקילות` : ''}${newW && newK ? ' ו-' : ''}${newK ? `${newK} אימונים` : ''}`;
+          go.addEventListener('click', () => {
+            let added;
+            set((st) => { added = mergeHealth(st, data); return st; });
+            toast(`יובאו ${added.weights} שקילות ו-${added.runs + added.sessions} אימונים`, 3500);
+            close(); onDone?.();
+          });
+          pick.after(go);
+        } catch (err) { pick.style.display = ''; msg(`לא הצלחתי לקרוא את הקובץ: ${err.message}`); }
+      });
+    },
+  });
+}
+
 export function watchCard() {
   const p = get().profile;
   return html`<div class="card">
@@ -97,6 +141,8 @@ export function watchCard() {
     <label class="field" style="margin:12px 0 0"><span>דופק מקסימלי</span><input class="input num" data-maxhr type="number" inputmode="numeric" value="${maxHrFor(p)}"></label>
     <div class="sub t-cap" style="margin-top:6px">ברירת מחדל: 208 − 0.7×גיל. אם ידוע לך מהשעון — עדכן.</div>
     <div class="grid2" style="margin-top:12px"><button class="btn sm" data-w="import">${icon('download', 'width="16" height="16"')} ייבוא</button><button class="btn sm ghost" data-w="help">איך מחברים</button></div>
+    <div class="voice-dl"><div class="grow"><b>Apple Health</b><div class="sub">ייבוא שקילות ואימונים מאפליקציית "בריאות" באייפון</div></div>
+      <button class="btn sm" data-w="health">${icon('heart')} ייבוא</button></div>
   </div>`;
 }
 
@@ -107,6 +153,7 @@ export function bindWatchCard(root, rerender) {
     if (k === 'off') { disconnect(); rerender(); }
     if (k === 'import') pickAndImport(rerender);
     if (k === 'help') garminHelp();
+    if (k === 'health') healthSheet(rerender);
   });
   root.querySelector('[data-maxhr]')?.addEventListener('change', (e) => {
     const v = Number(e.target.value);

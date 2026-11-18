@@ -122,3 +122,54 @@ test('BLE heart rate + RSC parsing, zones', () => {
   const s = summarizeHR([{ t: 0, hr: 100 }, { t: 10000, hr: 180 }], null, 190);
   assert.equal(s.avg, 140); assert.equal(s.max, 180); assert.equal(s.zones[4], 10);
 });
+
+// ───── Apple Health ─────
+test('Apple Health export: weights and workouts are read from a zipped, chunked export', async () => {
+  const { readHealthExport, scanHealthXml, mergeHealth, healthDate } = await import('../js/devices/health.js');
+  const zlib = await import('node:zlib');
+  assert.equal(healthDate('2026-11-18 07:30:00 +0200').toISOString(), '2026-11-18T05:30:00.000Z');
+  const filler = Array.from({ length: 4000 }, (_, i) => ` <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" unit="count" startDate="2026-10-01 10:${String(i % 60).padStart(2, '0')}:00 +0200" value="${i}"/>`).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<HealthData locale="he_IL">\n${filler}
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Scale" unit="kg" creationDate="2026-11-01 07:00:00 +0200" startDate="2026-11-01 07:00:00 +0200" endDate="2026-11-01 07:00:00 +0200" value="79.2"/>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Scale" unit="kg" startDate="2026-11-01 21:00:00 +0200" endDate="2026-11-01 21:00:00 +0200" value="79.9">
+  <MetadataEntry key="HKWasUserEntered" value="1"/>
+ </Record>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Scale" unit="lb" startDate="2026-11-08 07:00:00 +0200" endDate="2026-11-08 07:00:00 +0200" value="172"/>
+${filler}
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="31.5" durationUnit="min" totalDistance="5.2" totalDistanceUnit="km" totalEnergyBurned="410" sourceName="Watch" startDate="2026-11-10 06:30:00 +0200" endDate="2026-11-10 07:01:30 +0200"/>
+ <Workout workoutActivityType="HKWorkoutActivityTypeTraditionalStrengthTraining" duration="52" durationUnit="min" sourceName="Watch" startDate="2026-11-12 18:00:00 +0200" endDate="2026-11-12 18:52:00 +0200">
+  <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2026-11-12 18:00:00 +0200" endDate="2026-11-12 18:52:00 +0200" sum="388" unit="kcal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierHeartRate" average="128.4" minimum="88" maximum="171" unit="count/min"/>
+ </Workout>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="20" durationUnit="min" startDate="2024-01-01 06:30:00 +0200" endDate="2024-01-01 06:50:00 +0200">
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" sum="2.0" unit="mi"/>
+ </Workout>
+</HealthData>`;
+  // בונים ZIP אמיתי (deflate) עם שם קובץ בעברית, כמו ייצוא מטלפון בעברית, ועוד קובץ CDA שצריך להתעלם ממנו
+  const entry = (name, text) => { const nm = Buffer.from(name), raw = Buffer.from(text), comp = zlib.deflateRawSync(raw);
+    const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(8, 8); lh.writeUInt32LE(comp.length, 18); lh.writeUInt32LE(raw.length, 22); lh.writeUInt16LE(nm.length, 26);
+    return { nm, comp, raw, local: Buffer.concat([lh, nm, comp]) }; };
+  const es = [entry('apple_health_export/export_cda.xml', '<ClinicalDocument>' + 'x'.repeat(50) + '</ClinicalDocument>'), entry('apple_health_export/ייצוא.xml', xml)];
+  let off = 0; const cds = [];
+  for (const e of es) { const cd = Buffer.alloc(46); cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(8, 10); cd.writeUInt32LE(e.comp.length, 20); cd.writeUInt32LE(e.raw.length, 24); cd.writeUInt16LE(e.nm.length, 28); cd.writeUInt32LE(off, 42); cds.push(Buffer.concat([cd, e.nm])); off += e.local.length; }
+  const cdBuf = Buffer.concat(cds), eocd = Buffer.alloc(22); eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(es.length, 8); eocd.writeUInt16LE(es.length, 10); eocd.writeUInt32LE(cdBuf.length, 12); eocd.writeUInt32LE(off, 16);
+  const file = new Blob([Buffer.concat([...es.map((e) => e.local), cdBuf, eocd])]);
+  const since = new Date('2026-08-01').getTime();
+  const out = await readHealthExport(file, { since });
+  assert.deepEqual(out.weights, [{ date: '2026-11-01', kg: 79.9 }, { date: '2026-11-08', kg: 78 }]); // האחרונה באותו יום; ליברות → ק״ג
+  assert.equal(out.workouts.length, 2);                                                               // האימון מ-2024 ישן מדי
+  assert.deepEqual({ sport: out.workouts[0].sport, km: out.workouts[0].distanceKm, sec: out.workouts[0].durationSec, kcal: out.workouts[0].calories }, { sport: 'running', km: 5.2, sec: 1890, kcal: 410 });
+  assert.deepEqual({ sport: out.workouts[1].sport, hr: out.workouts[1].avgHr, max: out.workouts[1].maxHr, kcal: out.workouts[1].calories }, { sport: 'strength', hr: 128, max: 171, kcal: 388 });
+  // אותה תוצאה כשהטקסט מגיע במקטעים קטנים שחותכים תגיות באמצע
+  const pieces = { async *[Symbol.asyncIterator]() { for (let i = 0; i < xml.length; i += 37) yield xml.slice(i, i + 37); } };
+  const tiny = await scanHealthXml(pieces, { since });
+  assert.deepEqual(tiny.weights, out.weights); assert.equal(tiny.workouts.length, 2);
+  // מיזוג: לא דורס שקילה קיימת, לא מכפיל בייבוא חוזר, ומיילים → ק״מ
+  const all = await scanHealthXml(pieces, {});
+  assert.equal(all.workouts[0].distanceKm, 3.22);
+  const state = { profile: { weightKg: 80 }, weights: [{ date: '2026-11-01', kg: 79.5 }], runs: [], sessions: [] };
+  assert.deepEqual(mergeHealth(state, out), { weights: 1, runs: 1, sessions: 1 });
+  assert.equal(state.weights.find((w) => w.date === '2026-11-01').kg, 79.5); assert.equal(state.profile.weightKg, 78);
+  assert.deepEqual(mergeHealth(state, out), { weights: 0, runs: 0, sessions: 0 });
+  assert.equal(state.runs[0].source, 'apple'); assert.equal(state.sessions[0].hr.avg, 128);
+});

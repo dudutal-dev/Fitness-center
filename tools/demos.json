@@ -206,5 +206,21 @@
  "child_pose": [
   "kneeling on a gym mat sitting back on the heels, torso folded forward, arms stretched forward on the mat, side view",
   "holds the child's pose stretch, breathing slowly and deeply, back relaxing"
+ ],
+ "air_squat": [
+  "standing upright on the gym floor with feet shoulder-width apart and both arms extended straight forward at shoulder height, no equipment, side view",
+  "performs one slow controlled bodyweight squat: descends until the thighs are parallel to the floor keeping the heels down and the arms forward, then stands back up"
+ ],
+ "bw_lunge": [
+  "standing upright on the gym floor in strict side profile view (seen from the side, facing right), feet together, hands on the hips, no equipment",
+  "performs one forward lunge seen from the side: takes a long step forward with one leg, lowers until the back knee nearly touches the floor with the front knee bent 90 degrees, then pushes back to standing with feet together"
+ ],
+ "glute_bridge": [
+  "lying on the back on a gym mat with knees bent, feet flat on the floor and arms resting on the floor at the sides, no equipment, side view",
+  "performs a glute bridge strength exercise: lifts the pelvis off the mat until shoulders, pelvis and knees form a straight line, pauses briefly, then lowers back down to the mat"
+ ],
+ "mountain_climber": [
+  "in a high plank position on the gym floor, arms straight, body in a straight line, no equipment, side view",
+  "performs mountain climbers at a steady pace: drives one knee toward the chest, returns it, then the other knee, and ends back in the high plank"
  ]
 }

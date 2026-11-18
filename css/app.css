@@ -340,7 +340,10 @@ a.more { text-decoration: none; }
   background: var(--sheet); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; padding: 10px 20px calc(24px + var(--safe-b));
   animation: up 0.35s cubic-bezier(.2,.8,.2,1);
 }
-.sheet .grab { width: 44px; height: 5px; border-radius: 9px; background: rgba(var(--fg-rgb),0.2); margin: 0 auto 14px; }
+.sheet { overscroll-behavior: contain; }
+/* הידית: אזור מגע גדול מהפס הנראה, כדי שקל לתפוס ולגרור למטה */
+.sheet .grab { width: 100%; height: 26px; margin: -10px 0 4px; display: grid; place-items: center; touch-action: none; }
+.sheet .grab::before { content: ''; width: 44px; height: 5px; border-radius: 9px; background: rgba(var(--fg-rgb),0.25); }
 @keyframes up { from { transform: translate(-50%, 100%); } }
 @keyframes fade { from { opacity: 0; } }
 

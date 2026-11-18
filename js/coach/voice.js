@@ -41,15 +41,91 @@ export function unlock() {
 }
 export const audioReady = () => !!ctx && ctx.state === 'running';
 
-function load(clip, coach = coachId()) {
+// טעינת קליפים: עד 4 במקביל (עשרות פענוחים בבת אחת נכשלים באייפון), עם ניסיון חוזר.
+// קליפ שנכשל לא נשמר כ"ריק" — בפעם הבאה שצריך אותו הוא נטען שוב, כך שכשל רגעי ברשת לא משתיק אותו לכל האימון.
+const MAX_PARALLEL = 4;
+let active = 0;
+const waiting = []; // { url, run }
+function pump() {
+  while (active < MAX_PARALLEL && waiting.length) {
+    const job = waiting.shift();
+    active++;
+    job.run().finally(() => { active--; pump(); });
+  }
+}
+async function fetchDecode(url) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(String(r.status));
+      const ab = await r.arrayBuffer();
+      return await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
+    } catch { await new Promise((r) => setTimeout(r, 350 * (attempt + 1))); }
+  }
+  return null;
+}
+// urgent: המאמן צריך את הקליפ עכשיו — קופץ לראש התור
+function load(clip, coach = coachId(), urgent = false) {
   const url = clipUrl(clip, coach);
   if (!ctx) return Promise.resolve(null);
   if (!buffers.has(url)) {
-    buffers.set(url, fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null))
-      .then((ab) => (ab ? new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)) : null))
-      .catch(() => null));
+    buffers.set(url, new Promise((resolve) => {
+      const job = { url, run: () => fetchDecode(url).then((buf) => { if (!buf) buffers.delete(url); resolve(buf); }) };
+      if (urgent) waiting.unshift(job); else waiting.push(job);
+      pump();
+    }));
+  } else if (urgent) {
+    const i = waiting.findIndex((j) => j.url === url);
+    if (i > 0) waiting.unshift(waiting.splice(i, 1)[0]);
   }
   return buffers.get(url);
+}
+
+// ───── קובצי הקול במכשיר ─────
+// כל קובצי הקול של המאמן הנבחר נשמרים במכשיר (דרך ה-Service Worker), כך שהמאמן מדבר גם בלי קליטה בחדר הכושר.
+// ההורדה רצה לבד ברקע אחרי פתיחת האפליקציה, ואפשר להפעיל אותה ידנית מההגדרות ← קול והנחיות.
+function voiceFiles() {
+  const p = get().profile || {};
+  const coach = coachId(), slug = nameEntry(p)?.slug;
+  return Object.keys(VOICE_TIMING).filter((k) => k.startsWith(`${coach}/`) && (!k.includes('/names/') || (slug && k.includes(`/names/${slug}/`))))
+    .map((k) => `assets/voice/${k}.mp3`);
+}
+// כמה מהקבצים כבר שמורים במכשיר
+export async function voiceCacheStatus() {
+  const files = voiceFiles();
+  let have = 0;
+  try {
+    const cache = await caches.open('lohem-media');
+    const hits = await Promise.all(files.map((f) => cache.match(new URL(f, location.href).href)));
+    have = hits.filter(Boolean).length;
+  } catch { /* אין מטמון בדפדפן הזה */ }
+  return { have, total: files.length };
+}
+let downloading = null;
+export function downloadVoice(onProgress) {
+  if (downloading) return downloading;
+  const files = voiceFiles();
+  downloading = (async () => {
+    let done = 0, failed = 0;
+    for (const f of files) {
+      try { const r = await fetch(f); if (!r.ok) failed++; else await r.arrayBuffer(); } catch { failed++; }
+      done++;
+      onProgress?.(done, files.length);
+      if (failed > 5 && failed === done) break; // אין רשת — לא ממשיכים לנסות
+    }
+    return { total: files.length, failed: failed + (files.length - done) };
+  })().finally(() => { downloading = null; });
+  return downloading;
+}
+let warmed = '';
+export async function warmVoiceCache() {
+  const p = get().profile;
+  if (!p || !navigator.onLine || get().settings?.voice === false) return;
+  const key = coachId() + (nameEntry(p)?.slug || '');
+  if (warmed === key) return;
+  warmed = key;
+  const st = await voiceCacheStatus();
+  if (st.have < st.total) await downloadVoice();
 }
 
 // בחירת הקובץ: גרסה עם שם המתאמן (אם הוקלטה), גרסת נקבה למתאמנת, או הרגילה
@@ -115,7 +191,7 @@ async function next() {
   const done = () => { if (current?.entry === e) { current = null; next(); } };
   if (!e.clip) return speakTTS(e.text, done);
   if (ctx) {
-    const loading = load(e.clip);
+    const loading = load(e.clip, undefined, true);
     const buf = await (e.critical ? Promise.race([loading, new Promise((r) => setTimeout(() => r(null), 350))]) : loading);
     if (current?.entry !== e) return; // נקטע בזמן הטעינה
     if (buf) {

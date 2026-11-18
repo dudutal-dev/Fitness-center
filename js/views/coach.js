@@ -4,7 +4,7 @@ import { get, set, regenerateWeek, exportData, importData, resetAll } from '../s
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
-import { say, stop, unlock } from '../coach/voice.js';
+import { say, stop, unlock, voiceCacheStatus, downloadVoice } from '../coach/voice.js';
 import { parse3k } from './onboarding.js';
 import { fmtTime } from '../ui/dom.js';
 import { watchCard, bindWatchCard } from './garmin.js';
@@ -42,6 +42,8 @@ export function renderCoach(root) {
       <div style="margin-top:12px"><div class="row between"><b>עוצמה</b><span class="num sub">${Math.round(st.volume * 100)}%</span></div>
         <input type="range" min="0.2" max="1" step="0.05" value="${st.volume}" data-vol></div>
       <button class="btn sm teal block" style="margin-top:12px" data-test>${icon('play', 'width="16" height="16"')} בדיקת קול</button>
+      <div class="voice-dl" data-voice-dl><div class="grow"><b>קובצי הקול במכשיר</b><div class="sub" data-vdl-status>בודק…</div><div class="bar" style="margin-top:6px"><i data-vdl-bar style="width:0%"></i></div></div>
+        <button class="btn sm" data-vdl>${icon('download')} הורד</button></div>
     </div>`)}
     ${sec('watch', 'Garmin ושעון חכם', 'דופק חי וייבוא פעילויות', watchCard())}
     ${sec('profile', 'פרופיל ויעדים', `${esc(GOALS[p.goal].name)} · ${p.days} אימונים בשבוע`, html`<div class="card">
@@ -72,6 +74,26 @@ export function renderCoach(root) {
     <p class="sub" style="text-align:center;font-size:12px;margin-top:18px">LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
   root.querySelectorAll('details[data-sec]').forEach((d) => d.addEventListener('toggle', () => { d.open ? openSec.add(d.dataset.sec) : openSec.delete(d.dataset.sec); }));
+  // מצב קובצי הקול במכשיר + הורדה ידנית
+  const vdl = (have, total, busy) => {
+    const st = root.querySelector('[data-vdl-status]'); if (!st) return;
+    const full = have >= total && total > 0;
+    st.textContent = busy ? `מוריד… ${have} מתוך ${total}` : full ? `כל ${total} הקבצים שמורים במכשיר — הקול עובד גם בלי קליטה` : `${have} מתוך ${total} שמורים`;
+    root.querySelector('[data-vdl-bar]').style.width = `${total ? Math.round((have / total) * 100) : 0}%`;
+    const btn = root.querySelector('[data-vdl]'); btn.disabled = busy; btn.style.display = full && !busy ? 'none' : '';
+  };
+  // חסרים קבצים (למשל אחרי החלפת מאמן)? מורידים מיד ומציגים התקדמות
+  voiceCacheStatus().then(async (s2) => {
+    vdl(s2.have, s2.total, false);
+    if (s2.have < s2.total && navigator.onLine) { await downloadVoice((d, n) => vdl(d, n, true)); const s3 = await voiceCacheStatus(); vdl(s3.have, s3.total, false); }
+  });
+  on(root, 'click', '[data-vdl]', async () => {
+    if (!navigator.onLine) { toast('אין חיבור לרשת כרגע'); return; }
+    const r = await downloadVoice((d, n) => vdl(d, n, true));
+    const s2 = await voiceCacheStatus();
+    vdl(s2.have, s2.total, false);
+    toast(r.failed ? `${r.failed} קבצים לא ירדו — לנסות שוב עם חיבור טוב` : 'קובצי הקול נשמרו במכשיר');
+  });
   bindWatchCard(root, () => renderCoach(root));
   bindReminders(root, () => renderCoach(root));
   if (sessionStorage.getItem('scrollTo') === 'reminders') { sessionStorage.removeItem('scrollTo'); setTimeout(() => root.querySelector('#reminders')?.scrollIntoView({ behavior: 'smooth' }), 100); }

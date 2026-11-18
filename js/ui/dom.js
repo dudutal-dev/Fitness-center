@@ -46,8 +46,49 @@ export function sheet(markup, { onMount, onClose } = {}) {
   back.addEventListener('click', close);
   on(sh, 'click', '[data-close]', close);
   document.body.append(back, sh);
+  swipeToClose(sh, back, close);
   onMount?.(sh, close);
   return close;
+}
+
+// גרירה מלמעלה למטה סוגרת את החלונית. מתחילה רק כשהתוכן גלול לראש (או מהידית), כדי לא להתנגש בגלילה רגילה.
+function swipeToClose(sh, back, close) {
+  let y0 = 0, x0 = 0, t0 = 0, dy = 0, drag = false, armed = false;
+  const set = (v) => { sh.style.transform = `translate(-50%, ${v}px)`; back.style.opacity = String(Math.max(0.25, 1 - v / 500)); };
+  sh.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.target;
+    const onGrab = !!t.closest?.('.grab');
+    // לא מתחילים גרירה מתוך אזור שנגלל בעצמו, או מפקד שגוררים אותו (מחוון, שדה טקסט)
+    const inner = t.closest?.('.food-res, .chips.scroll, input, textarea, select');
+    armed = onGrab || (sh.scrollTop <= 0 && !inner);
+    drag = false; dy = 0;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; t0 = Date.now();
+  }, { passive: true });
+  sh.addEventListener('touchmove', (e) => {
+    if (!armed) return;
+    const cy = e.touches[0].clientY - y0, cx = e.touches[0].clientX - x0;
+    if (!drag) {
+      if (cy < 8 || Math.abs(cx) > cy) { if (cy < -4 || Math.abs(cx) > 12) armed = false; return; }
+      drag = true;
+      sh.style.animation = 'none'; sh.style.transition = 'none'; back.style.transition = 'none';
+    }
+    dy = Math.max(0, cy);
+    set(dy);
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  const end = () => {
+    if (!drag) return;
+    drag = false; armed = false;
+    const fast = dy / Math.max(1, Date.now() - t0) > 0.55; // פיקסלים למילישנייה — החלקה מהירה
+    sh.style.transition = 'transform 0.22s cubic-bezier(.2,.8,.2,1)'; back.style.transition = 'opacity 0.22s';
+    if (dy > 110 || (fast && dy > 40)) {
+      sh.style.transform = 'translate(-50%, 105%)'; back.style.opacity = '0';
+      setTimeout(close, 200);
+    } else { sh.style.transform = 'translate(-50%, 0)'; back.style.opacity = ''; }
+  };
+  sh.addEventListener('touchend', end);
+  sh.addEventListener('touchcancel', end);
 }
 
 export function confetti(n = 90) {

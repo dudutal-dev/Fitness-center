@@ -567,12 +567,12 @@ export function startWorkout(workout, { readiness = null } = {}) {
 
 export function infoSheet(exId, coach) {
   const e = EX[exId];
-  sheet(html`<video src="${demoVideo(coach, exId)}" poster="${demoPoster(coach, exId)}" muted playsinline loop autoplay style="width:100%;max-height:46vh;object-fit:cover;border-radius:18px"></video>
+  sheet(html`<video src="${demoVideo(coach, exId)}" poster="${demoPoster(coach, exId)}" muted playsinline loop autoplay style="width:100%;height:46vh;object-fit:contain;background:#0b0c12;border-radius:18px"></video>
     <div class="h1" style="font-size:24px;margin-top:14px">${esc(e.name)}</div>
     <div class="chips" style="margin:8px 0">${e.muscles.map((m) => `<span class="tag lime">${MUSCLES[m]}</span>`)}<span class="tag">${esc(e.equip)}</span></div>
     <div class="h2" style="margin-top:14px">ביצוע נכון</div>
     ${e.cues.map((c, i) => `<div class="row" style="padding:6px 0;align-items:flex-start"><span class="tag teal num">${i + 1}</span><span>${esc(c)}</span></div>`)}
-    <div class="sub" style="margin-top:10px">⏱️ טמפו: ${e.tempo[0]} שנ׳ ירידה · ${e.tempo[1] ? `${e.tempo[1]} שנ׳ החזקה · ` : ''}${e.tempo[2]} שנ׳ עלייה</div>
+    <div class="sub" style="margin-top:10px">${icon('clock')} טמפו: ${e.tempo[0]} שנ׳ ירידה · ${e.tempo[1] ? `${e.tempo[1]} שנ׳ החזקה · ` : ''}${e.tempo[2]} שנ׳ עלייה</div>
     <button class="btn block" style="margin-top:16px" data-close>סגור</button>`);
 }
 

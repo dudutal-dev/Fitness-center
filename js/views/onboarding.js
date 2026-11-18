@@ -3,6 +3,7 @@ import { html, esc, on, $, toast, icon } from '../ui/dom.js';
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, estimateLevel, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
+import { ANCHOR_LIFTS } from '../engine/progression.js';
 import { DISLIKE_TAGS } from '../data/foods.js';
 import { set, createPlan, today } from '../store.js';
 import { say, unlock, stop } from '../coach/voice.js';
@@ -65,7 +66,12 @@ export function renderOnboarding(root, done) {
         <label class="field"><span>שכיבות סמיכה ברצף (מקס׳)</span><input class="input num" name="pushups" type="number" inputmode="numeric" value="${d.pushups}"></label>
         <label class="field"><span>עליות מתח ברצף (מקס׳)</span><input class="input num" name="pullups" type="number" inputmode="numeric" value="${d.pullups}"></label>
       </div>
-      <label class="field"><span>זמן ריצת 3 ק״מ (דק:שנ׳) — אפשר להשאיר ריק</span><input class="input num" name="run3kStr" placeholder="למשל 13:30" value="${esc(d.run3kStr)}" inputmode="numeric"></label>`,
+      <label class="field"><span>זמן ריצת 3 ק״מ (דק:שנ׳) — אפשר להשאיר ריק</span><input class="input num" name="run3kStr" placeholder="למשל 13:30" value="${esc(d.run3kStr)}" inputmode="numeric"></label>
+      <details class="card acc set-sec lifts" ${d.liftsOpen || Object.keys(ANCHOR_LIFTS).some((k) => d[`lift_${k}_w`]) ? 'open' : ''}><summary><span class="grow"><b>${d.sex === 'f' ? 'יודעת כמה את מרימה' : 'יודע כמה אתה מרים'}?</b><span class="sub">לא חובה — כך האימון הראשון יתחיל במשקל הנכון</span></span></summary>
+        <div class="acc-body"><div class="sub t-foot" style="margin-bottom:8px">סט טוב אחד מהתקופה האחרונה: משקל × חזרות. אפשר למלא רק חלק.</div>
+        ${Object.entries(ANCHOR_LIFTS).map(([k, name]) => `<div class="lift-row"><span>${name}</span>
+          <input class="input num" name="lift_${k}_w" type="number" inputmode="decimal" placeholder="ק״ג" value="${d[`lift_${k}_w`] || ''}" aria-label="${name} — משקל בק״ג">
+          <i>×</i><input class="input num" name="lift_${k}_r" type="number" inputmode="numeric" placeholder="חזרות" value="${d[`lift_${k}_r`] || ''}" aria-label="${name} — חזרות"></div>`).join('')}</div></details>`,
     // 5 — לו"ז
     () => html`<div class="eyebrow">שלב 5 · זמנים</div><div class="q">כמה ${d.sex === 'f' ? 'את יכולה' : 'אתה יכול'} להתאמן?</div>
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${d.days == v ? 'on' : ''}">${v}</button>`)}</div></label>
@@ -103,6 +109,8 @@ export function renderOnboarding(root, done) {
         ${step > 0 ? '<button class="btn" data-act="back">חזרה</button>' : ''}
         <button class="btn primary block xl" data-act="next">${step === 0 ? 'בוא נתחיל' : step === STEPS - 2 ? 'בנה לי תוכנית' : 'המשך'}</button></div>`}
     </div>`;
+    // הסעיף נשאר פתוח גם כשהמסך מצויר מחדש (למשל אחרי בחירת ניסיון)
+    root.querySelector('details.lifts')?.addEventListener('toggle', (e) => { d.liftsOpen = e.target.open; });
     if (isBuild) runBuild();
   }
 
@@ -141,6 +149,7 @@ export function renderOnboarding(root, done) {
         coach: d.coach, name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg, targetWeight: d.targetWeight,
         goal: d.goal, level, days: d.days, sessionMin: d.sessionMin, run3k, runLevel: runLevelFrom3k(run3k), injuries: d.injuries,
         dislikes: d.dislikes, dislikedFoods: [], createdAt: new Date().toISOString(),
+        lifts: liftsFrom((k, f) => d[`lift_${k}_${f}`]),
       };
       set((s) => {
         s.profile = profile;
@@ -157,6 +166,16 @@ export function renderOnboarding(root, done) {
 }
 
 function toggle(arr, v) { const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); }
+
+// אוסף את ההרמות הידועות מהטופס: { bench_press: { w, reps }, ... } — רק שורות שמולאו במלואן ובטווח סביר
+export function liftsFrom(get) {
+  const out = {};
+  for (const k of Object.keys(ANCHOR_LIFTS)) {
+    const w = Number(get(k, 'w')), reps = Math.round(Number(get(k, 'r')));
+    if (w > 0 && w <= 400 && reps >= 1 && reps <= 30) out[k] = { w, reps };
+  }
+  return out;
+}
 
 export function parse3k(str) {
   if (!str) return null;

@@ -313,3 +313,28 @@ test('weekSummary compares the last 7 days with the 7 before', async () => {
   const empty = weekSummary({ profile: P, sessions: [], runs: [], daily: {}, weights: [] }, now);
   assert.equal(empty.cur.workouts, 0); assert.equal(empty.cur.kcal, null); assert.equal(empty.weight, null);
 });
+
+test('known lifts set the opening weight; exercises with history ignore them', async () => {
+  const { suggest, strengthFactor, weightFor } = await import('../js/engine/progression.js');
+  const base = { ...P, weightKg: 75, level: 2 };
+  const item = { reps: [8, 10], sets: 4 };
+  const plain = suggest('bench_press', item, null, base);
+  // דיווח על התרגיל עצמו: 80 ק״ג × 8 → משקל ל-10 חזרות עם 2 ברזרבה
+  const strong = suggest('bench_press', item, null, { ...base, lifts: { bench_press: { w: 80, reps: 8 } } });
+  const expected = weightFor(e1rm(80, 8), 10, 2);
+  assert.ok(Math.abs(strong.w - expected) <= 2.5, `${strong.w} vs ${expected}`);
+  assert.ok(strong.w > plain.w && strong.w < 80);
+  // תרגיל קרוב (לחיצה משופעת) מקבל את אותו יחס כוח; תרגיל רגליים לא מושפע מלחיצת חזה
+  const inc0 = suggest('incline_db_press', item, null, base), inc1 = suggest('incline_db_press', item, null, { ...base, lifts: { bench_press: { w: 80, reps: 8 } } });
+  assert.ok(inc1.w > inc0.w);
+  assert.equal(suggest('back_squat', item, null, { ...base, lifts: { bench_press: { w: 80, reps: 8 } } }).w, suggest('back_squat', item, null, base).w);
+  // מתאמן חלש מההנחה → משקל נמוך יותר; יחס קיצוני נתחם
+  assert.ok(suggest('back_squat', item, null, { ...base, lifts: { back_squat: { w: 30, reps: 10 } } }).w < suggest('back_squat', item, null, base).w);
+  assert.equal(strengthFactor(EX.leg_press, { ...base, lifts: { back_squat: { w: 400, reps: 10 } } }).factor, 2.2);
+  assert.equal(strengthFactor(EX.leg_press, base), null);
+  // ערכים לא סבירים מתעלמים מהם
+  assert.equal(suggest('bench_press', item, null, { ...base, lifts: { bench_press: { w: 0, reps: 8 } } }).w, plain.w);
+  // יש היסטוריה → ההרמה שדווחה לא משנה
+  const hist = [{ date: '2026-11-01', target: [8, 10], sets: [{ w: 50, reps: 10, rpe: 8, done: true }, { w: 50, reps: 9, rpe: 8, done: true }] }];
+  assert.equal(suggest('bench_press', item, hist, { ...base, lifts: { bench_press: { w: 120, reps: 5 } } }).w, suggest('bench_press', item, hist, base).w);
+});

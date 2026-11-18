@@ -61,7 +61,7 @@ const T = {
     S('main', 'back_squat', 'leg_press'), S('main', 'rdl', 'deadlift'), S('second', 'bulgarian_split', 'db_lunge'), S('acc', 'leg_curl'),
     S('acc', 'leg_ext'), S('acc', 'calf_raise'), S('core', 'hanging_leg_raise', 'plank')] },
   field: { name: 'אימון שטח (ללא ציוד)', focus: 'משקל גוף — בכל מקום', slots: [
-    S('main', 'pushup'), S('main', 'bw_squat'), S('second', 'burpee'), S('acc', 'high_knees'), S('core', 'plank')] },
+    S('main', 'pushup'), S('main', 'air_squat'), S('second', 'bw_lunge'), S('second', 'burpee'), S('acc', 'glute_bridge'), S('acc', 'mountain_climber'), S('core', 'plank')] },
 };
 
 const SPLITS = {
@@ -74,7 +74,7 @@ const SPLITS = {
 // אימון בלי ציוד: רק תרגילים שאפשר לעשות בכל מקום (בלי מוט מתח, משקולות או מכונות)
 const NO_EQUIP = new Set(['משקל גוף', 'מזרן', 'עמידה']);
 export const isBodyweight = (id) => NO_EQUIP.has(EX[id]?.equip);
-const FIELD_FINISHER = { name: 'פיניש שטח: קפיצות פיסוק + ברפי', items: [['jumping_jacks', 30], ['burpee', 8]], rounds: 3 };
+const FIELD_FINISHER = { name: 'פיניש שטח: קפיצות פיסוק + ברכיים גבוהות', items: [['jumping_jacks', 30], ['high_knees', 30]], rounds: 3 };
 
 const FINISHERS = [
   { name: 'פיניש קרבי: סבב סווינג + ברפי', items: [['kb_swing', 15], ['burpee', 10]], rounds: 3 },

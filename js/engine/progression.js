@@ -13,6 +13,31 @@ export function roundLoad(w, ex) {
   return /מוט/.test(ex.equip) && !/משקולת/.test(ex.equip) ? Math.max(20, r) : r;
 }
 
+// ───── הרמות ידועות (מההרשמה / ההגדרות) ─────
+// profile.lifts: { bench_press | back_squat | deadlift: { w, reps } } — מה שהמתאמן יודע שהוא מרים.
+// משמש רק למשקל הפתיחה של תרגיל שעוד אין לו היסטוריה; אחרי האימון הראשון ההיסטוריה קובעת.
+export const ANCHOR_LIFTS = { bench_press: 'לחיצת חזה', back_squat: 'סקוואט', deadlift: 'דדליפט' };
+const ANCHOR_FOR = { push_h: 'bench_press', push_v: 'bench_press', pull_h: 'bench_press', pull_v: 'bench_press', squat: 'back_squat', lunge: 'back_squat', hinge: 'deadlift' };
+const validLift = (l) => l && l.w > 0 && l.w <= 400 && l.reps >= 1 && l.reps <= 30;
+
+// איזו הרמה ידועה מייצגת את התרגיל: לפי תבנית התנועה, ואם אין — לפי קבוצת השרירים
+function anchorFor(ex, lifts) {
+  const upper = ['chest', 'shoulders', 'arms', 'back'].includes(ex.group);
+  const order = [ANCHOR_FOR[ex.pattern], ex.group === 'legs' ? 'back_squat' : upper ? 'bench_press' : null,
+    ex.group === 'legs' ? 'deadlift' : null].filter(Boolean);
+  return order.find((k) => validLift(lifts?.[k])) || null;
+}
+
+// יחס בין הכוח שדווח לבין ברירת המחדל של הרמה (למשל 1.3 = חזק ב-30% מההנחה), תחום ל-0.5–2.2
+export function strengthFactor(ex, profile) {
+  const key = anchorFor(ex, profile.lifts);
+  if (!key) return null;
+  const l = profile.lifts[key], bw = profile.weightKg || 70;
+  const tenRep = e1rm(l.w, l.reps) / (1 + 10 / 30);                    // המשקל המקביל ל-10 חזרות
+  const assumed = bw * (EX[key].load?.[(profile.level || 1) - 1] ?? 0.5);
+  return { key, factor: Math.min(2.2, Math.max(0.5, tenRep / assumed)) };
+}
+
 // השיא הטוב ביותר מתוך סשן
 export function bestSet(sets) {
   let best = null;
@@ -47,9 +72,17 @@ export function suggest(exId, item, history, profile) {
   // תרגיל משקל
   if (!last) {
     const bw = profile.weightKg || 70;
-    const base10 = bw * (ex.load?.[profile.level - 1] ?? 0.3);
+    // התרגיל עצמו דווח בהרשמה → מחשבים ישירות מה-1RM המשוער שלו
+    const own = profile.lifts?.[exId];
+    if (validLift(own)) {
+      return { reps: hi, w: roundLoad(weightFor(e1rm(own.w, own.reps), hi, 2) * adj, ex), why: `לפי מה שדיווחת: ${own.w} ק״ג × ${own.reps}`, first: true };
+    }
+    // תרגיל אחר → ברירת המחדל של הרמה, מוכפלת ביחס הכוח שעולה מההרמה הקרובה שדווחה
+    const sf = strengthFactor(ex, profile);
+    const base10 = bw * (ex.load?.[profile.level - 1] ?? 0.3) * (sf?.factor ?? 1);
     const est1rm = e1rm(base10, 10);
-    return { reps: hi, w: roundLoad(weightFor(est1rm, hi, 3) * adj, ex), why: 'משקל פתיחה שמרני — נכייל אחרי הסט הראשון', first: true };
+    return { reps: hi, w: roundLoad(weightFor(est1rm, hi, 3) * adj, ex), first: true,
+      why: sf ? `משקל פתיחה לפי ה${ANCHOR_LIFTS[sf.key]} שדיווחת — נכייל אחרי הסט הראשון` : 'משקל פתיחה שמרני — נכייל אחרי הסט הראשון' };
   }
   const done = last.sets.filter((s) => s.done);
   const lastW = Math.max(...done.map((s) => s.w || 0), 0);

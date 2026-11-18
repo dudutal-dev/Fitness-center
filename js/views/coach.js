@@ -5,7 +5,8 @@ import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
 import { say, stop, unlock, voiceCacheStatus, downloadVoice } from '../coach/voice.js';
-import { parse3k } from './onboarding.js';
+import { parse3k, liftsFrom } from './onboarding.js';
+import { ANCHOR_LIFTS } from '../engine/progression.js';
 import { fmtTime } from '../ui/dom.js';
 import { watchCard, bindWatchCard } from './garmin.js';
 import { nameEntry } from '../data/names.js';
@@ -62,6 +63,11 @@ export function renderCoach(root) {
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${p.days === v ? 'on' : ''}">${v}</button>`).join('')}</div></label>
       <label class="field"><span>משך אימון</span><div class="seg" data-seg="sessionMin">${[45, 60, 75, 90].map((v) => `<button data-v="${v}" class="${p.sessionMin === v ? 'on' : ''}">${v}</button>`).join('')}</div></label>
       <label class="field"><span>פציעות / רגישויות</span><div class="chips">${Object.entries(INJURIES).map(([k, x]) => `<button class="chip no ${p.injuries.includes(k) ? 'on' : ''}" data-inj="${k}">${x.name}</button>`).join('')}</div></label>
+      <div class="field"><span>כמה ${p.sex === 'f' ? 'את מרימה' : 'אתה מרים'} (משקל × חזרות) — לא חובה</span>
+        ${Object.entries(ANCHOR_LIFTS).map(([k, name]) => `<div class="lift-row"><span>${name}</span>
+          <input class="input num" name="lift_${k}_w" type="number" inputmode="decimal" placeholder="ק״ג" value="${p.lifts?.[k]?.w ?? ''}" aria-label="${name} — משקל בק״ג">
+          <i>×</i><input class="input num" name="lift_${k}_r" type="number" inputmode="numeric" placeholder="חזרות" value="${p.lifts?.[k]?.reps ?? ''}" aria-label="${name} — חזרות"></div>`).join('')}
+        <div class="sub" style="font-size:12px;margin-top:6px">קובע את משקל הפתיחה של תרגילים שעוד לא ביצעת. תרגיל שכבר יש לו היסטוריה ממשיך לפיה.</div></div>
       <button class="btn primary block" data-save>שמור ועדכן תוכנית</button>
       <div class="sub" style="font-size:12px;margin-top:8px">רמה נוכחית: ${p.level} (${LEVEL_NAMES[p.level]}) · שינוי מטרה/ימים בונה מחדש את השבוע הנוכחי.</div>
     </div>`)}
@@ -123,7 +129,8 @@ export function renderCoach(root) {
     if (val('run3k') && !r3) return toast('פורמט זמן: 13:30');
     set((s2) => {
       Object.assign(s2.profile, draft, { name: val('name') || p.name, age: Number(val('age')) || p.age, heightCm: Number(val('heightCm')) || p.heightCm,
-        targetWeight: Number(val('targetWeight')) || p.targetWeight, run3k: r3, runLevel: runLevelFrom3k(r3) });
+        targetWeight: Number(val('targetWeight')) || p.targetWeight, run3k: r3, runLevel: runLevelFrom3k(r3),
+        lifts: liftsFrom((k, f) => val(`lift_${k}_${f}`)) });
       s2.plan.completedDays = s2.plan.completedDays.filter((d) => d <= s2.profile.days);
       return regenerateWeek(s2);
     });

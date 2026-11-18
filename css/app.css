@@ -353,6 +353,8 @@ a.more { text-decoration: none; }
 @keyframes fade { from { opacity: 0; } }
 
 .toast { position: fixed; bottom: calc(92px + var(--safe-b)); left: 50%; transform: translateX(-50%); z-index: 200; background: var(--sheet); border: 1px solid var(--line2); color: var(--text); padding: 12px 18px; border-radius: 16px; font-weight: 700; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: toastIn 0.4s cubic-bezier(.2,.8,.2,1); max-width: 92vw; }
+/* באימון חי ההודעה עולה למעלה — למטה היא מכסה את כפתור "התחל סט" */
+body:has(.live) .toast { bottom: auto; top: calc(62px + var(--safe-t)); }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px); } }
 
 /* ───── מצב אימון חי (מסך מלא) ───── */
@@ -649,6 +651,14 @@ bdi { unicode-bidi: isolate; }
 .acc > summary::after { content: ''; margin-inline-start: auto; width: 9px; height: 9px; border-inline-start: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(-45deg); transition: transform 0.2s; }
 .acc[open] > summary::after { transform: rotate(135deg); }
 .acc > .acc-body { padding: 0 16px 12px; }
+/* הרמות ידועות: שם · משקל × חזרות */
+.lift-row { display: grid; grid-template-columns: 1fr 86px 12px 86px; gap: 6px; align-items: center; margin-top: 8px; }
+.lift-row > span { font-weight: 700; font-size: 14.5px; min-width: 0; }
+.lift-row .input { height: 46px; padding: 0 8px; text-align: center; font-size: 16px; }
+.lift-row i { font-style: normal; color: var(--mute); text-align: center; }
+.lifts { margin-top: 4px; }
+.lifts > summary { padding-block: 10px; }
+.lifts > summary .grow .sub { white-space: normal; }
 /* סריקת ברקוד */
 .scan-box { position: relative; margin-top: 12px; height: 200px; border-radius: 18px; overflow: hidden; background: #0b0c12; }
 .scan-box video { width: 100%; height: 100%; object-fit: cover; }

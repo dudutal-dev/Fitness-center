@@ -137,6 +137,19 @@ export const EXERCISES = [
   E({ id: 'burpee', name: 'ברפי', group: 'conditioning', pattern: 'cardio', type: 'bw', compound: true,
     muscles: ['chest', 'quads', 'shoulders', 'abs'], equip: 'משקל גוף', level: 1, tempo: [1, 0, 1],
     cues: ['ידיים לרצפה, קפיצה לפלאנק', 'שכיבת סמיכה', 'קפיצה למעלה עם ידיים'] }),
+  // ───── משקל גוף — בלי ציוד, בכל מקום ─────
+  E({ id: 'air_squat', name: 'סקוואט משקל גוף', group: 'legs', pattern: 'squat', type: 'bw', compound: true,
+    muscles: ['quads', 'glutes', 'hamstrings'], equip: 'משקל גוף', level: 1, tempo: [2, 0, 1],
+    cues: ['כפות רגליים ברוחב כתפיים, ידיים קדימה', 'יורדים עד שהירך מקבילה לרצפה', 'עקבים על הרצפה, חזה למעלה'] }),
+  E({ id: 'bw_lunge', name: 'מכרעים', group: 'legs', pattern: 'lunge', type: 'bw', compound: true, unilateral: true,
+    muscles: ['quads', 'glutes', 'hamstrings'], equip: 'משקל גוף', level: 1, tempo: [2, 0, 1],
+    cues: ['צעד ארוך קדימה, גו זקוף', 'ברך אחורית כמעט נוגעת ברצפה', 'דוחפים מהעקב הקדמי חזרה, ומחליפים רגל'] }),
+  E({ id: 'glute_bridge', name: 'גשר ישבן', group: 'legs', pattern: 'hinge', type: 'bw',
+    muscles: ['glutes', 'hamstrings', 'lower_back'], equip: 'מזרן', level: 1, tempo: [2, 1, 1],
+    cues: ['שכיבה על הגב, ברכיים כפופות, כפות רגליים על הרצפה', 'דוחפים מהעקבים עד קו ישר מהכתפיים לברכיים', 'כיווץ ישבן למעלה, ויורדים לאט'] }),
+  E({ id: 'mountain_climber', name: 'מטפסי הרים', group: 'conditioning', pattern: 'cardio', type: 'bw', compound: true,
+    muscles: ['abs', 'shoulders', 'quads'], equip: 'משקל גוף', level: 1, tempo: [1, 0, 1],
+    cues: ['פלאנק גבוה, כתפיים מעל כפות הידיים', 'ברך לחזה ומחליפים רגל בקצב', 'אגן נמוך, בטן אסופה'] }),
   E({ id: 'farmer_carry', name: 'הליכת חקלאי', group: 'conditioning', pattern: 'carry', type: 'time', compound: true,
     muscles: ['forearms', 'traps', 'abs', 'glutes'], equip: 'משקולות כבדות', level: 1, load: [0.25, 0.3, 0.4, 0.5, 0.6],
     cues: ['עומדים זקוף, כתפיים למטה', 'צעדים קצרים ויציבים', 'אחיזה חזקה — לא מוותרים'] }),
@@ -185,7 +198,7 @@ export const EXERCISES = [
 
 // סדר שלבי החזרה: רוב התרגילים מתחילים בירידה (אקסצנטרי). בתרגילים שמתחילים מלמטה/ממצב מתוח — מתחילים במאמץ (קונצנטרי).
 // cueCon/cueEcc: מילת הקריאה של המאמן לכל שלב.
-const CON_FIRST = ['leg_ext', 'leg_curl', 'calf_raise', 'hip_thrust', 'pullup', 'lat_pulldown', 'cable_row', 'bb_row', 'db_row', 'face_pull',
+const CON_FIRST = ['glute_bridge', 'leg_ext', 'leg_curl', 'calf_raise', 'hip_thrust', 'pullup', 'lat_pulldown', 'cable_row', 'bb_row', 'db_row', 'face_pull',
   'cable_fly', 'ohp', 'lateral_raise', 'rear_delt_fly', 'bb_curl', 'hammer_curl', 'rope_pushdown', 'hanging_leg_raise', 'woodchop'];
 const PULL = ['lat_pulldown', 'cable_row', 'bb_row', 'db_row', 'face_pull', 'rear_delt_fly'];
 const PRESS = ['rope_pushdown', 'cable_fly', 'woodchop'];

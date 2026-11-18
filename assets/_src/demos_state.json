@@ -414,5 +414,37 @@
  "noa/hip_flexor_stretch": {
   "img": "M3qNJktdoVOynoUZkKV8",
   "vid": "o3PwCw0oOFLVKVRpKEIU"
+ },
+ "ori/air_squat": {
+  "img": "kVnBdfAJn5xr3m23qzOF",
+  "vid": "jmKJc1FmfG8rQeOfXEuw"
+ },
+ "noa/air_squat": {
+  "img": "6DZhUMd5jQ50vLLL5pLz",
+  "vid": "CtjzsUTVl3TtJVYFjcmc"
+ },
+ "ori/bw_lunge": {
+  "img": "O5jkWGi96NgLRkl8s9RQ",
+  "vid": "uslmRrNkgMgiamaEU6Y6"
+ },
+ "ori/glute_bridge": {
+  "img": "FuH8mog23qbSaxMcBhzm",
+  "vid": "kVOk5b1jR9bEnhDfn9Ko"
+ },
+ "noa/glute_bridge": {
+  "img": "6vwgKR0RbM9gA3I8UzNi",
+  "vid": "1ZYBpprVlNdsaqB5CrHU"
+ },
+ "ori/mountain_climber": {
+  "img": "Ibn9fsLyUzclVDlITNiB",
+  "vid": "Vehu9jcPwOIlaRFTneT7"
+ },
+ "noa/mountain_climber": {
+  "img": "aDVlswiigvnPbCX3zi13",
+  "vid": "pMeTkLdBYBAVeBBKX0li"
+ },
+ "noa/bw_lunge": {
+  "img": "nPUBMTLQAkazqMaPeUwk",
+  "vid": "ROow88IM3MhR3giI8GY9"
  }
 }

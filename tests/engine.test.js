@@ -338,3 +338,21 @@ test('known lifts set the opening weight; exercises with history ignore them', a
   const hist = [{ date: '2026-11-01', target: [8, 10], sets: [{ w: 50, reps: 10, rpe: 8, done: true }, { w: 50, reps: 9, rpe: 8, done: true }] }];
   assert.equal(suggest('bench_press', item, hist, { ...base, lifts: { bench_press: { w: 120, reps: 5 } } }).w, suggest('bench_press', item, hist, base).w);
 });
+
+test('fitness score: nothing measured → no score; parts appear as data arrives', () => {
+  const fresh = { ...P, run3k: null, lifts: undefined, targetWeight: 70 };
+  const none = combatReadiness({ profile: fresh, history: {}, sessions: [], runs: [], weights: [{ date: '2026-11-18', kg: 72 }] });
+  assert.equal(none.score, null);
+  assert.deepEqual(none.parts, { strength: null, endurance: null, consistency: 0, body: null });
+  // זמן 3 ק״מ מההרשמה → סבולת ידועה, והציון מחושב רק מהרכיבים הידועים
+  const withRun = combatReadiness({ profile: { ...fresh, run3k: 13 * 60 }, history: {}, sessions: [], runs: [], weights: [] });
+  assert.equal(withRun.parts.endurance, 67); assert.equal(withRun.parts.strength, null);
+  assert.equal(withRun.score, Math.round(((200 / 3) * 0.3 + 0 * 0.25) / 0.55));
+  // הרמות שדווחו → הערכת כוח ראשונה; היסטוריה אמיתית גוברת עליהן
+  const lifts = combatReadiness({ profile: { ...fresh, weightKg: 75, lifts: { bench_press: { w: 80, reps: 8 } } }, history: {}, sessions: [], runs: [], weights: [] });
+  assert.ok(lifts.parts.strength > 60 && lifts.parts.strength <= 100);
+  const hist = { bench_press: [{ date: '2026-11-10', sets: [{ w: 40, reps: 10, done: true }] }] };
+  assert.ok(combatReadiness({ profile: { ...fresh, weightKg: 75, lifts: { bench_press: { w: 80, reps: 8 } } }, history: hist, sessions: [], runs: [], weights: [] }).parts.strength < lifts.parts.strength);
+  // שתי שקילות → רכיב הגוף
+  assert.ok(combatReadiness({ profile: fresh, history: {}, sessions: [], runs: [], weights: [{ date: 'a', kg: 74 }, { date: 'b', kg: 72 }] }).parts.body != null);
+});

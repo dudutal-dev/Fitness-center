@@ -62,7 +62,9 @@ export function weightTrend(entries, alpha = 0.25) {
   return entries.map((e) => { ema = ema == null ? e.kg : ema + alpha * (e.kg - ema); return { ...e, trend: Math.round(ema * 10) / 10 }; });
 }
 
-// מדד כשירות קרבית 0..100
+// מדד כשירות קרבית 0..100.
+// רכיב שאין עליו נתונים מחזיר null (ולא מספר ברירת מחדל) — כדי שאחרי איפוס או בהתחלה לא יוצג "ציון" שלא נמדד.
+// הציון הכולל מחושב רק מהרכיבים הידועים; בלי אף מדידה של כוח/סבולת/גוף — אין ציון.
 export function combatReadiness({ profile, history, sessions, runs, weights }) {
   const bw = profile.weightKg || 70;
   // כוח יחסי: 1RM משוער ביחס למשקל גוף מול יעדי עילית
@@ -76,12 +78,18 @@ export function combatReadiness({ profile, history, sessions, runs, weights }) {
   }
   const pullHist = history.pullup;
   if (pullHist?.length) ratios.push(Math.min(1, Math.max(...pullHist.slice(-4).flatMap((x) => x.sets.map((s) => s.reps || 0))) / 18));
-  const strength = ratios.length ? (ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100 : 35;
+  // עוד אין היסטוריה? הרמות שדווחו בהרשמה נותנות הערכה ראשונה
+  if (!ratios.length) {
+    for (const [id, l] of Object.entries(profile.lifts || {})) {
+      if (BENCH[id] && l?.w > 0 && l?.reps >= 1) ratios.push(Math.min(1, (l.reps <= 1 ? l.w : l.w * (1 + l.reps / 30)) / bw / BENCH[id]));
+    }
+  }
+  const strength = ratios.length ? (ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100 : null;
 
   // סבולת: זמן 3 ק״מ (10:30 = 100, 18:00 = 0)
   const tests = runs.filter((r) => r.type === 'test' && r.timeSec);
   const best3k = tests.length ? Math.min(...tests.map((r) => r.timeSec)) : profile.run3k;
-  const endurance = best3k ? Math.max(0, Math.min(100, ((18 * 60 - best3k) / (7.5 * 60)) * 100)) : 35;
+  const endurance = best3k ? Math.max(0, Math.min(100, ((18 * 60 - best3k) / (7.5 * 60)) * 100)) : null;
 
   // עקביות: אימונים ב-28 יום אחרונים מול מתוכנן
   const now = Date.now();
@@ -90,14 +98,20 @@ export function combatReadiness({ profile, history, sessions, runs, weights }) {
   const consistency = Math.min(100, (recent / planned) * 100);
 
   // גוף: התקרבות ליעד משקל
-  let body = 60;
+  let body = null;
   if (weights.length >= 2 && profile.targetWeight) {
     const start = weights[0].kg, cur = weights[weights.length - 1].kg, tgt = profile.targetWeight;
     const total = Math.abs(start - tgt) || 1;
     body = Math.max(0, Math.min(100, 50 + ((Math.abs(start - tgt) - Math.abs(cur - tgt)) / total) * 50));
   }
-  const score = Math.round(strength * 0.35 + endurance * 0.3 + consistency * 0.25 + body * 0.1);
-  return { score, parts: { strength: Math.round(strength), endurance: Math.round(endurance), consistency: Math.round(consistency), body: Math.round(body) } };
+  // ממוצע משוקלל של הרכיבים הידועים בלבד. עקביות לבדה (0 בהתחלה) אינה מדידה של כושר.
+  const W = { strength: 0.35, endurance: 0.3, consistency: 0.25, body: 0.1 };
+  const parts = { strength, endurance, consistency, body };
+  const measured = strength != null || endurance != null || body != null;
+  let sum = 0, wsum = 0;
+  for (const [k, v] of Object.entries(parts)) if (v != null) { sum += v * W[k]; wsum += W[k]; }
+  const round = (v) => (v == null ? null : Math.round(v));
+  return { score: measured ? Math.round(sum / wsum) : null, parts: { strength: round(strength), endurance: round(endurance), consistency: round(consistency), body: round(body) } };
 }
 
 // ציון מוכנות מצ׳ק־אין (1..5 לכל שאלה)

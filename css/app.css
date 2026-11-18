@@ -244,6 +244,7 @@ input[type=range] { width: 100%; accent-color: var(--pri-ink); }
 .ring .lbl { font-size: 11px; color: var(--mute); font-weight: 700; letter-spacing: 0.06em; margin-top: 4px; }
 .meter { margin-bottom: 8px; }
 .meter:last-child { margin-bottom: 0; }
+.meter .row small { font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--dim); }
 .meter .bar { height: 5px; }
 .meter .row { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
 .meter .row span:last-child { margin-inline-start: auto; font-family: var(--num); color: var(--mute); }

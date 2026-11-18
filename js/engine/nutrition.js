@@ -91,11 +91,11 @@ export function allowed(food, dislikes = [], dislikedFoods = []) {
 // ארוחות: כל משבצת מתמלאת רק במאכלים שמתאימים לארוחה (שדה meals במאגר) — לא עוף או בשר בבוקר.
 // share = חלק מהקלוריות; pShare = חלק מהחלבון — מפוזר שווה יותר, כדי שכל ארוחה תגיע ל-20–40 ג׳ (ISSN: 0.25–0.4 ג׳/ק״ג לארוחה).
 const MEALS = [
-  { id: 'breakfast', code: 'b', name: 'ארוחת בוקר', icon: '🌅', share: 0.25, pShare: 0.22, slots: [['protein', 'dairy'], ['carb'], ['veg', 'fruit']] },
-  { id: 'snack1', code: 's', name: 'ביניים', icon: '⚡', share: 0.1, pShare: 0.12, slots: [['dairy', 'protein'], ['fruit', 'fat']] },
-  { id: 'lunch', code: 'l', name: 'צהריים', icon: '🍽️', share: 0.3, pShare: 0.26, slots: [['protein'], ['carb'], ['veg'], ['fat']] },
-  { id: 'post', code: 'p', name: 'אחרי אימון', icon: '💪', share: 0.12, pShare: 0.18, slots: [['protein', 'dairy'], ['fruit', 'carb']] },
-  { id: 'dinner', code: 'd', name: 'ערב', icon: '🌙', share: 0.23, pShare: 0.22, slots: [['protein', 'dairy'], ['carb'], ['veg']] },
+  { id: 'breakfast', code: 'b', name: 'ארוחת בוקר', icon: 'sunrise', share: 0.25, pShare: 0.22, slots: [['protein', 'dairy'], ['carb'], ['veg', 'fruit']] },
+  { id: 'snack1', code: 's', name: 'ביניים', icon: 'apple', share: 0.1, pShare: 0.12, slots: [['dairy', 'protein'], ['fruit', 'fat']] },
+  { id: 'lunch', code: 'l', name: 'צהריים', icon: 'plate', share: 0.3, pShare: 0.26, slots: [['protein'], ['carb'], ['veg'], ['fat']] },
+  { id: 'post', code: 'p', name: 'אחרי אימון', icon: 'dumbbell', share: 0.12, pShare: 0.18, slots: [['protein', 'dairy'], ['fruit', 'carb']] },
+  { id: 'dinner', code: 'd', name: 'ערב', icon: 'moon', share: 0.23, pShare: 0.22, slots: [['protein', 'dairy'], ['carb'], ['veg']] },
 ];
 // לא נכנסים לתפריט אוטומטי (ההנחיות של משרד הבריאות ממליצות להגביל חטיפים, משקאות ממותקים ובשר מעובד)
 const NOT_IN_PLAN = new Set(['bamba', 'bissli', 'chips', 'chocolate', 'wafers', 'cookies', 'ice_cream', 'energy_drink', 'soft_drink', 'iso_drink',

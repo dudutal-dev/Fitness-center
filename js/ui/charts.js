@@ -21,7 +21,7 @@ export function setRing(node, pct) {
 // series: [{ values:[{x,y}], color, fill?, dash? }]  — x: מחרוזת תווית
 export function lineChart(series, { h = 190, target = null, unit = '' } = {}) {
   const all = series.flatMap((s) => s.values.map((v) => v.y)).concat(target != null ? [target] : []);
-  if (!all.length) return '<div class="empty"><div class="e">📈</div>אין עדיין נתונים</div>';
+  if (!all.length) return '<div class="empty"><div class="e"><span class="ib pri xl"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16M5 15l4.500-5 4 3L19 6"/></svg></span></div>אין עדיין נתונים</div>';
   const W = 340, H = h, P = { l: 30, r: 10, t: 12, b: 22 };
   let min = Math.min(...all), max = Math.max(...all);
   if (max - min < 1) { min -= 1; max += 1; }

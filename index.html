@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f5f2ec">
+  <meta name="theme-color" content="#0f161d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,18 +13,16 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icons/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Rubik:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" href="assets/fonts/heebo-hebrew.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
   <script>
     // ערכת נושא לפני הציור הראשון (בלי הבהוב)
     try {
       var st = JSON.parse(localStorage.getItem('golani_fit_v1') || '{}').settings || {};
-      var t = st.themeV === 3 ? st.theme || 'auto' : 'auto';
+      var t = st.themeV === 4 ? st.theme || 'dark' : 'dark';
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       document.documentElement.dataset.theme = t;
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f5f2ec' : '#13141c');
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#e8ecf0' : '#0f161d');
     } catch (e) {}
   </script>
 </head>

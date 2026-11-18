@@ -62,7 +62,7 @@ export function suggest(exId, item, history, profile) {
   const allTop = done.length >= (last.sets.length || 1) && done.every((s) => s.reps >= hi);
   const avgRpe = done.reduce((t, s) => t + (s.rpe || 8), 0) / (done.length || 1);
   const missed = done.some((s) => s.reps < lo) || done.length < last.sets.length;
-  if (allTop && avgRpe <= 8.5) return { reps: lo, w: roundLoad((lastW + ex.inc) * adj, ex), why: `השלמת את כל החזרות — עולים ל-${roundLoad(lastW + ex.inc, ex)} ק״ג 🔥`, up: true };
+  if (allTop && avgRpe <= 8.5) return { reps: lo, w: roundLoad((lastW + ex.inc) * adj, ex), why: `השלמת את כל החזרות — עולים ל-${roundLoad(lastW + ex.inc, ex)} ק״ג`, up: true };
   if (missed && avgRpe >= 9) return { reps: lo, w: roundLoad(lastW * 0.92 * adj, ex), why: 'היה קשה מדי — יורדים מעט ובונים מחדש', down: true };
   const lastReps = Math.min(...done.map((s) => s.reps));
   return { reps: Math.min(hi, Math.max(lo, lastReps + 1)), w: roundLoad(lastW * adj, ex), why: 'אותו משקל — מטרה: עוד חזרה בכל סט' };
@@ -82,7 +82,7 @@ export function evaluateLevel(level, stats) {
   const adherence = stats.planned ? stats.completed / stats.planned : 0;
   const progress = stats.tracked ? stats.progressed / stats.tracked : 0;
   if (adherence >= 0.85 && progress >= 0.5 && stats.avgRpe <= 8.3 && level < 5) {
-    return { level: level + 1, change: 1, msg: 'עמדת ביעדים, התקדמת ונראה שיש לך עוד מקום — מעלים רמה! 🚀' };
+    return { level: level + 1, change: 1, msg: 'עמדת ביעדים, התקדמת ונראה שיש לך עוד מקום — מעלים רמה!' };
   }
   if ((adherence < 0.5 || stats.avgRpe >= 9.2) && level > 1) {
     return { level: level - 1, change: -1, msg: 'נוריד רמה אחת כדי לבנות בסיס יציב. זה צעד חכם, לא נסיגה.' };

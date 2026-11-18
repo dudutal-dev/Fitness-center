@@ -1,5 +1,5 @@
 // עריכה ומחיקה של אימונים וריצות מתוך ההיסטוריה.
-import { html, esc, on, sheet, toast, fmtTime } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, fmtTime, icon } from '../ui/dom.js';
 import { get, set } from '../store.js';
 import { EX } from '../data/exercises.js';
 import { updateSession, deleteSession, updateRun, deleteRun } from '../engine/history-edit.js';
@@ -10,7 +10,7 @@ const fromLocalInput = (v, fallback) => { const d = new Date(v); return Number.i
 
 function confirmDelete(text, onYes) {
   sheet(html`<div class="h1" style="font-size:22px">${text}</div><p class="sub">אי אפשר לבטל את המחיקה. ההיסטוריה, הגרפים וההמלצות יחושבו מחדש.</p>
-    <button class="btn danger block" data-yes>🗑 כן, למחוק</button><button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {
+    <button class="btn danger block" data-yes>${icon('trash')} כן, למחוק</button><button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {
     onMount(sh, close) { sh.querySelector('[data-yes]').addEventListener('click', () => { close(); onYes(); }); },
   });
 }
@@ -39,7 +39,7 @@ export function openSessionEditor(index, onDone) {
     <div class="sub">${fmtTime(draft.durationSec || 0)} · ${draft.setsDone || 0} סטים</div>
     <div id="edBody" style="margin-top:12px">${body()}</div>
     <button class="btn primary block xl" style="margin-top:14px" data-save>שמור שינויים</button>
-    <button class="btn danger block" style="margin-top:8px" data-del>🗑 מחק את האימון</button>`, {
+    <button class="btn danger block" style="margin-top:8px" data-del>${icon('trash')} מחק את האימון</button>`, {
     onMount(sh, close) {
       const repaint = () => { sh.querySelector('#edBody').innerHTML = body(); };
       sh.addEventListener('input', (e) => {
@@ -54,14 +54,14 @@ export function openSessionEditor(index, onDone) {
       on(sh, 'click', '[data-delex]', (e, b) => { draft.exercises.splice(Number(b.dataset.delex), 1); repaint(); });
       sh.querySelector('[data-save]').addEventListener('click', () => {
         set((s) => updateSession(s, s.sessions.findIndex((x) => x.date === orig.date && x.name === orig.name), { date: draft.date, exercises: draft.exercises }));
-        toast('✓ האימון עודכן');
+        toast('האימון עודכן');
         close(); onDone?.();
       });
       sh.querySelector('[data-del]').addEventListener('click', () => {
         close();
         confirmDelete('למחוק את האימון?', () => {
           set((s) => deleteSession(s, s.sessions.findIndex((x) => x.date === orig.date && x.name === orig.name)));
-          toast('🗑 האימון נמחק');
+          toast('האימון נמחק');
           onDone?.();
         });
       });
@@ -81,7 +81,7 @@ export function openRunEditor(index, onDone) {
     </div>
     ${orig.type === 'test' ? html`<label class="field"><span>זמן 3 ק״מ (דק:שנ׳)</span><input class="input num" name="t3k" value="${orig.timeSec ? fmtTime(orig.timeSec) : ''}" inputmode="numeric"></label>` : ''}
     <button class="btn primary block xl" data-save>שמור שינויים</button>
-    <button class="btn danger block" style="margin-top:8px" data-del>🗑 מחק את הריצה</button>`, {
+    <button class="btn danger block" style="margin-top:8px" data-del>${icon('trash')} מחק את הריצה</button>`, {
     onMount(sh, close) {
       const val = (n) => sh.querySelector(`[name=${n}]`)?.value.trim();
       const parseDur = (v) => { const m = String(v || '').match(/^(?:(\d+):)?(\d{1,3}):(\d{2})$/); return m ? (Number(m[1] || 0) * 3600 + Number(m[2]) * 60 + Number(m[3])) : null; };
@@ -95,12 +95,12 @@ export function openRunEditor(index, onDone) {
           patch.timeSec = t;
         }
         set((s) => updateRun(s, find(s), patch));
-        toast('✓ הריצה עודכנה');
+        toast('הריצה עודכנה');
         close(); onDone?.();
       });
       sh.querySelector('[data-del]').addEventListener('click', () => {
         close();
-        confirmDelete('למחוק את הריצה?', () => { set((s) => deleteRun(s, find(s))); toast('🗑 הריצה נמחקה'); onDone?.(); });
+        confirmDelete('למחוק את הריצה?', () => { set((s) => deleteRun(s, find(s))); toast('הריצה נמחקה'); onDone?.(); });
       });
     },
   });

@@ -1,6 +1,6 @@
 // מסך תזונה: יעדים מול מה שנאכל בפועל (יומן אכילה עם חיפוש ב-190+ מזונות), תפריט יומי לפי הקשר (בסיס/שטח/בית),
 // "לא אוכל", מזונות אישיים, מעקב שתייה, טיפים.
-import { html, esc, on, toast, sheet, icon } from '../ui/dom.js';
+import { html, esc, on, toast, sheet, icon, ib, em, emi } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, g } from '../store.js';
 import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY, activityKey, trendAdvice } from '../engine/nutrition.js';
@@ -56,15 +56,15 @@ export function renderNutrition(root) {
     </div>
 
     <div class="card tight water-row">
-      <span class="ic">💧</span>
+      ${ib('drop', 'acc')}
       <div class="grow"><div class="row between"><b>מים</b><span class="num sub">${(dd.water / 1000).toFixed(1)} / ${t.waterL} ל׳</span></div>
         <div class="bar"><i style="width:${Math.min(100, Math.round((dd.water / (t.waterL * 1000)) * 100))}%;background:var(--blue)"></i></div></div>
       <button class="btn sm" data-add="water">＋ כוס</button>
     </div>
 
     ${advice ? html`<div class="card tight advice ${advice.step ? 'act' : ''}">
-      <b>${advice.onTrack ? '✓ הקצב שלך מתאים למטרה' : advice.step > 0 ? 'המשקל יורד מהר מהמתוכנן' : advice.step < 0 ? 'המשקל עולה מהר מהמתוכנן' : 'מגמת המשקל'}</b>
-      <div class="sub t-foot">בשבועות האחרונים: <bdi dir="ltr" class="num">${advice.kgWeek > 0 ? '+' : ''}${advice.kgWeek}</bdi> ק״ג לשבוע (<bdi dir="ltr" class="num">${advice.pctWeek}%</bdi>). הטווח המומלץ למטרה: <bdi dir="ltr" class="num">${advice.range[0]}%</bdi> עד <bdi dir="ltr" class="num">${advice.range[1]}%</bdi>.</div>
+      <b>${advice.onTrack ? 'הקצב שלך מתאים למטרה' : advice.step > 0 ? 'המשקל יורד מהר מהמתוכנן' : advice.step < 0 ? 'המשקל עולה מהר מהמתוכנן' : 'מגמת המשקל'}</b>
+      <div class="sub t-foot">בשבועות האחרונים: <span class="num ltr">${advice.kgWeek > 0 ? '+' : ''}${advice.kgWeek}</span> ק״ג לשבוע (<span class="num ltr">${advice.pctWeek}%</span>). הטווח המומלץ למטרה: <span class="num ltr">${advice.range[0]}%</span> עד <span class="num ltr">${advice.range[1]}%</span>.</div>
       ${advice.step ? `<button class="btn sm block mt-3" data-adjust="${advice.step}">${advice.step > 0 ? 'העלה' : 'הורד'} את היעד ב-${Math.abs(advice.step)} קק״ל</button>` : ''}
     </div>` : ''}
 
@@ -85,7 +85,7 @@ export function renderNutrition(root) {
     <div class="row between menu-sum"><div class="sub t-foot">התפריט: <b class="num">${nf(plan.total.kcal)}</b> קק״ל · <b class="num">${plan.total.p}</b> ג׳ חלבון<br>יעד: <span class="num">${nf(t.kcal)}</span> קק״ל · <span class="num">${t.protein}</span> ג׳ חלבון</div>
       <button class="btn sm" data-act="shuffle">${icon('swap', 'width="16" height="16"')} תפריט אחר</button></div>
     ${plan.meals.map((m, mi) => html`<div class="card tight meal">
-      <div class="meal-head"><div class="grow"><b>${m.icon} ${m.name}</b><span class="num sub t-foot">${m.total.kcal} קק״ל · ${m.total.p} ג׳ חלבון</span></div>
+      <div class="meal-head"><div class="grow"><b>${emi(m.icon)} ${m.name}</b><span class="num sub t-foot">${m.total.kcal} קק״ל · ${m.total.p} ג׳ חלבון</span></div>
         <button class="eat-btn" data-eat-meal="${mi}" aria-label="אכלתי את ${esc(m.name)}">${icon('check')} אכלתי</button></div>
       ${m.items.map((it) => { const f = FOOD[it.id]; return `<div class="mi"><span>${esc(f.name)}</span><small>${qtyLabel(it.qty)}${esc(f.portion)}</small></div>`; })}
     </div>`)}
@@ -166,6 +166,17 @@ function dislikeChips(p) {
     + (dislikeQuery ? '' : '<span class="sub" style="font-size:12px;align-self:center">…חפש כדי לראות עוד</span>');
 }
 
+// ───── מועדפים ואחרונים ─────
+const favFoods = () => get().profile.favFoods || [];
+const favLabel = (id) => (favFoods().includes(id) ? `${icon('star')} במועדפים — הסר` : `${icon('star')} הוסף למועדפים`);
+// מה שנרשם ב-14 הימים האחרונים, מהחדש לישן, בלי כפילויות
+function recentFoods() {
+  const days = Object.keys(get().daily).sort().slice(-14).reverse();
+  const seen = new Set();
+  for (const d of days) for (const it of [...(get().daily[d].foods || [])].reverse()) seen.add(it.id);
+  return [...seen];
+}
+
 // ───── חיפוש והוספת מזון ─────
 export function foodSearchSheet(onDone) {
   let q = '', cat = '', slot = currentSlot();
@@ -177,12 +188,22 @@ export function foodSearchSheet(onDone) {
     <div id="fres" class="food-res"></div>
     <button class="btn block" style="margin-top:12px" data-custom>＋ מזון שלא ברשימה</button>`, {
     onMount(sh, close) {
+      const row = (f, mark = '') => html`<button class="food-row" data-pick="${f.id}">
+          <span><b>${mark}${esc(f.name)}</b><small>${esc(f.portion)}${f.custom ? ' · שלי' : ''}</small></span>
+          <span class="num"><b>${Math.round(f.kcal)}</b><small>${Math.round(f.p)} ג׳ חלבון</small></span></button>`;
       const paint = () => {
+        let out = '';
+        if (!q && !cat) {
+          // בלי חיפוש: קודם מועדפים, אחר כך מה שנאכל לאחרונה — רישום חוזר בשתי הקשות
+          const favs = favFoods().map((id) => foodLookup(id, custom())).filter(Boolean);
+          const rec = recentFoods().filter((id) => !favFoods().includes(id)).map((id) => foodLookup(id, custom())).filter(Boolean).slice(0, 8);
+          if (favs.length) out += `<div class="food-sec">${icon('star')} מועדפים</div>` + favs.map((f) => row(f)).join('');
+          if (rec.length) out += `<div class="food-sec">${icon('clock')} אחרונים</div>` + rec.map((f) => row(f)).join('');
+          if (out) out += '<div class="food-sec">כל המאכלים</div>';
+        }
         const res = searchFoods(q, custom(), { cat: cat || null, limit: 50 });
-        sh.querySelector('#fres').innerHTML = res.length ? res.map((f) => html`<button class="food-row" data-pick="${f.id}">
-          <span><b>${esc(f.name)}</b><small>${esc(f.portion)}${f.custom ? ' · שלי' : ''}</small></span>
-          <span class="num"><b>${f.kcal}</b><small>${Math.round(f.p)}ג׳ חלבון</small></span></button>`).join('')
-          : '<div class="empty" style="padding:14px">לא נמצא. אפשר להוסיף "מזון שלא ברשימה" למטה.</div>';
+        out += res.map((f) => row(f)).join('');
+        sh.querySelector('#fres').innerHTML = out || '<div class="empty" style="padding:14px">לא נמצא. אפשר להוסיף "מזון שלא ברשימה" למטה.</div>';
       };
       const inp = sh.querySelector('[data-q]');
       inp.addEventListener('input', () => { q = inp.value; paint(); });
@@ -203,8 +224,13 @@ function qtySheet(f, slot, onDone) {
     <div class="sub" style="margin:14px 0 6px">כמות</div>
     <div class="seg" data-qty>${QTYS.map((v) => `<button data-qv="${v}" class="${v === qty ? 'on' : ''}">${v === 0.5 ? '½' : v === 1.5 ? '1½' : v}</button>`).join('')}</div>
     <div class="card tight" style="margin-top:12px" id="qline">${line()}</div>
-    <button class="btn primary block xl" style="margin-top:14px" data-ok>הוסף ליומן</button>`, {
+    <button class="btn primary block xl" style="margin-top:14px" data-ok>הוסף ליומן</button>
+    <button class="btn ghost block" style="margin-top:6px" data-fav>${favLabel(f.id)}</button>`, {
     onMount(sh, close) {
+      sh.querySelector('[data-fav]').addEventListener('click', (e) => {
+        set((s2) => { const a = (s2.profile.favFoods ||= []); const i = a.indexOf(f.id); i >= 0 ? a.splice(i, 1) : a.unshift(f.id); return s2; });
+        e.currentTarget.innerHTML = favLabel(f.id);
+      });
       on(sh, 'click', '[data-qv]', (e, b) => { qty = Number(b.dataset.qv); sh.querySelectorAll('[data-qv]').forEach((x) => x.classList.toggle('on', x === b)); sh.querySelector('#qline').innerHTML = line(); });
       sh.querySelector('[data-ok]').addEventListener('click', () => {
         setDaily({ foods: [...(daily().foods || []), { id: f.id, qty, slot, at: Date.now() }] });
@@ -258,5 +284,5 @@ function customFoodSheet(slot, onDone, prefill = '') {
   });
 }
 
-const tip = (x) => `<div class="tip"><div class="ti">${x.icon}</div><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span>${x.ref ? `<small class="ref">מקור: ${esc(x.ref)}</small>` : ''}</div></div>`;
+const tip = (x) => `<div class="tip"><div class="ti">${em(x.icon, 'acc')}</div><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span>${x.ref ? `<small class="ref">מקור: ${esc(x.ref)}</small>` : ''}</div></div>`;
 function toggle(arr, v) { const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); }

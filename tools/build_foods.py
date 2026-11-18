@@ -206,6 +206,9 @@ for fid, name, portion, cat, tags, ctx, meals, comps in SPEC:
     r = lambda v, d=0: round(v, d) if d else round(v)
     item = {'id': fid, 'name': name, 'portion': f'{portion} · {round(grams_total)} ג׳', 'g': round(grams_total), 'kcal': r(tot['kcal']), 'p': r(tot['p'], 1), 'c': r(tot['c'], 1), 'f': r(tot['f'], 1), 'fib': r(tot['fib'], 1),
             'cat': cat, 'tags': tags, 'ctx': ctx, 'meals': meals, 'src': srcs}
+    # במאגר, ערך הסיבים של הפריטים האלה זהה לערך הפחמימות (כנראה שגיאת הזנה) — לא נספר כסיבים
+    if fid in ('chicken_meatballs',):
+        item['fib'] = 0.0
     out.append(item)
     report.append(item)
 

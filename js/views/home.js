@@ -1,5 +1,5 @@
 // מסך הבית: מאמן הולוגרפי, מדד כשירות קרבית, משימת היום, שבוע, מעקבים מהירים.
-import { html, esc, on, sheet, toast, greeting, icon, fmtDate } from '../ui/dom.js';
+import { html, esc, on, sheet, toast, greeting, icon, ib, emi, fmtDate } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, today, addXP, XP, g } from '../store.js';
 import { COACHES, demoPoster } from '../data/coaches.js';
@@ -52,14 +52,14 @@ export function renderHome(root) {
   const doneN = s.plan.week.sessions.filter((x) => doneDays.has(x.day)).length;
   const eaten = dayTotals(dd, p.customFoods);
   const pct = (v, of) => Math.min(100, Math.round((v / Math.max(1, of)) * 100));
-  const tile = (act, ic, val, unit, label, bar) => `<button class="card tight tracker" data-act="${act}"><div class="tr-top"><span class="ic">${ic}</span><span class="tr-add">＋</span></div>
+  const tile = (act, ic, val, unit, label, bar) => `<button class="card tight tracker" data-act="${act}"><div class="tr-top">${ic}<span class="tr-add">＋</span></div>
     <div class="v num">${val}<small> ${unit}</small></div><div class="sub t-cap">${label}</div>${bar != null ? `<div class="bar"><i style="width:${bar}%"></i></div>` : ''}</button>`;
 
   root.innerHTML = html`
     <div class="topbar">
       <div class="hello"><div class="sub">${greeting()}</div><div class="h1">${esc(p.name)}</div></div>
       <div class="top-actions">
-        ${st ? `<span class="tag orange" title="רצף ימים">🔥 <span class="num">${st}</span></span>` : ''}
+        ${st ? `<span class="tag orange" title="רצף ימים">${icon('flame')} <span class="num">${st}</span></span>` : ''}
         <a href="#/coach" class="avatar" aria-label="המאמן והגדרות"><img src="${coach.face}" alt=""></a>
       </div>
     </div>
@@ -75,7 +75,7 @@ export function renderHome(root) {
         <div class="week-cap"><span>השבוע</span><span><span class="num">${doneN}</span> מתוך <span class="num">${total}</span> אימונים</span></div>
         <div class="week">${s.plan.week.sessions.map((x) => `<i class="d ${doneDays.has(x.day) ? 'done' : ns?.day === x.day ? 'next' : ''}"></i>`)}</div>
       </div></div>`
-    : html`<div class="card"><div class="empty"><div class="e">🏆</div><b>השבוע הושלם!</b><div>מנוחה — השבוע הבא נטען אוטומטית.</div></div></div>`}
+    : html`<div class="card"><div class="empty"><div class="e">${ib('trophy', 'pri', 'xl')}</div><b>השבוע הושלם!</b><div>מנוחה — השבוע הבא נטען אוטומטית.</div></div></div>`}
     <div class="home-cta-sub">
       ${ns?.run ? `<button class="btn sm" data-act="run">${icon('run', 'width="18" height="18"')} רק ריצה</button>` : ''}
       <button class="btn sm" data-act="field" ${ns?.run ? '' : 'style="grid-column:1/-1"'}>${icon('pack', 'width="18" height="18"')} אימון בלי ציוד</button>
@@ -90,10 +90,10 @@ export function renderHome(root) {
 
     <div class="h2">היום</div>
     <div class="grid2">
-      ${tile('water', '💧', (dd.water / 1000).toFixed(1), `/ ${t.waterL} ל׳`, 'מים · הקשה מוסיפה כוס', pct(dd.water, t.waterL * 1000))}
-      ${tile('food', '🍽️', eaten.kcal.toLocaleString('he-IL'), `/ ${t.kcal.toLocaleString('he-IL')}`, `קלוריות · ${eaten.p} ג׳ חלבון`, pct(eaten.kcal, t.kcal))}
-      ${tile('weight', '⚖️', lastW ? lastW.kg : '—', 'ק״ג', lastW ? `משקל · ${fmtDate(lastW.date)}` : 'שקילה ראשונה', null)}
-      ${tile('checkin', '🧠', dd.checkin != null ? Math.round(dd.checkin * 100) : '—', dd.checkin != null ? '%' : '', 'מוכנות יומית', dd.checkin != null ? Math.round(dd.checkin * 100) : null)}
+      ${tile('water', ib('drop', 'acc'), (dd.water / 1000).toFixed(1), `/ ${t.waterL} ל׳`, 'מים · הקשה מוסיפה כוס', pct(dd.water, t.waterL * 1000))}
+      ${tile('food', ib('food', 'pri'), eaten.kcal.toLocaleString('he-IL'), `/ ${t.kcal.toLocaleString('he-IL')}`, `קלוריות · ${eaten.p} ג׳ חלבון`, pct(eaten.kcal, t.kcal))}
+      ${tile('weight', ib('scale'), lastW ? lastW.kg : '—', 'ק״ג', lastW ? `משקל · ${fmtDate(lastW.date)}` : 'שקילה ראשונה', null)}
+      ${tile('checkin', ib('pulse', 'ok'), dd.checkin != null ? Math.round(dd.checkin * 100) : '—', dd.checkin != null ? '%' : '', 'מוכנות יומית', dd.checkin != null ? Math.round(dd.checkin * 100) : null)}
     </div>
 
     <div class="h2">הכושר שלך<a class="more" href="#/progress">התקדמות</a></div>
@@ -105,10 +105,10 @@ export function renderHome(root) {
           ${meter('עקביות', cri.parts.consistency)}${meter('גוף', cri.parts.body)}
         </div>
       </div>
-      <div class="rank-row"><span>${rank.icon} ${rank.name}</span><div class="bar"><i style="width:${rank.pct * 100}%"></i></div><span class="num">${rank.next ? `${s.xp} / ${rank.next.xp}` : s.xp} XP</span></div>
+      <div class="rank-row"><span>${emi(rank.icon)} ${rank.name}</span><div class="bar"><i style="width:${rank.pct * 100}%"></i></div><span class="num">${rank.next ? `${s.xp} / ${rank.next.xp}` : s.xp} XP</span></div>
     </div>
 
-    ${s.events.length ? html`<div class="h2">עדכונים</div><div class="card tight list-hist">${s.events.slice(0, 3).map((e) => `<div class="it"><div class="ico">${e.type === 'pr' ? '🏆' : e.type === 'rank' ? '🎖️' : e.type === 'level' ? '🚀' : '💬'}</div><div><div style="font-weight:700;font-size:14px">${esc(e.text)}</div><div class="sub t-cap">${fmtDate(e.date)}</div></div></div>`)}</div>` : ''}
+    ${s.events.length ? html`<div class="h2">עדכונים</div><div class="card tight list-hist">${s.events.slice(0, 3).map((e) => `<div class="it">${ib(e.type === 'pr' ? 'trophy' : e.type === 'rank' ? 'medal' : e.type === 'level' ? 'rocket' : 'chat', e.type === 'pr' || e.type === 'rank' ? 'pri' : 'acc')}<div><div style="font-weight:700;font-size:14px">${esc(e.text)}</div><div class="sub t-cap">${fmtDate(e.date)}</div></div></div>`)}</div>` : ''}
   `;
 
   const off = onSpeaking((v) => root.querySelector('.speak')?.classList.toggle('speaking', v));
@@ -122,7 +122,7 @@ export function renderHome(root) {
     if (a === 'start') checkIn((r) => startWorkout(ns, { readiness: r }));
     if (a === 'run') startRun(ns.run, { day: ns.day });
     if (a === 'field') checkIn((r) => startWorkout({ ...buildFieldWorkout(p), day: null, field: true }, { readiness: r }));
-    if (a === 'water') { setDaily({ water: dd.water + 250 }); if (dd.water + 250 >= t.waterL * 1000 && dd.water < t.waterL * 1000) { addXP(XP.water * 4); toast('💧 יעד שתייה הושלם!'); } renderHome(root); }
+    if (a === 'water') { setDaily({ water: dd.water + 250 }); if (dd.water + 250 >= t.waterL * 1000 && dd.water < t.waterL * 1000) { addXP(XP.water * 4); toast('יעד השתייה הושלם!'); } renderHome(root); }
     if (a === 'food') location.hash = '#/nutrition';
     if (a === 'weight') weightSheet(() => renderHome(root));
     if (a === 'checkin') checkIn(() => renderHome(root), true);
@@ -136,12 +136,12 @@ export function checkIn(cb, onlyLog = false) {
   const existing = daily().checkin;
   if (existing != null && !onlyLog) return cb(existing);
   const q = { sleep: 3, energy: 3, soreness: 3, stress: 3 };
-  const Q = [['sleep', 'איך ישנת?', ['😵', '😴', '😐', '🙂', '😎']], ['energy', 'רמת אנרגיה', ['🪫', '😮‍💨', '😐', '⚡', '🔥']],
-    ['soreness', 'כאבי שרירים', ['✨', '🙂', '😐', '😣', '🥵']], ['stress', 'עומס בצבא / לחץ', ['🧘', '🙂', '😐', '😤', '🤯']]];
+  const Q = [['sleep', 'איך ישנת?', [1, 2, 3, 4, 5]], ['energy', 'רמת אנרגיה', [1, 2, 3, 4, 5]],
+    ['soreness', 'כאבי שרירים', [5, 4, 3, 2, 1]], ['stress', 'עומס בצבא / לחץ', [5, 4, 3, 2, 1]]];
   sheet(html`<div class="eyebrow">צ׳ק־אין לפני אימון</div><div class="h1" style="font-size:24px">${g('איך אתה מרגיש', 'איך את מרגישה')} היום?</div>
     <p class="sub">המאמן יתאים את עומס האימון למצב שלך — אחרי יום שטח קשה מורידים, ביום טוב מגבירים.</p>
     ${Q.map(([k, t, em]) => html`<div style="margin:14px 0 6px;font-weight:700">${t}</div>
-      <div class="rpe" style="grid-template-columns:repeat(5,1fr)" data-q="${k}">${em.map((x, i) => `<button data-v="${i + 1}" class="${q[k] === i + 1 ? 'on' : ''}"><span>${x}</span></button>`)}</div>`)}
+      <div class="rpe" style="grid-template-columns:repeat(5,1fr)" data-q="${k}">${em.map((x, i) => `<button data-v="${i + 1}" class="${q[k] === i + 1 ? 'on' : ''}" aria-label="${i + 1} מתוך 5"><span>${icon(`face${x}`)}</span></button>`)}</div>`)}
     <button class="btn primary block xl" style="margin-top:20px" data-go>${onlyLog ? 'שמור' : 'יאללה, לאימון'}</button>`, {
     onMount(sh, close) {
       on(sh, 'click', '[data-q] button', (e, b) => {
@@ -178,7 +178,7 @@ export function weightSheet(cb) {
           return st;
         });
         addXP(XP.weight);
-        toast('⚖️ נשמר');
+        toast('המשקל נשמר');
         close(); cb?.();
       });
     },

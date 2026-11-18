@@ -32,7 +32,7 @@ export function renderCoach(root) {
     <div class="h2">הגדרות</div>
     ${sec('reminders', 'תזכורות', 'אימון, שתייה ושקילה', reminderCard())}
     ${sec('look', 'מראה', 'בהיר, כהה או לפי הטלפון', html`<div class="card"><div class="seg" data-theme-seg>
-      ${[['auto', 'אוטומטי'], ['light', 'בהיר'], ['dark', 'כהה']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'auto') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      ${[['dark', 'כהה'], ['light', 'בהיר'], ['auto', 'אוטומטי']].map(([k, t]) => `<button data-th="${k}" class="${(st.theme || 'dark') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="sub" style="font-size:12px;margin-top:8px">"אוטומטי" עובר לבד בין בהיר לכהה לפי הגדרות הטלפון. ההדגמות באימון נשארות על רקע כהה.</div></div>`)}
     ${sec('voice', 'קול והנחיות', 'ספירה, כתוביות ועוצמה', html`<div class="card">
       ${toggleRow('voice', 'הנחיות קוליות', 'המאמן מדבר, סופר ומעודד', st.voice)}
@@ -53,7 +53,7 @@ export function renderCoach(root) {
         ${field('heightCm', 'גובה (ס״מ)', p.heightCm)}${field('targetWeight', 'משקל יעד', p.targetWeight)}
       </div>
       <label class="field"><span>זמן 3 ק״מ אחרון</span><input class="input num" name="run3k" value="${p.run3k ? fmtTime(p.run3k) : ''}" placeholder="13:30"></label>
-      <label class="field"><span>מטרה</span><div class="seg" data-seg="goal">${Object.entries(GOALS).map(([k, g]) => `<button data-v="${k}" class="${p.goal === k ? 'on' : ''}">${g.icon}</button>`).join('')}</div>
+      <label class="field"><span>מטרה</span><div class="seg" data-seg="goal">${Object.entries(GOALS).map(([k, g]) => `<button data-v="${k}" class="${p.goal === k ? 'on' : ''}" aria-label="${g.name}">${icon(g.icon)}</button>`).join('')}</div>
         <div class="sub" style="font-size:12px;margin-top:4px">${GOALS[p.goal].name}</div></label>
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${p.days === v ? 'on' : ''}">${v}</button>`).join('')}</div></label>
       <label class="field"><span>משך אימון</span><div class="seg" data-seg="sessionMin">${[45, 60, 75, 90].map((v) => `<button data-v="${v}" class="${p.sessionMin === v ? 'on' : ''}">${v}</button>`).join('')}</div></label>
@@ -103,7 +103,7 @@ export function renderCoach(root) {
       s2.plan.completedDays = s2.plan.completedDays.filter((d) => d <= s2.profile.days);
       return regenerateWeek(s2);
     });
-    toast('✅ הפרופיל והתוכנית עודכנו');
+    toast('הפרופיל והתוכנית עודכנו');
     syncReminders().catch(() => {});
     renderCoach(root);
   });
@@ -118,7 +118,7 @@ export function renderCoach(root) {
   root.querySelector('[data-import]').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    try { importData(await f.text()); toast('✅ הנתונים שוחזרו'); location.hash = '#/home'; } catch (err) { toast(`שגיאה: ${err.message}`); }
+    try { importData(await f.text()); toast('הנתונים שוחזרו'); location.hash = '#/home'; } catch (err) { toast(`שגיאה: ${err.message}`); }
   });
   on(root, 'click', '[data-reset]', () => sheet(html`<div class="h1" style="font-size:22px">למחוק הכל?</div><p class="sub">כל האימונים, המדדים וההתקדמות יימחקו לצמיתות.</p>
     <button class="btn danger block" data-yes>כן, מחק הכל</button><button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {

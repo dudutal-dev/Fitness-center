@@ -1,5 +1,5 @@
 // אונבורדינג: 8 שלבים — מאמן, פרטים, מטרה, מבדק רמה, לו״ז, פציעות, תזונה, בניית תוכנית.
-import { html, esc, on, $, toast } from '../ui/dom.js';
+import { html, esc, on, $, toast, icon } from '../ui/dom.js';
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, estimateLevel, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
@@ -40,11 +40,11 @@ export function renderOnboarding(root, done) {
         <button class="coach-card ${d.coach === c.id ? 'on' : ''}" data-coach="${c.id}">
           <img src="${c.img}" alt="${c.name}"><span class="check">✓</span>
           <div class="cap"><b>${c.name}</b><span>${c.title}</span></div></button>`)}</div>
-      <p class="sub" style="margin-top:14px">💬 ${esc(COACHES[d.coach].bio)}</p>`,
+      <p class="sub" style="margin-top:14px">${esc(COACHES[d.coach].bio)}</p>`,
     // 2 — פרטים
-    () => html`<div class="eyebrow">שלב 2 · נכיר</div><div class="q">נעים להכיר 🤝</div>
+    () => html`<div class="eyebrow">שלב 2 · נכיר</div><div class="q">נעים להכיר</div>
       <label class="field"><span>המאמן יפנה אליך בלשון</span><div class="seg" data-seg="sex">
-        <button data-v="m" class="${d.sex === 'm' ? 'on' : ''}">🙋‍♂️ זכר</button><button data-v="f" class="${d.sex === 'f' ? 'on' : ''}">🙋‍♀️ נקבה</button></div></label>
+        <button data-v="m" class="${d.sex === 'm' ? 'on' : ''}">זכר</button><button data-v="f" class="${d.sex === 'f' ? 'on' : ''}">נקבה</button></div></label>
       <label class="field"><span>שם (המאמן יקרא לך בשם)</span><input class="input" name="name" value="${esc(d.name)}" placeholder="איך לקרוא לך?" autocomplete="given-name"></label>
       <div class="grid2">
         <label class="field"><span>גיל</span><input class="input num" name="age" type="number" inputmode="numeric" value="${d.age}"></label>
@@ -55,7 +55,7 @@ export function renderOnboarding(root, done) {
     // 3 — מטרה
     () => html`<div class="eyebrow">שלב 3 · המטרה</div><div class="q">על מה עובדים?</div>
       ${Object.entries(GOALS).map(([id, g]) => html`<button class="goal-card ${d.goal === id ? 'on' : ''}" data-goal="${id}">
-        <div class="gi">${g.icon}</div><div><b>${g.name}</b><span>${GOAL_DESC[id]}</span></div></button>`)}`,
+        <div class="gi">${icon(g.icon)}</div><div><b>${g.name}</b><span>${GOAL_DESC[id]}</span></div></button>`)}`,
     // 4 — מבדק רמה
     () => html`<div class="eyebrow">שלב 4 · מבדק רמה</div><div class="q">איפה ${d.sex === 'f' ? 'את עומדת' : 'אתה עומד'} היום?</div>
       <p class="sub">התשובות קובעות את רמת הקושי ההתחלתית (1–5). האפליקציה תעדכן אותה אוטומטית לפי הביצועים שלך.</p>
@@ -70,12 +70,12 @@ export function renderOnboarding(root, done) {
     () => html`<div class="eyebrow">שלב 5 · זמנים</div><div class="q">כמה ${d.sex === 'f' ? 'את יכולה' : 'אתה יכול'} להתאמן?</div>
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${d.days == v ? 'on' : ''}">${v}</button>`)}</div></label>
       <label class="field"><span>משך אימון (דקות)</span><div class="seg" data-seg="sessionMin">${[45, 60, 75, 90].map((v) => `<button data-v="${v}" class="${d.sessionMin == v ? 'on' : ''}">${v}</button>`)}</div></label>
-      <div class="card tight" style="margin-top:8px"><b>💡 בצבא הלו״ז משתנה.</b><div class="sub">אין בעיה — האימונים לא צמודים לימים בשבוע. פשוט עושים את האימון הבא בתור. ואם אין חדר כושר, יש "אימון שטח" בלי ציוד.</div></div>`,
+      <div class="card tight" style="margin-top:8px"><b>בצבא הלו״ז משתנה.</b><div class="sub">אין בעיה — האימונים לא צמודים לימים בשבוע. פשוט עושים את האימון הבא בתור. ואם אין חדר כושר, יש "אימון שטח" בלי ציוד.</div></div>`,
     // 6 — פציעות
     () => html`<div class="eyebrow">שלב 6 · בטיחות</div><div class="q">יש כאבים או פציעות?</div>
       <p class="sub">נחליף תרגילים שעלולים להחמיר. במקרה של כאב חד — לפנות לרופא היחידה.</p>
       <div class="chips">${Object.entries(INJURIES).map(([id, x]) => `<button class="chip no ${d.injuries.includes(id) ? 'on' : ''}" data-inj="${id}">${x.name}</button>`)}</div>
-      <p class="sub" style="margin-top:14px">${d.injuries.length ? '' : '✅ אין פציעות — מצוין.'}</p>`,
+      <p class="sub" style="margin-top:14px">${d.injuries.length ? '' : 'אין פציעות — מצוין.'}</p>`,
     // 7 — תזונה
     () => html`<div class="eyebrow">שלב 7 · תזונה</div><div class="q">מה ${d.sex === 'f' ? 'את' : 'אתה'} <span style="color:var(--red)">לא</span> ${d.sex === 'f' ? 'אוכלת' : 'אוכל'}?</div>
       <p class="sub">${d.sex === 'f' ? 'סמני הכל — התפריט ייבנה רק ממה שאת כן אוכלת' : 'סמן הכל — התפריט ייבנה רק ממה שאתה כן אוכל'}, עם חלופות חכמות (למשל: לא אוכל ירקות? נשלים ויטמינים ממקורות אחרים).</p>
@@ -101,7 +101,7 @@ export function renderOnboarding(root, done) {
       <div class="content">${views[step]()}</div>
       ${isBuild ? '' : html`<div class="actions">
         ${step > 0 ? '<button class="btn" data-act="back">חזרה</button>' : ''}
-        <button class="btn primary block xl" data-act="next">${step === 0 ? 'בוא נתחיל' : step === STEPS - 2 ? 'בנה לי תוכנית ⚡' : 'המשך'}</button></div>`}
+        <button class="btn primary block xl" data-act="next">${step === 0 ? 'בוא נתחיל' : step === STEPS - 2 ? 'בנה לי תוכנית' : 'המשך'}</button></div>`}
     </div>`;
     if (isBuild) runBuild();
   }
@@ -110,7 +110,7 @@ export function renderOnboarding(root, done) {
     unlock();
     readInputs();
     if (t.dataset.act === 'back') { step--; paint(); return; }
-    if (step === 2 && !d.name) { toast('איך קוראים לך? 🙂'); return; }
+    if (step === 2 && !d.name) { toast('איך קוראים לך?'); return; }
     if (step === 4 && d.run3kStr && !parse3k(d.run3kStr)) { toast('פורמט זמן: דקות:שניות, למשל 13:30'); return; }
     step++; paint();
   });

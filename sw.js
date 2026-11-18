@@ -1,7 +1,10 @@
-// Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין), מדיה במטמון נפרד שמתרענן רק כשהמדיה משתנה.
+// Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין). מדיה (קול/וידאו) במטמון קבוע שלא נמחק בעדכון:
+// כשגרסת המדיה משתנה, כל קובץ מוגש מיד מהמטמון ומתרענן ברקע — כך שעדכון לא משאיר את המאמן בלי קול כשאין קליטה.
 // הגרסאות מתעדכנות אוטומטית ע״י tools/release.mjs — כל שינוי כאן גורם לדפדפן להתקין את הגרסה החדשה.
-const VERSION = 'lohem-20261118.034155';
+const VERSION = 'lohem-20261118.040123';
 const MEDIA = 'lohem-media-20261118.034155';
+const MEDIA_CACHE = 'lohem-media';
+const MEDIA_TAG = 'x-lohem-media';
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'version.json',
   'js/app.js', 'js/version.js', 'js/updater.js', 'js/theme.js', 'js/reminders.js', 'js/views/reminders-ui.js', 'js/store.js', 'js/ui/dom.js', 'js/ui/charts.js', 'js/coach/voice.js',
@@ -20,8 +23,27 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== MEDIA).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    // מעבר ממטמוני מדיה ישנים (lohem-media-<גרסה>): מעתיקים את מה שכבר ירד, ורק אז מוחקים
+    const media = await caches.open(MEDIA_CACHE);
+    for (const k of keys.filter((x) => x.startsWith('lohem-media-'))) {
+      const old = await caches.open(k);
+      for (const req of await old.keys()) { if (!(await media.match(req))) { const r = await old.match(req); if (r) await media.put(req, r); } }
+    }
+    await Promise.all(keys.filter((k) => k !== VERSION && k !== MEDIA_CACHE).map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
+// שומר תגובת מדיה עם תג גרסת המדיה (כדי לדעת מתי לרענן אותה)
+async function putMedia(req, res) {
+  if (!res.ok || res.status !== 200 || res.type === 'opaque') return;
+  const headers = new Headers(res.headers);
+  headers.set(MEDIA_TAG, MEDIA);
+  const body = await res.blob();
+  const cache = await caches.open(MEDIA_CACHE);
+  await cache.put(req, new Response(body, { status: 200, statusText: res.statusText, headers }));
+}
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -30,10 +52,14 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.endsWith('/version.json')) { e.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req))); return; }
   const isMedia = /\/assets\/(demos|voice)\//.test(url.pathname) || url.origin !== location.origin;
   if (isMedia) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res.ok && res.status === 200) { const copy = res.clone(); caches.open(MEDIA).then((c) => c.put(req, copy)); }
-      return res;
-    })));
+    e.respondWith(caches.open(MEDIA_CACHE).then((c) => c.match(req)).then((hit) => {
+      if (hit) {
+        // גרסת מדיה חדשה: מגישים את השמור ומרעננים ברקע (בקשה מותנית — אם הקובץ לא השתנה, כמעט בלי תעבורה)
+        if (hit.headers.get(MEDIA_TAG) !== MEDIA) e.waitUntil(fetch(req, { cache: 'no-cache' }).then((res) => putMedia(req, res)).catch(() => {}));
+        return hit;
+      }
+      return fetch(req).then((res) => { e.waitUntil(putMedia(req, res.clone()).catch(() => {})); return res; });
+    }));
     return;
   }
   // קוד: רשת קודם (עם אימות מול השרת), ואם אין קליטה — מהמטמון

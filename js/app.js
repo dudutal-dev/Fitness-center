@@ -8,7 +8,7 @@ import { renderProgress } from './views/progress.js';
 import { renderNutrition } from './views/nutrition.js';
 import { renderCoach } from './views/coach.js';
 import { startWorkout } from './views/workout.js';
-import { unlock } from './coach/voice.js';
+import { unlock, warmVoiceCache } from './coach/voice.js';
 import { initUpdater } from './updater.js';
 import { openGuide } from './views/guide.js';
 import { applyTheme } from './theme.js';
@@ -71,3 +71,6 @@ addEventListener('pointerdown', unlock, { passive: true }); // כל נגיעה �
 route();
 
 initUpdater();
+// קובצי הקול של המאמן יורדים ברקע כמה שניות אחרי הפתיחה (ושוב אחרי החלפת מאמן)
+setTimeout(warmVoiceCache, 5000);
+addEventListener('hashchange', () => setTimeout(warmVoiceCache, 3000));

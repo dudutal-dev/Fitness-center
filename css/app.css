@@ -644,6 +644,11 @@ bdi { unicode-bidi: isolate; }
 .acc > summary::after { content: ''; margin-inline-start: auto; width: 9px; height: 9px; border-inline-start: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(-45deg); transition: transform 0.2s; }
 .acc[open] > summary::after { transform: rotate(135deg); }
 .acc > .acc-body { padding: 0 16px 12px; }
+/* הורדת קובצי הקול */
+.voice-dl { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.voice-dl .grow { flex: 1; min-width: 0; }
+.voice-dl .sub { font-size: 12.5px; }
+.voice-dl .bar { height: 5px; }
 /* סעיף הגדרות מתקפל */
 .set-sec > summary { min-height: 64px; }
 .set-sec > summary .grow { flex: 1; min-width: 0; }

@@ -81,20 +81,51 @@ function load(clip, coach = coachId(), urgent = false) {
   return buffers.get(url);
 }
 
-// הורדה שקטה ברקע של כל קובצי הקול של המאמן הנבחר (בלי פענוח) — ה-Service Worker שומר אותם,
-// כך שהמאמן מדבר גם בלי קליטה בחדר הכושר. רץ פעם אחת בכל פתיחה; קבצים שכבר שמורים חוזרים מיד.
+// ───── קובצי הקול במכשיר ─────
+// כל קובצי הקול של המאמן הנבחר נשמרים במכשיר (דרך ה-Service Worker), כך שהמאמן מדבר גם בלי קליטה בחדר הכושר.
+// ההורדה רצה לבד ברקע אחרי פתיחת האפליקציה, ואפשר להפעיל אותה ידנית מההגדרות ← קול והנחיות.
+function voiceFiles() {
+  const p = get().profile || {};
+  const coach = coachId(), slug = nameEntry(p)?.slug;
+  return Object.keys(VOICE_TIMING).filter((k) => k.startsWith(`${coach}/`) && (!k.includes('/names/') || (slug && k.includes(`/names/${slug}/`))))
+    .map((k) => `assets/voice/${k}.mp3`);
+}
+// כמה מהקבצים כבר שמורים במכשיר
+export async function voiceCacheStatus() {
+  const files = voiceFiles();
+  let have = 0;
+  try {
+    const cache = await caches.open('lohem-media');
+    const hits = await Promise.all(files.map((f) => cache.match(new URL(f, location.href).href)));
+    have = hits.filter(Boolean).length;
+  } catch { /* אין מטמון בדפדפן הזה */ }
+  return { have, total: files.length };
+}
+let downloading = null;
+export function downloadVoice(onProgress) {
+  if (downloading) return downloading;
+  const files = voiceFiles();
+  downloading = (async () => {
+    let done = 0, failed = 0;
+    for (const f of files) {
+      try { const r = await fetch(f); if (!r.ok) failed++; else await r.arrayBuffer(); } catch { failed++; }
+      done++;
+      onProgress?.(done, files.length);
+      if (failed > 5 && failed === done) break; // אין רשת — לא ממשיכים לנסות
+    }
+    return { total: files.length, failed: failed + (files.length - done) };
+  })().finally(() => { downloading = null; });
+  return downloading;
+}
 let warmed = '';
 export async function warmVoiceCache() {
   const p = get().profile;
   if (!p || !navigator.onLine || get().settings?.voice === false) return;
-  const coach = coachId(), slug = nameEntry(p)?.slug;
-  if (warmed === coach + slug) return;
-  warmed = coach + slug;
-  const keys = Object.keys(VOICE_TIMING).filter((k) => k.startsWith(`${coach}/`) && (!k.includes('/names/') || (slug && k.includes(`/names/${slug}/`))));
-  for (const k of keys) {
-    if (warmed !== coach + slug) return; // המאמן הוחלף באמצע
-    try { await fetch(`assets/voice/${k}.mp3`); } catch { return; }
-  }
+  const key = coachId() + (nameEntry(p)?.slug || '');
+  if (warmed === key) return;
+  warmed = key;
+  const st = await voiceCacheStatus();
+  if (st.have < st.total) await downloadVoice();
 }
 
 // בחירת הקובץ: גרסה עם שם המתאמן (אם הוקלטה), גרסת נקבה למתאמנת, או הרגילה

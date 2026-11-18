@@ -8,7 +8,7 @@ import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
 import { applyReadiness, blockedSet, LEVEL_NAMES, warmupFor, cooldownFor } from '../engine/program.js';
 import { say, sayNow, resolve, clipDur, keyDur, stop, onSpeaking, preload, unlock, isSpeaking } from '../coach/voice.js';
-import { MOTIVATION_KEYS, ORDINAL_SET } from '../data/voice-lines.js';
+import { MOTIVATION_KEYS, ORDINAL_SET, MOBILITY_TIPS } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
 import { startRun } from './run.js';
 import { pingWorkout, syncReminders } from '../reminders.js';
@@ -72,7 +72,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   preload(['go', 'down', 'up', 'hold', 'pull', 'press', 'release', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set',
     'next_ex', 'rate_set', 'warm_intro', 'warm_go', 'switch_side', 'warm_done', 'cool_intro', 'cool_done', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'hr_ready', 'hr_high', `hello_${coach}`,
     ...Array.from({ length: 20 }, (_, i) => `n${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `set${i + 1}`),
-    ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`)]);
+    ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`), ...items.filter((it) => MOBILITY_TIPS[it.exId]).map((it) => `tip_${it.exId}`)]);
 
   const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
     <div class="stage"><img class="stage-bg" alt="" aria-hidden="true"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
@@ -286,9 +286,10 @@ export function startWorkout(workout, { readiness = null } = {}) {
     // חימום/מתיחות: השעון לא מתחיל עד שהמאמן סיים להציג את התנועה (עד 15 שנ׳ המתנה), ורק אז "מתחילים!".
     // תרגילי זמן רגילים: "מתחילים להחזיק… עכשיו!"
     let startAt = mobility ? null : Date.now() + 1200;
-    if (!mobility) say('hold_start', { priority: true });
+    // תרגיל זמן סטטי (פלאנק, נשיאה): "מתחילים להחזיק… עכשיו!"; דינמי (סקוואט, ברכיים גבוהות, חבלים): "מתחילים!"
+    if (!mobility) say(e?.pattern === 'core' || e?.id === 'farmer_carry' ? 'hold_start' : 'warm_go', { priority: true });
     const waitUntil = Date.now() + 15000;
-    let lastSec = -1, half = false, cheered = false;
+    let lastSec = -1, half = false, cheered = false, tipped = false;
     timer = setInterval(() => {
       if (startAt == null) {
         if (isSpeaking() && Date.now() < waitUntil) { $('#ph').textContent = 'מתכוננים…'; return; }
@@ -306,6 +307,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (sec !== lastSec) {
         lastSec = sec;
         if (!half && t >= secs / 2 && secs >= 20) { half = true; if (mobility && e?.unilateral) { sayNow(['switch_side']); vibrate([60, 40, 60]); } else say('hold_half'); }
+        // חימום/מתיחות: דגש ביצוע כמה שניות אחרי ההתחלה
+        if (mobility && !tipped && t >= 4 && secs >= 20 && MOBILITY_TIPS[e?.id]) { tipped = true; say(`tip_${e.id}`); }
         // חימום: מילת עידוד לקראת הסוף, כדי שהמאמן לא ישתוק חצי דקה
         if (role === 'warmup' && !cheered && sec === 12 && secs >= 30) { cheered = true; say(WARM_CHEER[Math.floor(Math.random() * WARM_CHEER.length)]); }
         if (sec <= 3 && sec >= 1) sayNow([`n${sec}`]);

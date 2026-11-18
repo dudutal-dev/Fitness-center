@@ -1,10 +1,12 @@
 // מסך תזונה: יעדים מול מה שנאכל בפועל (יומן אכילה עם חיפוש ב-190+ מזונות), תפריט יומי לפי הקשר (בסיס/שטח/בית),
 // "לא אוכל", מזונות אישיים, מעקב שתייה, טיפים.
-import { html, esc, on, toast, sheet, icon, ib, em, emi } from '../ui/dom.js';
+import { html, esc, on, toast, sheet, icon, ib, em, emi, vibrate } from '../ui/dom.js';
 import { ring } from '../ui/charts.js';
 import { get, set, daily, setDaily, g } from '../store.js';
 import { mealPlan, qtyLabel, dayTotals, foodLookup, searchFoods, ACTIVITY, activityKey, trendAdvice } from '../engine/nutrition.js';
 import { FOOD, FOODS, DISLIKE_TAGS, NO_VEG_TIPS, ARMY_TIPS, NUTRITION_REFS } from '../data/foods.js';
+import { dayKey } from '../engine/stats.js';
+import { lookupBarcode, startScanner } from '../barcode.js';
 
 let tab = 'today';
 let ctx = 'base';
@@ -36,6 +38,10 @@ export function renderNutrition(root) {
   const act = ACTIVITY[actKey];
   const advice = trendAdvice(s.weights, p);
   const nf = (n) => n.toLocaleString('he-IL');
+  // ארוחות שנרשמו אתמול ועדיין לא נרשמו היום — אפשר להעתיק בהקשה אחת
+  const yFoods = (s.daily[dayKey(new Date(Date.now() - 864e5))]?.foods || []).filter((it) => foodLookup(it.id, custom));
+  const repeatable = MEAL_SLOTS.map(([slot, label]) => [slot, label, yFoods.filter((it) => (it.slot || 'snack') === slot).length])
+    .filter(([slot, , n]) => n && !log.some((x) => (x.slot || 'snack') === slot));
   const macro = (name, val, of, unit, color) => `<div class="macro"><div class="row between"><span>${name}</span><b><bdi>${val}</bdi><small> / <bdi>${of} ${unit}</bdi></small></b></div>
     <div class="bar"><i style="width:${Math.min(100, Math.round((val / Math.max(1, of)) * 100))}%;background:${color}"></i></div></div>`;
   const goalTag = p.goal === 'cut' ? 'גירעון' : p.goal === 'muscle' ? 'עודף' : 'תחזוקה';
@@ -69,6 +75,7 @@ export function renderNutrition(root) {
     </div>` : ''}
 
     <div class="h2">מה אכלתי${log.length ? `<span class="more" data-act="clear-log">ניקוי</span>` : ''}</div>
+    ${repeatable.length ? `<div class="chips" style="margin-bottom:10px">${repeatable.map(([slot, label, n]) => `<button class="chip" data-repeat="${slot}">${icon('refresh')} ${label} כמו אתמול <small class="num">(${n})</small></button>`).join('')}</div>` : ''}
     <div class="card tight">
       ${log.length ? MEAL_SLOTS.map(([slot, label]) => {
         const items = log.filter((x) => (x.slot || 'snack') === slot);
@@ -129,6 +136,12 @@ export function renderNutrition(root) {
     ${tab === 'menu' ? menuTab() : tab === 'prefs' ? prefsTab() : todayTab()}`;
 
   const rerender = () => renderNutrition(root);
+  on(root, 'click', '[data-repeat]', (e, b) => {
+    const slot = b.dataset.repeat;
+    const items = yFoods.filter((it) => (it.slot || 'snack') === slot).map((it) => ({ id: it.id, qty: it.qty, slot, at: Date.now() }));
+    setDaily({ foods: [...(daily().foods || []), ...items] });
+    toast(`${items.length} פריטים נרשמו`, 1400); rerender();
+  });
   on(root, 'click', '[data-tab]', (e, b) => { tab = b.dataset.tab; rerender(); });
   on(root, 'click', '[data-adjust]', (e, b) => {
     const v = b.dataset.adjust;
@@ -186,7 +199,7 @@ export function foodSearchSheet(onDone) {
     <input class="input" data-q placeholder="חיפוש: שניצל, קוטג׳, במבה…" autocomplete="off">
     <div class="chips scroll" style="margin-block:10px">${CATS.map(([k, v]) => `<button class="chip ${k === cat ? 'on' : ''}" data-cat="${k}">${v}</button>`).join('')}</div>
     <div id="fres" class="food-res"></div>
-    <button class="btn block" style="margin-top:12px" data-custom>＋ מזון שלא ברשימה</button>`, {
+    <div class="grid2" style="margin-top:12px"><button class="btn sm" data-scan>${icon('scan')} סריקת ברקוד</button><button class="btn sm" data-custom>＋ מזון חדש</button></div>`, {
     onMount(sh, close) {
       const row = (f, mark = '') => html`<button class="food-row" data-pick="${f.id}">
           <span><b>${mark}${esc(f.name)}</b><small>${esc(f.portion)}${f.custom ? ' · שלי' : ''}</small></span>
@@ -211,6 +224,7 @@ export function foodSearchSheet(onDone) {
       on(sh, 'click', '[data-sl]', (e, b) => { slot = b.dataset.sl; sh.querySelectorAll('[data-sl]').forEach((x) => x.classList.toggle('on', x === b)); });
       on(sh, 'click', '[data-pick]', (e, b) => { const f = foodLookup(b.dataset.pick, custom()); close(); qtySheet(f, slot, onDone); });
       sh.querySelector('[data-custom]').addEventListener('click', () => { close(); customFoodSheet(slot, onDone, q); });
+      sh.querySelector('[data-scan]').addEventListener('click', () => { close(); scanSheet(slot, onDone); });
       paint();
     },
   });
@@ -257,16 +271,61 @@ function logItemSheet(i, onDone) {
   });
 }
 
+// ───── סריקת ברקוד ─────
+function scanSheet(slot, onDone) {
+  let stopCam = null, busy = false;
+  const closeSheet = sheet(html`<div class="eyebrow">מוצר ארוז</div><div class="h1" style="font-size:22px">סריקת ברקוד</div>
+    <div class="scan-box"><video muted playsinline></video><i class="scan-line"></i><div class="scan-msg" data-msg>מפעיל מצלמה…</div></div>
+    <p class="sub t-foot" style="margin:10px 0">מכוונים את הברקוד אל הקו. אפשר גם להקליד את המספר שמתחתיו.</p>
+    <div class="row"><input class="input num" data-code inputmode="numeric" placeholder="7290000000000" maxlength="14" style="flex:1;min-width:0"><button class="btn" data-find>חפש</button></div>
+    <p class="sub t-cap" style="margin-top:10px">הערכים מגיעים מהמאגר הפתוח Open Food Facts; נשלח אליו רק מספר הברקוד. כדאי להשוות לתווית לפני השמירה.</p>`, {
+    onClose() { stopCam?.(); },
+    onMount(sh) {
+      const msg = (x) => { const m = sh.querySelector('[data-msg]'); if (m) m.textContent = x; };
+      const found = async (code) => {
+        if (busy) return;
+        busy = true;
+        // מוצר שכבר נסרק ונשמר — ישר לבחירת כמות
+        const known = (get().profile.customFoods || []).find((f) => f.barcode === code);
+        if (known) { closeSheet(); qtySheet(known, slot, onDone); return; }
+        msg(`נמצא ברקוד ${code} — מחפש…`);
+        try {
+          const r = await lookupBarcode(code);
+          closeSheet();
+          if (!r.found) { toast('המוצר לא נמצא במאגר — אפשר להזין מהתווית'); customFoodSheet(slot, onDone, { barcode: code }); return; }
+          if (!r.complete) toast('המוצר נמצא, אבל בלי ערכים מלאים — להשלים מהתווית');
+          customFoodSheet(slot, onDone, r);
+        } catch {
+          busy = false;
+          msg(navigator.onLine ? 'החיפוש נכשל — לנסות שוב' : 'אין חיבור לרשת — החיפוש דורש אינטרנט');
+        }
+      };
+      sh.querySelector('[data-find]').addEventListener('click', () => {
+        const code = sh.querySelector('[data-code]').value.replace(/\D/g, '');
+        if (code.length < 8) { toast('מספר ברקוד קצר מדי'); return; }
+        found(code.length === 12 ? `0${code}` : code);
+      });
+      if (!navigator.mediaDevices?.getUserMedia) { msg('אין גישה למצלמה בדפדפן הזה — אפשר להקליד את המספר'); return; }
+      startScanner(sh.querySelector('video'), (code) => { vibrate(40); found(code); })
+        .then((stop) => { stopCam = stop; if (!document.body.contains(sh)) stop(); else msg(''); })
+        .catch(() => msg('אין הרשאה למצלמה — אפשר להקליד את המספר'));
+    },
+  });
+}
+
+// prefill: מחרוזת (שם) או אובייקט ממאגר הברקודים { name, portion, kcal, p, c, f, fib, barcode }
 function customFoodSheet(slot, onDone, prefill = '') {
-  sheet(html`<div class="eyebrow">מזון אישי</div><div class="h1" style="font-size:22px">הוספת מזון חדש</div>
-    <p class="sub">יישמר אצלך ויופיע בחיפוש בפעם הבאה. אפשר להעתיק ערכים מהתווית שעל האריזה.</p>
-    <label class="field"><span>שם</span><input class="input" name="name" value="${esc(prefill)}"></label>
-    <label class="field"><span>מנה (למשל: יחידה, 100 ג׳)</span><input class="input" name="portion" value="מנה"></label>
+  const pre = typeof prefill === 'string' ? { name: prefill } : prefill || {};
+  const val = (v) => (v == null ? '' : esc(v));
+  sheet(html`<div class="eyebrow">${pre.barcode ? `ברקוד ${esc(pre.barcode)}` : 'מזון אישי'}</div><div class="h1" style="font-size:22px">${pre.found ? 'לבדוק ולשמור' : 'הוספת מזון חדש'}</div>
+    <p class="sub">${pre.found ? 'הערכים הגיעו ממאגר פתוח שמשתמשים ממלאים — כדאי להשוות לתווית.' : 'יישמר אצלך ויופיע בחיפוש בפעם הבאה. אפשר להעתיק ערכים מהתווית שעל האריזה.'}</p>
+    <label class="field"><span>שם</span><input class="input" name="name" value="${val(pre.name)}"></label>
+    <label class="field"><span>מנה (למשל: יחידה, 100 ג׳)</span><input class="input" name="portion" value="${val(pre.portion || 'מנה')}"></label>
     <div class="grid2">
-      <label class="field"><span>קלוריות</span><input class="input num" name="kcal" type="number" inputmode="numeric"></label>
-      <label class="field"><span>חלבון (ג׳)</span><input class="input num" name="p" type="number" inputmode="decimal"></label>
-      <label class="field"><span>פחמימות (ג׳)</span><input class="input num" name="c" type="number" inputmode="decimal"></label>
-      <label class="field"><span>שומן (ג׳)</span><input class="input num" name="f" type="number" inputmode="decimal"></label>
+      <label class="field"><span>קלוריות</span><input class="input num" name="kcal" type="number" inputmode="numeric" value="${val(pre.kcal)}"></label>
+      <label class="field"><span>חלבון (ג׳)</span><input class="input num" name="p" type="number" inputmode="decimal" value="${val(pre.p)}"></label>
+      <label class="field"><span>פחמימות (ג׳)</span><input class="input num" name="c" type="number" inputmode="decimal" value="${val(pre.c)}"></label>
+      <label class="field"><span>שומן (ג׳)</span><input class="input num" name="f" type="number" inputmode="decimal" value="${val(pre.f)}"></label>
     </div>
     <button class="btn primary block xl" data-save>שמור והוסף ליומן</button>`, {
     onMount(sh, close) {
@@ -274,7 +333,7 @@ function customFoodSheet(slot, onDone, prefill = '') {
         const v = (n) => sh.querySelector(`[name=${n}]`).value.trim();
         const name = v('name'), kcal = Number(v('kcal'));
         if (!name || !kcal) { toast('צריך לפחות שם וקלוריות'); return; }
-        const food = { id: `c_${Date.now()}`, name, portion: v('portion') || 'מנה', kcal, p: Number(v('p')) || 0, c: Number(v('c')) || 0, f: Number(v('f')) || 0, cat: 'custom', tags: [], ctx: ['base', 'home', 'field'], custom: true };
+        const food = { id: `c_${Date.now()}`, name, portion: v('portion') || 'מנה', kcal, p: Number(v('p')) || 0, c: Number(v('c')) || 0, f: Number(v('f')) || 0, fib: Number(pre.fib) || 0, cat: 'custom', tags: [], ctx: ['base', 'home', 'field'], custom: true, ...(pre.barcode ? { barcode: pre.barcode } : {}) };
         set((s2) => { (s2.profile.customFoods ||= []).push(food); return s2; });
         setDaily({ foods: [...(daily().foods || []), { id: food.id, qty: 1, slot, at: Date.now() }] });
         toast(`✓ ${name} נשמר ונרשם`);

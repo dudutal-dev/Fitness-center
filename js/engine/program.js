@@ -61,7 +61,7 @@ const T = {
     S('main', 'back_squat', 'leg_press'), S('main', 'rdl', 'deadlift'), S('second', 'bulgarian_split', 'db_lunge'), S('acc', 'leg_curl'),
     S('acc', 'leg_ext'), S('acc', 'calf_raise'), S('core', 'hanging_leg_raise', 'plank')] },
   field: { name: 'אימון שטח (ללא ציוד)', focus: 'משקל גוף — בכל מקום', slots: [
-    S('main', 'pushup'), S('main', 'db_lunge'), S('second', 'burpee'), S('acc', 'pullup'), S('core', 'plank')] },
+    S('main', 'pushup'), S('main', 'bw_squat'), S('second', 'burpee'), S('acc', 'high_knees'), S('core', 'plank')] },
 };
 
 const SPLITS = {
@@ -70,6 +70,11 @@ const SPLITS = {
   5: ['upperA', 'lowerA', 'push', 'pull', 'legs'],
   6: ['push', 'pull', 'legs', 'upperB', 'lowerB', 'fullC'],
 };
+
+// אימון בלי ציוד: רק תרגילים שאפשר לעשות בכל מקום (בלי מוט מתח, משקולות או מכונות)
+const NO_EQUIP = new Set(['משקל גוף', 'מזרן', 'עמידה']);
+export const isBodyweight = (id) => NO_EQUIP.has(EX[id]?.equip);
+const FIELD_FINISHER = { name: 'פיניש שטח: קפיצות פיסוק + ברפי', items: [['jumping_jacks', 30], ['burpee', 8]], rounds: 3 };
 
 const FINISHERS = [
   { name: 'פיניש קרבי: סבב סווינג + ברפי', items: [['kb_swing', 15], ['burpee', 10]], rounds: 3 },
@@ -146,7 +151,7 @@ export function buildWorkout(templateId, profile, { blockIndex = 0, weekInBlock 
   const items = [];
   tpl.slots.forEach((slot) => {
     const exId = pickExercise(slot, profile, blocked, blockIndex, used);
-    if (!exId) return;
+    if (!exId || (templateId === 'field' && !isBodyweight(exId))) return;
     used.add(exId);
     const ex = EX[exId];
     const sch = schemeFor(slot.role === 'core' ? 'acc' : slot.role, phase, profile, week);
@@ -158,7 +163,7 @@ export function buildWorkout(templateId, profile, { blockIndex = 0, weekInBlock 
   out.warmup = warmupFor(out.items, blocked);
   out.cooldown = cooldownFor(out.items);
   if ((GOALS[profile.goal]?.finisher || templateId === 'field') && weekInBlock !== 3) {
-    const f = FINISHERS[(blockIndex + templateId.length) % FINISHERS.length];
+    const f = templateId === 'field' ? FIELD_FINISHER : FINISHERS[(blockIndex + templateId.length) % FINISHERS.length];
     const ok = f.items.every(([id]) => !blocked.has(id));
     if (ok) out.finisher = { ...f, rounds: f.rounds + (profile.level >= 4 ? 1 : 0) };
   }
@@ -224,8 +229,9 @@ export function estimateLevel({ years = 0, pushups = 0, pullups = 0, run3k = nul
 // חימום דינמי: 5 תנועות × 40 שנ׳ (סקוואט חימום ביום רגליים, ברכיים גבוהות ביום עליון)
 export function warmupFor(items, blocked = new Set()) {
   const legDay = items.some((it) => EX[it.exId] && ['squat', 'hinge', 'lunge'].includes(EX[it.exId].pattern));
+  const inWorkout = new Set(items.map((it) => it.exId)); // לא חוזרים בחימום על תנועה שהיא חלק מהאימון עצמו
   const ids = ['jumping_jacks', 'arm_circles', 'leg_swings', 'inchworm', legDay ? 'bw_squat' : 'high_knees']
-    .filter((id) => !blocked.has(id) && !(blocked.has('box_jump') && ['jumping_jacks', 'high_knees'].includes(id)));
+    .filter((id) => !inWorkout.has(id) && !blocked.has(id) && !(blocked.has('box_jump') && ['jumping_jacks', 'high_knees'].includes(id)));
   return ids.map((exId) => ({ exId, secs: 40 }));
 }
 // מתיחות: לפי השרירים שעבדו הכי הרבה באימון, 4 מתיחות × 40 שנ׳ (חד־צדדיות: 20 לכל צד), תנוחת ילד בסוף

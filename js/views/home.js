@@ -102,10 +102,10 @@ export function renderHome(root) {
     <div class="h2">הכושר שלך<a class="more" href="#/progress">התקדמות</a></div>
     <div class="card">
       <div class="cri">
-        ${ring(cri.score / 100, { size: 104, stroke: 10, big: cri.score, lbl: 'מתוך 100' })}
+        ${ring((cri.score ?? 0) / 100, { size: 104, stroke: 10, big: cri.score ?? '—', lbl: cri.score == null ? 'עוד לא נמדד' : 'מתוך 100' })}
         <div>
-          ${meter('כוח', cri.parts.strength)}${meter('סבולת', cri.parts.endurance)}
-          ${meter('עקביות', cri.parts.consistency)}${meter('גוף', cri.parts.body)}
+          ${meter('כוח', cri.parts.strength, 'אחרי אימון כוח')}${meter('סבולת', cri.parts.endurance, 'אחרי מבדק 3 ק״מ')}
+          ${meter('עקביות', cri.parts.consistency)}${meter('גוף', cri.parts.body, 'אחרי שקילה שנייה')}
         </div>
       </div>
       <div class="rank-row"><span>${emi(rank.icon)} ${rank.name}</span><div class="bar"><i style="width:${rank.pct * 100}%"></i></div><span class="num">${rank.next ? `${s.xp} / ${rank.next.xp}` : s.xp} XP</span></div>
@@ -134,7 +134,8 @@ export function renderHome(root) {
   });
 }
 
-const meter = (label, v) => `<div class="meter"><div class="row"><span>${label}</span><span>${v}</span></div><div class="bar"><i style="width:${v}%"></i></div></div>`;
+// רכיב שעוד לא נמדד מוצג בלי מספר, עם הסבר מתי יופיע
+const meter = (label, v, pending = '') => `<div class="meter"><div class="row"><span>${label}</span><span>${v ?? `<small>${pending}</small>`}</span></div><div class="bar"><i style="width:${v ?? 0}%"></i></div></div>`;
 
 // צ׳ק־אין מוכנות לפני אימון → אוטו־רגולציה
 export function checkIn(cb, onlyLog = false) {

@@ -1,7 +1,7 @@
 // Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין), מדיה במטמון נפרד שמתרענן רק כשהמדיה משתנה.
 // הגרסאות מתעדכנות אוטומטית ע״י tools/release.mjs — כל שינוי כאן גורם לדפדפן להתקין את הגרסה החדשה.
-const VERSION = 'lohem-20261118.031026';
-const MEDIA = 'lohem-media-20261118.031026';
+const VERSION = 'lohem-20261118.034155';
+const MEDIA = 'lohem-media-20261118.034155';
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'version.json',
   'js/app.js', 'js/version.js', 'js/updater.js', 'js/theme.js', 'js/reminders.js', 'js/views/reminders-ui.js', 'js/store.js', 'js/ui/dom.js', 'js/ui/charts.js', 'js/coach/voice.js',

@@ -80,7 +80,7 @@ export function renderCoach(root) {
       <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>`)}
-    <p class="sub" data-about style="text-align:center;font-size:12px;margin-top:18px">${licenseText() ? `${esc(licenseText())}<br>` : ''}LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
+    <p class="sub" data-about style="text-align:center;font-size:12px;margin-top:18px">${licenseText() ? `${esc(licenseText())}<br>` : ''}חוד · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
   root.querySelectorAll('details[data-sec]').forEach((d) => d.addEventListener('toggle', () => { d.open ? openSec.add(d.dataset.sec) : openSec.delete(d.dataset.sec); }));
   // מצב קובצי הקול במכשיר + הורדה ידנית

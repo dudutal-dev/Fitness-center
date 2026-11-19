@@ -30,7 +30,7 @@ export function renderOnboarding(root, done) {
         <div class="duo"><img src="${COACHES.ori.img}" alt=""><img src="${COACHES.noa.img}" alt=""></div>
         <div class="copy">
           <div class="eyebrow">AI PERSONAL TRAINER</div>
-          <div class="logo">LOHEM</div>
+          <div class="logo">חוד</div>
           <div class="h1" style="font-size:24px;margin-top:10px">מאמן אישי וירטואלי שבונה לוחם.</div>
           <p class="sub" style="font-size:15px">תוכנית אימונים שמשתנה איתך, ספירת חזרות וטמפו בקול, ריצה, תזונה ומעקב — הכל במקום אחד.</p>
         </div></div>`,

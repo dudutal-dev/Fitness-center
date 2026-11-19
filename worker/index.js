@@ -1,20 +1,23 @@
-// LOHEM Reminders — Cloudflare Worker: שומר מנויי Push ושולח תזכורות לפי לוח זמנים (קרון כל 5 דקות).
+// LOHEM Reminders — Cloudflare Worker משותף לשלוש האפליקציות (LOHEM, סטודיו כושר, קליסתניקס):
+// שומר מנויי Push ושולח תזכורות לפי לוח זמנים (קרון כל 5 דקות), ומנהל קישורי הפעלה אישיים (lic.js, נתיבי /lic/…).
 // סודות/הגדרות: VAPID_PUBLIC (טקסט), VAPID_PRIVATE_JWK (סוד), VAPID_SUBJECT; KV: SUBS
 import { sendPush } from './webpush.js';
 import { dueReminders, pruneSent } from './schedule.js';
+import { lic } from './lic.js';
 
-const ALLOWED = ['https://dudutal-dev.github.io', 'http://localhost:8080'];
+const ALLOWED = ['https://dudutal-dev.github.io'];
+const allowed = (o) => ALLOWED.includes(o) || /^http:\/\/localhost(:\d+)?$/.test(o || '');   // localhost: פיתוח ובדיקות
 
 function cors(req) {
   const o = req.headers.get('Origin');
-  return { 'Access-Control-Allow-Origin': ALLOWED.includes(o) ? o : ALLOWED[0], 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin' };
+  return { 'Access-Control-Allow-Origin': allowed(o) ? o : ALLOWED[0], 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin' };
 }
 const json = (req, data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...cors(req) } });
 const vapid = (env) => ({ publicKey: env.VAPID_PUBLIC, privateJwk: JSON.parse(env.VAPID_PRIVATE_JWK), subject: env.VAPID_SUBJECT });
 const validId = (id) => typeof id === 'string' && /^[a-f0-9-]{36}$/.test(id);
 const clean = (b) => ({
   settings: b.settings || {}, tz: String(b.tz || 'Asia/Jerusalem').slice(0, 64), name: String(b.name || '').slice(0, 30),
-  sex: b.sex === 'f' ? 'f' : 'm', coach: b.coach === 'noa' ? 'noa' : 'ori',
+  sex: b.sex === 'f' ? 'f' : 'm', coach: ['noa', 'maya'].includes(b.coach) ? b.coach : 'ori',
 });
 
 async function push(env, rec, msg) {
@@ -27,6 +30,7 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(req) });
     const url = new URL(req.url);
     if (req.method === 'GET' && url.pathname === '/') return json(req, { ok: true, service: 'lohem-reminders', vapid: env.VAPID_PUBLIC });
+    if (url.pathname.startsWith('/lic/')) return lic(req, env, url, (data, status) => json(req, data, status));   // קישורי הפעלה
     if (req.method !== 'POST') return json(req, { error: 'method' }, 405);
     let b;
     try { b = await req.json(); } catch { return json(req, { error: 'json' }, 400); }
@@ -54,7 +58,7 @@ export default {
     }
     if (url.pathname === '/test') {
       const f = rec.sex === 'f';
-      const status = await push(env, rec, { title: `${rec.coach === 'noa' ? 'נועה' : 'אורי'}: התזכורות עובדות ✅`, body: `${rec.name ? `${rec.name}, ` : ''}ככה ${f ? 'תקבלי' : 'תקבל'} ממני תזכורות לאימון, שתייה ושקילה.`, tag: 'test', url: './#/coach' });
+      const status = await push(env, rec, { title: `${{ noa: 'נועה', maya: 'מאיה' }[rec.coach] || 'אורי'}: התזכורות עובדות ✅`, body: `${rec.name ? `${rec.name}, ` : ''}ככה ${f ? 'תקבלי' : 'תקבל'} ממני תזכורות לאימון, שתייה ושקילה.`, tag: 'test', url: './#/coach' });
       if (status === 404 || status === 410) await env.SUBS.delete(key);
       return json(req, { status }, status < 300 ? 200 : 502);
     }

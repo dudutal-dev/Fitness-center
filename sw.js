@@ -1,7 +1,7 @@
 // Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין). מדיה (קול/וידאו) במטמון קבוע שלא נמחק בעדכון:
 // כשגרסת המדיה משתנה, כל קובץ מוגש מיד מהמטמון ומתרענן ברקע — כך שעדכון לא משאיר את המאמן בלי קול כשאין קליטה.
 // הגרסאות מתעדכנות אוטומטית ע״י tools/release.mjs — כל שינוי כאן גורם לדפדפן להתקין את הגרסה החדשה.
-const VERSION = 'lohem-20261118.090955';
+const VERSION = 'lohem-20261119.084115';
 const MEDIA = 'lohem-media-20261118.052342';
 const MEDIA_CACHE = 'lohem-media';
 const MEDIA_TAG = 'x-lohem-media';
@@ -11,7 +11,7 @@ const CORE = [
   'js/data/exercises.js', 'js/data/foods.js', 'js/data/coaches.js', 'js/data/voice-lines.js', 'js/data/names.js', 'js/data/demo-timing.js', 'js/data/voice-timing.js',
   'js/engine/program.js', 'js/engine/progression.js', 'js/engine/running.js', 'js/engine/nutrition.js', 'js/engine/stats.js', 'js/engine/history-edit.js', 'js/engine/summary.js', 'js/backup.js', 'js/barcode.js',
   'js/views/onboarding.js', 'js/views/home.js', 'js/views/plan.js', 'js/views/workout.js', 'js/views/run.js',
-  'js/views/progress.js', 'js/views/nutrition.js', 'js/views/coach.js', 'js/views/garmin.js', 'js/views/guide.js', 'js/views/history.js',
+  'js/views/progress.js', 'js/views/nutrition.js', 'js/views/coach.js', 'js/views/garmin.js', 'js/views/guide.js', 'js/views/history.js', 'js/views/plan-intro.js',
   'js/devices/fit.js', 'js/devices/importer.js', 'js/devices/health.js', 'js/devices/hr.js', 'js/devices/gps.js', 'js/devices/ui.js',
   'assets/coaches/ori.webp', 'assets/coaches/noa.webp', 'assets/coaches/ori_face.webp', 'assets/coaches/noa_face.webp',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png',
@@ -31,7 +31,8 @@ self.addEventListener('activate', (e) => {
       const old = await caches.open(k);
       for (const req of await old.keys()) { if (!(await media.match(req))) { const r = await old.match(req); if (r) await media.put(req, r); } }
     }
-    await Promise.all(keys.filter((k) => k !== VERSION && k !== MEDIA_CACHE).map((k) => caches.delete(k)));
+    // מוחקים רק מטמונים ישנים של LOHEM. באותו דומיין רצות עוד אפליקציות (סטודיו כושר, קליסתניקס) — לא נוגעים במטמונים שלהן.
+    await Promise.all(keys.filter((k) => k.startsWith('lohem-') && k !== VERSION && k !== MEDIA_CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });

@@ -5,6 +5,7 @@ import { GOALS, INJURIES, estimateLevel, LEVEL_NAMES } from '../engine/program.j
 import { runLevelFrom3k } from '../engine/running.js';
 import { ANCHOR_LIFTS } from '../engine/progression.js';
 import { DISLIKE_TAGS } from '../data/foods.js';
+import { nutPrefsHtml, bindNutPrefs } from './nut-prefs.js';
 import { set, createPlan, today } from '../store.js';
 import { say, unlock, stop } from '../coach/voice.js';
 
@@ -19,7 +20,7 @@ export function renderOnboarding(root, done) {
   const d = {
     coach: 'ori', name: '', age: 20, heightCm: 178, weightKg: 72, targetWeight: 75, sex: 'm',
     goal: 'combat', years: 1, pushups: 30, pullups: 8, run3kStr: '', days: 4, sessionMin: 60,
-    injuries: [], dislikes: [], dislikedFoods: [],
+    injuries: [], dislikes: [], dislikedFoods: [], nutrition: null, diet: 'all', kosher: false, mealsN: 5, allergies: [],
   };
   let step = 0;
   const STEPS = 9;
@@ -83,9 +84,13 @@ export function renderOnboarding(root, done) {
       <div class="chips">${Object.entries(INJURIES).map(([id, x]) => `<button class="chip no ${d.injuries.includes(id) ? 'on' : ''}" data-inj="${id}">${x.name}</button>`)}</div>
       <p class="sub" style="margin-top:14px">${d.injuries.length ? '' : 'אין פציעות — מצוין.'}</p>`,
     // 7 — תזונה
-    () => html`<div class="eyebrow">שלב 7 · תזונה</div><div class="q">מה ${d.sex === 'f' ? 'את' : 'אתה'} <span style="color:var(--red)">לא</span> ${d.sex === 'f' ? 'אוכלת' : 'אוכל'}?</div>
-      <p class="sub">${d.sex === 'f' ? 'סמני הכל — התפריט ייבנה רק ממה שאת כן אוכלת' : 'סמן הכל — התפריט ייבנה רק ממה שאתה כן אוכל'}, עם חלופות חכמות (למשל: לא אוכל ירקות? נשלים ויטמינים ממקורות אחרים).</p>
-      <div class="chips">${Object.entries(DISLIKE_TAGS).map(([id, t]) => `<button class="chip no ${d.dislikes.includes(id) ? 'on' : ''}" data-dis="${id}">${t}</button>`)}</div>`,
+    () => html`<div class="eyebrow">שלב 7 · תזונה</div><div class="q">רוצים גם ליווי תזונה?</div>
+      <p class="sub">תפריט יומי מותאם, יעדי קלוריות וחלבון ויומן אכילה. זה לא חובה, ואפשר להפעיל או לכבות בכל רגע במסך התזונה.</p>
+      <button class="nut-choice ${d.nutrition === true ? 'on' : ''}" data-nut="1"><div class="nc-ico">${icon('food')}</div><div><b>כן, עם תזונה</b><span>עוד כמה שאלות קצרות, והתפריט ייבנה לפיהן.</span></div></button>
+      <button class="nut-choice ${d.nutrition === false ? 'on' : ''}" data-nut="0"><div class="nc-ico">${icon('dumbbell')}</div><div><b>לא עכשיו — רק אימונים</b><span>מדלגים על השאלות. מסך התזונה נשאר כבוי עד שמפעילים אותו.</span></div></button>
+      ${d.nutrition ? html`${nutPrefsHtml(d)}
+        <div class="h2 np-h">מה לא אוכלים?</div>
+        <div class="chips">${Object.entries(DISLIKE_TAGS).map(([id, t]) => `<button class="chip no ${d.dislikes.includes(id) ? 'on' : ''}" data-dis="${id}">${t}</button>`)}</div>` : ''}`,
     // 8 — בנייה
     () => html`<div class="build-anim"><div class="core"></div>
       <div class="h1" style="font-size:24px">${esc(COACHES[d.coach].name)} בונה לך תוכנית…</div>
@@ -118,6 +123,7 @@ export function renderOnboarding(root, done) {
     unlock();
     readInputs();
     if (t.dataset.act === 'back') { step--; paint(); return; }
+    if (root.querySelector('[data-nut]') && d.nutrition == null) { toast('רוצים ליווי תזונה? בוחרים כן או לא'); return; }
     if (step === 2 && !d.name) { toast('איך קוראים לך?'); return; }
     if (step === 4 && d.run3kStr && !parse3k(d.run3kStr)) { toast('פורמט זמן: דקות:שניות, למשל 13:30'); return; }
     step++; paint();
@@ -138,6 +144,8 @@ export function renderOnboarding(root, done) {
   });
   on(root, 'click', '[data-inj]', (e, t) => { toggle(d.injuries, t.dataset.inj); paint(); });
   on(root, 'click', '[data-dis]', (e, t) => { toggle(d.dislikes, t.dataset.dis); paint(); });
+  on(root, 'click', '[data-nut]', (e, t) => { d.nutrition = t.dataset.nut === '1'; paint(); });
+  bindNutPrefs(root, on, (mutate) => { mutate(d); paint(); });
 
   function runBuild() {
     const items = [...root.querySelectorAll('#buildList li')];
@@ -148,7 +156,8 @@ export function renderOnboarding(root, done) {
       const profile = {
         coach: d.coach, name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg, targetWeight: d.targetWeight,
         goal: d.goal, level, days: d.days, sessionMin: d.sessionMin, run3k, runLevel: runLevelFrom3k(run3k), injuries: d.injuries,
-        dislikes: d.dislikes, dislikedFoods: [], createdAt: new Date().toISOString(),
+        nutrition: d.nutrition !== false, ...(d.nutrition ? { diet: d.diet, kosher: d.kosher, mealsN: d.mealsN, allergies: d.allergies } : {}),
+        dislikes: d.nutrition ? d.dislikes : [], dislikedFoods: [], createdAt: new Date().toISOString(),
         lifts: liftsFrom((k, f) => d[`lift_${k}_${f}`]),
       };
       set((s) => {

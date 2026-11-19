@@ -1,6 +1,6 @@
 // לוגיקת התזכורות (טהורה, נבדקת): אילו תזכורות צריך לשלוח עכשיו למנוי מסוים.
 // sub: { tz, name, sex, coach, lastWorkout, sent:{}, settings:{ workout, water, weigh, comeback } }
-const COACH = { ori: 'אורי', noa: 'נועה' };
+const COACH = { ori: 'אורי', noa: 'נועה', maya: 'מאיה' };
 const WINDOW = 5; // דקות — הקרון רץ כל 5 דקות
 
 export function localNow(tz, now = new Date()) {
@@ -22,7 +22,8 @@ function texts(sub, seed) {
     workout: pick([
       { title: `${coach}: האימון מחכה לך 💪`, body: `${n}${f ? 'מוכנה' : 'מוכן'}? משימת היום בתוכנית. ${f ? 'בואי' : 'בוא'} נעשה אותה יחד.` },
       { title: `${coach}: הגיע הזמן 🔥`, body: `${n}כל אימון מקרב ${f ? 'אותך' : 'אותך'} למטרה. ${f ? 'יאללה, צאי' : 'יאללה, צא'} לאימון!` },
-      { title: `${coach}: לוחמים לא מדלגים ⚔️`, body: `${n}רק ${f ? 'תתחילי' : 'תתחיל'} — אני אספור איתך כל חזרה.` },
+      sub.coach === 'maya' ? { title: `${coach}: עוד שלב בסולם 🪜`, body: `${n}אימון קצר היום שווה יותר מאימון מושלם מחר.` }
+      : { title: `${coach}: לוחמים לא מדלגים ⚔️`, body: `${n}רק ${f ? 'תתחילי' : 'תתחיל'} — אני אספור איתך כל חזרה.` },
     ], seed),
     water: pick([
       { title: '💧 הפסקת מים', body: `${n}כוס מים עכשיו. בשטח ובחום — לשתות לפני שצמאים.` },

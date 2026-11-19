@@ -15,7 +15,7 @@ import { applyTheme } from '../theme.js';
 import { backupNow, lastBackupText } from '../backup.js';
 import { reminderCard, bindReminders } from './reminders-ui.js';
 import { syncReminders } from '../reminders.js';
-import { licenseText, bindHiddenAdmin, adminRevealed, adminUrl } from '../lic.js';
+import { licenseText } from '../lic.js';
 
 // אילו סעיפי הגדרות פתוחים — נשמר בין רינדורים כדי שהסעיף לא ייסגר אחרי כל שינוי
 const openSec = new Set();
@@ -80,13 +80,8 @@ export function renderCoach(root) {
       <div class="grid2"><button class="btn sm" data-export>${icon('download', 'width="16" height="16"')} גיבוי</button><label class="btn sm">${icon('upload', 'width="16" height="16"')} שחזור<input type="file" accept="application/json" hidden data-import></label></div>
       <button class="btn sm danger block" style="margin-top:10px" data-reset>איפוס מלא</button>
     </div>`)}
-    <div data-lic-admin></div>
     <p class="sub" data-about style="text-align:center;font-size:12px;margin-top:18px">${licenseText() ? `${esc(licenseText())}<br>` : ''}LOHEM · גרסה <span class="num">${APP_VERSION}</span> · מתעדכנת אוטומטית · דמויות, הדמיות וקולות נוצרו ב-AI (ElevenLabs)<br>לפני תחילת תוכנית אימונים מומלץ אישור רפואי.</p>`;
 
-  // כפתור נסתר לבעל האפליקציה: חמש הקשות על שורת הגרסה חושפות (או מסתירות) את "שליחת קישורי הפעלה"
-  const adminBtn = (on) => { root.querySelector('[data-lic-admin]').innerHTML = on ? `<a class="btn sm block" style="margin-top:16px" href="${adminUrl()}">${icon('link', 'width="16" height="16"')} שליחת קישורי הפעלה</a>` : ''; };
-  adminBtn(adminRevealed());
-  bindHiddenAdmin(root.querySelector('[data-about]'), (on) => { adminBtn(on); toast(on ? 'מסך הניהול נחשף בטלפון הזה' : 'מסך הניהול הוסתר'); });
   root.querySelectorAll('details[data-sec]').forEach((d) => d.addEventListener('toggle', () => { d.open ? openSec.add(d.dataset.sec) : openSec.delete(d.dataset.sec); }));
   // מצב קובצי הקול במכשיר + הורדה ידנית
   const vdl = (have, total, busy) => {

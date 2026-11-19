@@ -3,6 +3,7 @@ import { html, el, on, icon, em, ib } from '../ui/dom.js';
 import { COACHES } from '../data/coaches.js';
 import { get, set } from '../store.js';
 import { unlock } from '../coach/voice.js';
+import { platform, platformName, installSteps, installOneLine } from '../install.js';
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -30,9 +31,9 @@ function slides() {
       id: 'install', title: 'שלב 1 · מתקינים על הטלפון', eyebrow: 'פעם אחת',
       visual: `${em('📲', 'pri', 'xl')}`,
       body: (standalone() ? tip('✅', 'האפליקציה כבר מותקנת על המסך הראשי. מעולה!') : '') +
-        (isIOS()
-          ? step(1, 'פותחים את הכתובת בספארי', 'dudutal-dev.github.io/Fitness-center') + step(2, 'לוחצים על כפתור השיתוף ⬆️', 'בתחתית המסך') + step(3, 'בוחרים "הוסף למסך הבית"', 'ומאשרים "הוסף"')
-          : step(1, 'פותחים את הכתובת ב-Chrome', 'dudutal-dev.github.io/Fitness-center') + step(2, 'תפריט ⋮ למעלה', '') + step(3, 'בוחרים "התקנת אפליקציה" / "הוספה למסך הבית"', '')) +
+        `<div class="sub" style="font-size:13px;margin:0 0 4px">ההוראות למכשיר שלך: <b>${platformName()}</b></div>` +
+        installSteps().map(([t, d], i) => step(i + 1, t, d)).join('') +
+        tip('📱', `<b>במכשיר אחר?</b> ${['ios-safari', 'ios-chrome', 'android'].filter((p) => p !== platform()).map(installOneLine).join(' ')}`) +
         tip('🔄', 'האפליקציה <b>מתעדכנת לבד</b> — לא צריך להוריד כלום שוב.') +
         tip('🔔', 'רק מהאפליקציה המותקנת אפשר להפעיל <b>תזכורות</b> (אימון, שתייה, שקילה): הגדרות ← תזכורות.') +
         tip('📴', 'עובדת גם בלי קליטה (אחרי הפתיחה הראשונה).'),

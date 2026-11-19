@@ -1,7 +1,7 @@
 // Service Worker: קוד האפליקציה נשמר במטמון לפי גרסה (עובד אופליין). מדיה (קול/וידאו) במטמון קבוע שלא נמחק בעדכון:
 // כשגרסת המדיה משתנה, כל קובץ מוגש מיד מהמטמון ומתרענן ברקע — כך שעדכון לא משאיר את המאמן בלי קול כשאין קליטה.
 // הגרסאות מתעדכנות אוטומטית ע״י tools/release.mjs — כל שינוי כאן גורם לדפדפן להתקין את הגרסה החדשה.
-const VERSION = 'lohem-20261119.132005';
+const VERSION = 'lohem-20261119.134159';
 const MEDIA = 'lohem-media-20261118.052342';
 const MEDIA_CACHE = 'lohem-media';
 const MEDIA_TAG = 'x-lohem-media';
@@ -74,8 +74,8 @@ self.addEventListener('fetch', (e) => {
 // ───── תזכורות Push ─────
 self.addEventListener('push', (e) => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'LOHEM', body: e.data?.text() || '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'LOHEM', {
+  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'חוד', body: e.data?.text() || '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'חוד', {
     body: d.body || '', tag: d.tag || 'lohem', renotify: true, lang: 'he', dir: 'rtl',
     icon: 'assets/icons/icon-192.png', badge: 'assets/icons/icon-192.png', data: { url: d.url || './#/home' },
   }));

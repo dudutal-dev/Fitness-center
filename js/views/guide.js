@@ -19,7 +19,7 @@ function slides() {
       // שקף פתיחה בעיצוב משלו: שני המאמנים, שם האפליקציה ושלוש הבטחות קצרות
       id: 'welcome', hero: true,
       visual: `<div class="g-trio">${['ori', 'noa'].map((c) => `<figure><img src="${COACHES[c].img}" alt=""><figcaption><b>${COACHES[c].name}</b><span>${COACHES[c].title}</span></figcaption></figure>`).join('')}</div>`,
-      body: `<div class="g-brand">LOHEM</div><h2>מאמן אישי וירטואלי שבונה לוחם</h2>
+      body: `<div class="g-brand">חוד</div><h2>מאמן אישי וירטואלי שבונה לוחם</h2>
         <div class="g-feats">
           <div>${ib('dumbbell', 'pri')}<span><b>כוח, ריצה ותזונה</b>תוכנית אחת שמכינה לשטח ולמסעות</span></div>
           <div>${ib('vol', 'acc')}<span><b>מאמן שמדבר איתך</b>מדגים כל תרגיל, סופר חזרות ומודד מנוחות</span></div>

@@ -5,7 +5,9 @@ import { get, set, addXP, XP, pushEvent } from '../store.js';
 import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { SEG_LABEL, fmtPace, runLevelFrom3k, next3kTarget } from '../engine/running.js';
 import { say, sayNow, stop, onSpeaking, unlock, preload } from '../coach/voice.js';
-import { musicOn, startMusic, stopMusic } from '../coach/music.js';
+import { musicOn, startMusic, stopMusic, setMusicMood } from '../coach/music.js';
+// המוזיקה בריצה: חימום ושחרור רגועים יותר, ובשאר הקטעים — מוזיקת ריצה
+const runMood = (kind) => (kind === 'warm' ? 'warm' : kind === 'cool' ? 'calm' : 'run');
 import { gpsTracker } from '../devices/gps.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor, hasRSC } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
@@ -67,7 +69,7 @@ export function startRun(run, { day = null } = {}) {
       <button class="btn primary block xl" style="margin-top:10px;display:none" data-act="test-done" id="testDone">סיימתי 3 ק״מ</button>
     </div></div>`);
   document.body.append(root);
-  if (musicOn()) startMusic('run');
+  if (musicOn()) startMusic(runMood(segs[0]?.kind));
   document.body.style.overflow = 'hidden';
   const $ = (q) => root.querySelector(q);
   const pill = hrPill();
@@ -87,6 +89,7 @@ export function startRun(run, { day = null } = {}) {
     zoneOutSince = 0;
     root.querySelectorAll('.segs i').forEach((n, j) => { n.classList.toggle('cur', j === i); n.classList.toggle('past', j < i); });
     $('#kind').className = `run-kind ${sg.kind}`;
+    setMusicMood(runMood(sg.kind));
     $('#kind').textContent = SEG_LABEL[sg.kind];
     $('#lbl').textContent = sg.label + (TARGET_Z[sg.kind] ? ` · יעד דופק Z${TARGET_Z[sg.kind].join('–Z')}` : '');
     const p = run.pace;
@@ -194,7 +197,7 @@ export function startRun(run, { day = null } = {}) {
     const a = t.dataset.act;
     if (a === 'music') {
       set((s2) => { s2.settings.music = !musicOn(); s2.settings.musicHint = true; return s2; });
-      if (musicOn()) startMusic('run'); else stopMusic();
+      if (musicOn()) startMusic(runMood(segs[i]?.kind)); else stopMusic();
       t.classList.toggle('off', !musicOn()); t.setAttribute('aria-pressed', musicOn());
       toast(musicOn() ? 'מוזיקת רקע פועלת' : 'מוזיקת הרקע כובתה', 1400);
       return;

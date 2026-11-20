@@ -12,8 +12,12 @@ TARGET_RMS_DB = -18
 # שימוש: python3 tools/trim_voice.py                         — חיתוך + השוואת עוצמה לכל הקליפים (אחרי יצירה מחדש של הכול)
 #        python3 tools/trim_voice.py --level-only a/b.mp3 …  — חיתוך רק לקליפים שנוצרו מחדש (ברשימה); לשאר רק השוואת עוצמה
 import sys
+#        python3 tools/trim_voice.py --coach maya              — מעבד רק מאמן אחד (חיתוך + עוצמה); הקבצים והתזמונים של השאר לא משתנים
 LEVEL_ONLY = '--level-only' in sys.argv
-TRIM = set(a for a in sys.argv[1:] if not a.startswith('--'))
+#        python3 tools/trim_voice.py --files a/b.mp3 …        — מעבד רק את הקבצים שברשימה (חיתוך + עוצמה); השאר לא משתנים
+COACH = sys.argv[sys.argv.index('--coach') + 1] if '--coach' in sys.argv else None
+FILES = '--files' in sys.argv
+TRIM = set(a for a in sys.argv[1:] if not a.startswith('--') and a != COACH)
 
 def decode(p):
     raw = subprocess.run(["ffmpeg", "-v", "error", "-i", p, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
@@ -53,9 +57,18 @@ def process(rel):
 
 if __name__ == "__main__":
     rels = [os.path.relpath(os.path.join(d, f), VOICE) for d, _, fs in os.walk(VOICE) for f in fs if f.endswith(".mp3")]
+    keep = {}
+    if COACH or FILES:
+        import re
+        old = json.loads(re.search(r"VOICE_TIMING = (\{.*\});", open(os.path.join(ROOT, "js", "data", "voice-timing.js")).read(), re.S).group(1))
+        mine = (lambda r: r.startswith(COACH + os.sep)) if COACH else (lambda r: r in TRIM)
+        on_disk = {r[:-4] for r in rels}
+        rels = [r for r in rels if mine(r)]
+        # תזמונים של קבצים שלא עובדו נשמרים; של קבצים שנמחקו — יורדים
+        keep = {k: v for k, v in old.items() if k in on_disk and (k + ".mp3") not in rels}
     with ThreadPoolExecutor(8) as ex:
         res = list(ex.map(process, sorted(rels)))
-    timing = {r[:-4]: d for r, d, _, _ in res}
+    timing = dict(sorted({**keep, **{r[:-4]: d for r, d, _, _ in res}}.items()))
     open(os.path.join(ROOT, "js", "data", "voice-timing.js"), "w").write(
         "// נוצר ע״י tools/trim_voice.py — משך כל קליפ קול (שניות) אחרי חיתוך שקט\nexport const VOICE_TIMING = " + json.dumps(timing, ensure_ascii=False) + ";\n")
     lead = [r[2] for r in res]; trail = [r[3] for r in res]

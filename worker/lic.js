@@ -1,17 +1,19 @@
-// רישיונות (קישורי הפעלה אישיים) לאפליקציות: LOHEM, סטודיו כושר, קליסתניקס, ו"מאחורי הקלעים" (behind).
+// רישיונות (קישורי הפעלה אישיים) לאפליקציות: LOHEM, סטודיו כושר, קליסתניקס, "מאחורי הקלעים" (behind) ו"נשימה" (breathe).
 // אותו מנגנון כמו באפליקציות אתונה וליסבון (athens/push-worker/lic.js), בלי "מקומות לקבוצה".
 // הכול נשמר ב-KV (binding בשם SUBS) תחת המפתחות lic:*.
 //   lic:key            מפתח ההנפקה הראשי (HMAC). נוצר בשרת ולא יוצא ממנו.
 //   lic:admin          סיסמת הניהול, כגיבוב עם מלח. נקבעת בכניסה הראשונה למסך הניהול.
 //   lic:cfg:<app>      { enforce }  האם האפליקציה דורשת רישיון. כבוי = פתוחה לכולם.
 //   lic:p:<id>         רישיון: { id, app, name, exp, created, revoked, devs:[{dev,t,seen}], rejects, lastReject, perms }
+//                      ev: באילו רכיבים המשתמש השתמש — { <אירוע>: מונה } (שמות בלבד, ראו /lic/use); evAt: מתי עודכן לאחרונה
 //                      perms: מתגים לכל קישור — { <מפתח>: false } = כבוי. מפתח שלא מופיע = פתוח. המשמעות של כל מפתח נקבעת באפליקציה.
+//   lic:stats:<app>    סטטיסטיקת שימוש לכל האפליקציה: { ev: { <אירוע>: מונה }, days: { <יום>: { <אירוע>: מונה } } (60 יום), since }
 //   lic:hand:<hash>    העברת קישור מהדפדפן של האייפון לאפליקציה שבמסך הבית (רבע שעה)
 // קישור אישי:  P.<id>.<חתימה>   — מופעל על טלפון אחד.
 const te = new TextEncoder();
 const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const DAY = 86400e3, STALE = 60 * DAY, MAX_DEV = 1;
-export const APPS = ['lohem', 'studio', 'calisthenics', 'behind'];
+export const APPS = ['lohem', 'studio', 'calisthenics', 'behind', 'breathe'];
 
 async function hmacKey(env) {
   let k = await env.SUBS.get('lic:key');
@@ -26,7 +28,7 @@ async function parse(env, tok) {   // מחזיר את מזהה הרישיון ר
   if (!m) return null;
   return (await sign(env, m[1])) === m[2] ? m[1] : null;
 }
-const getPass = (env, id) => env.SUBS.get('lic:p:' + id, 'json');
+export const getPass = (env, id) => env.SUBS.get('lic:p:' + id, 'json');
 const putPass = (env, p) => env.SUBS.put('lic:p:' + p.id, JSON.stringify(p));
 const newId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 const okDev = (d) => /^[a-z0-9]{8,24}$/.test(String(d || ''));
@@ -37,7 +39,7 @@ async function pwHash(pw, salt) {
   const km = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveBits']);
   return b64u(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: te.encode(salt), iterations: 60000, hash: 'SHA-256' }, km, 256));
 }
-async function admin(env, pw, sess) {   // סיסמה, או כניסה שאושרה בזיהוי פנים (מפתח גישה) בחצי השעה האחרונה
+export async function admin(env, pw, sess) {   // סיסמה, או כניסה שאושרה בזיהוי פנים (מפתח גישה) בחצי השעה האחרונה
   // הכניסה תקפה לחצי שעה מהפעולה האחרונה (כל פעולת ניהול מאריכה אותה), ולא לחצי שעה מרגע הזיהוי
   if (typeof sess === 'string' && /^[A-Za-z0-9_-]{30,60}$/.test(sess) && await env.SUBS.get('lic:sess:' + sess)) { await env.SUBS.put('lic:sess:' + sess, '1', { expirationTtl: 1800 }); return true; }
   const a = await env.SUBS.get('lic:admin', 'json');
@@ -71,7 +73,7 @@ async function waVerify(env, b) {
 }
 
 // יומן שימוש לכל קישור (למסך הניהול): כמה פתיחות בכל יום (90 הימים האחרונים) ובאילו שעות — לפי שעון ישראל.
-// נרשמת רק עצם הפתיחה של האפליקציה; תוכן האימונים והתזונה נשאר בטלפון.
+// תוכן האימונים, המשקל והתזונה נשאר בטלפון.
 const ilDay = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
 const ilHour = (t) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', hourCycle: 'h23' }).format(new Date(t))) % 24;
 function touch(p, me, now) {
@@ -81,6 +83,13 @@ function touch(p, me, now) {
   p.hrs = Array.isArray(p.hrs) && p.hrs.length === 24 ? p.hrs : Array(24).fill(0); p.hrs[ilHour(now)]++;
   p.opens = (p.opens || 0) + 1;
 }
+
+// סטטיסטיקת שימוש (החלטת בעל המוצר, 21.11.2026; כרגע רק MOVA שולחת): האפליקציה מדווחת **שמות** של רכיבים שהופעלו ומונים —
+// מסך שנפתח, תחום שהתחילו או סיימו בו אימון, כפתור שנלחץ. בלי שום תוכן: לא משקלים, לא חזרות, לא אוכל, לא מיקום, לא שם.
+// נשמר פעמיים: אצל הקישור (מה המשתמש הזה הפעיל), ובסיכום לכל האפליקציה (כולל מי שאין לו קישור, בעילום שם).
+const EV_RE = /^[a-z][a-z0-9:_-]{1,31}$/;
+const cleanEv = (o) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k, n]) => EV_RE.test(k) && +n > 0).slice(0, 60).map(([k, n]) => [k, Math.min(500, Math.floor(+n))]));
+function addEv(to, ev, max) { for (const [k, n] of Object.entries(ev)) if (k in to || Object.keys(to).length < max) to[k] = (to[k] || 0) + n; }
 
 // המתגים של קישור: נשמרים רק הכבויים, עד 60 מפתחות
 const cleanPerms = (o) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k, v]) => /^[a-z0-9_-]{1,24}$/.test(k) && v === false).slice(0, 60));
@@ -134,6 +143,16 @@ export async function lic(req, env, url, json, now = Date.now()) {
     const hv = await env.SUBS.get(hk, 'json'); if (!hv || now - hv.t > 900e3) return json({ ok: true });
     await env.SUBS.delete(hk); return json({ ok: true, k: hv.k });
   }
+  if (path === 'use') {        // דיווח שימוש מהאפליקציה: שמות רכיבים ומונים בלבד
+    const ev = cleanEv(b.ev); if (!APPS.includes(b.app) || !Object.keys(ev).length) return json({ ok: false, why: 'bad' });
+    const p = b.id && okDev(b.dev) ? await getPass(env, String(b.id)) : null;
+    if (p && p.app === b.app && !p.revoked && (p.devs || []).some((x) => x.dev === b.dev)) { p.ev = p.ev || {}; addEv(p.ev, ev, 80); p.evAt = now; await putPass(env, p); }
+    const sk = 'lic:stats:' + b.app, st = (await env.SUBS.get(sk, 'json')) || { ev: {}, days: {}, since: now }, d = ilDay(now);
+    addEv(st.ev, ev, 120); st.days[d] = st.days[d] || {}; addEv(st.days[d], ev, 120);
+    const ks = Object.keys(st.days).sort(); for (const k of ks.slice(0, Math.max(0, ks.length - 60))) delete st.days[k];
+    await env.SUBS.put(sk, JSON.stringify(st));
+    return json({ ok: true });
+  }
   if (path === 'admin') {      // מסך הניהול
     if (b.op === 'state') return json({ claimed: !!(await env.SUBS.get('lic:admin')) });
     if (b.op === 'claim') {    // קביעת הסיסמה, פעם אחת בלבד
@@ -161,6 +180,11 @@ export async function lic(req, env, url, json, now = Date.now()) {
     if (b.op === 'wa-clear') { await env.SUBS.delete('lic:wa'); return json({ ok: true }); }
     if (b.op === 'login') return json({ ok: true });
     if (b.op === 'cfg') { if (!APPS.includes(b.app)) return json({ ok: false, why: 'bad' }); await env.SUBS.put('lic:cfg:' + b.app, JSON.stringify({ enforce: !!b.enforce })); return json({ ok: true, enforce: !!b.enforce }); }
+    if (b.op === 'stats') {   // סטטיסטיקת השימוש של אפליקציה
+      if (!APPS.includes(b.app)) return json({ ok: false, why: 'bad' });
+      return json({ ok: true, stats: (await env.SUBS.get('lic:stats:' + b.app, 'json')) || { ev: {}, days: {} }, now });
+    }
+    if (b.op === 'stats-reset') { if (!APPS.includes(b.app)) return json({ ok: false, why: 'bad' }); await env.SUBS.delete('lic:stats:' + b.app); return json({ ok: true }); }
     if (b.op === 'create') {
       if (!APPS.includes(b.app)) return json({ ok: false, why: 'bad' });
       const p = { id: newId(), app: b.app, name: String(b.name || '').slice(0, 40), exp: now + days(b.days, 14) * DAY, created: now, revoked: false, devs: [], rejects: 0 };

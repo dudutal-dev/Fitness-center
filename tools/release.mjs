@@ -15,4 +15,6 @@ writeFileSync(new URL('js/version.js', root), `// נוצר ע״י tools/release.
 let sw = readFileSync(new URL('sw.js', root), 'utf8');
 sw = sw.replace(/const VERSION = '[^']*';/, `const VERSION = 'lohem-${v}';`).replace(/const MEDIA = '[^']*';/, `const MEDIA = 'lohem-media-${mediaV}';`);
 writeFileSync(new URL('sw.js', root), sw);
+// רשימת סרטוני ההדגמה לכל מאמן (להורדה מראש באפליקציה)
+try { const { execFileSync } = await import('node:child_process'); console.log(execFileSync('node', [new URL('media_list.mjs', import.meta.url).pathname], { encoding: 'utf8' }).trim()); } catch (e) { console.error('media list failed:', e.message); process.exit(1); }
 console.log('release', v, media ? '(media refreshed)' : '');

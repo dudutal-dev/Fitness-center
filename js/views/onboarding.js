@@ -1,5 +1,6 @@
 // אונבורדינג: 8 שלבים — מאמן, פרטים, מטרה, מבדק רמה, לו״ז, פציעות, תזונה, בניית תוכנית.
 import { html, esc, on, $, toast, icon } from '../ui/dom.js';
+import { defaultReminderSettings } from '../reminders.js';
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, estimateLevel, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
@@ -8,6 +9,9 @@ import { DISLIKE_TAGS } from '../data/foods.js';
 import { nutPrefsHtml, bindNutPrefs } from './nut-prefs.js';
 import { set, createPlan, today } from '../store.js';
 import { say, unlock, stop } from '../coach/voice.js';
+
+const WD_NAMES = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const WD_SPREAD = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
 
 const GOAL_DESC = {
   combat: 'כוח + ריצה + סבולת שטח. מוכנות מלאה למסעות ולאימונים.',
@@ -76,6 +80,9 @@ export function renderOnboarding(root, done) {
     // 5 — לו"ז
     () => html`<div class="eyebrow">שלב 5 · זמנים</div><div class="q">כמה ${d.sex === 'f' ? 'את יכולה' : 'אתה יכול'} להתאמן?</div>
       <label class="field"><span>אימונים בשבוע</span><div class="seg" data-seg="days">${[3, 4, 5, 6].map((v) => `<button data-v="${v}" class="${d.days == v ? 'on' : ''}">${v}</button>`)}</div></label>
+      <label class="field"><span>באילו ימים?</span><div class="chips wd-chips">${WD_NAMES.map((n, i) => `<button type="button" class="chip ${wdays().includes(i) ? 'on' : ''}" data-wd="${i}">${n}</button>`).join('')}</div></label>
+      <label class="field"><span>באיזו שעה בדרך כלל?</span><input class="input num" type="time" name="schedTime" value="${d.schedTime || '18:00'}" style="max-width:150px"></label>
+      <div class="sub" style="font-size:12px;margin:-4px 0 10px">לפי זה נבנה יומן האימונים. אחר כך אפשר לשנות, לקבוע שעה אחרת לכל יום, להזיז אימון או לבטל.</div>
       <label class="field"><span>משך אימון (דקות)</span><div class="seg" data-seg="sessionMin">${[45, 60, 75, 90].map((v) => `<button data-v="${v}" class="${d.sessionMin == v ? 'on' : ''}">${v}</button>`)}</div></label>
       <div class="card tight" style="margin-top:8px"><b>בצבא הלו״ז משתנה.</b><div class="sub">אין בעיה — האימונים לא צמודים לימים בשבוע. פשוט עושים את האימון הבא בתור. ואם אין חדר כושר, יש "אימון שטח" בלי ציוד.</div></div>`,
     // 6 — פציעות
@@ -99,6 +106,8 @@ export function renderOnboarding(root, done) {
         <li>משלב תוכנית ריצה לשיפור 3 ק״מ</li><li>מחשב יעדי תזונה ותפריט</li></ul></div>`,
   ];
 
+  // ימי האימון: מה שסומן, כל עוד מספרם תואם ל"אימונים בשבוע"; אחרת פיזור ברירת מחדל
+  const wdays = () => (d.schedDays && d.schedDays.length === Number(d.days) ? d.schedDays : WD_SPREAD[d.days] || [0, 2, 4]);
   function readInputs() {
     root.querySelectorAll('input[name]').forEach((i) => {
       d[i.name] = i.type === 'number' ? Number(i.value) : i.value.trim();
@@ -144,6 +153,14 @@ export function renderOnboarding(root, done) {
     d[t.closest('[data-seg]').dataset.seg] = Number.isNaN(Number(v)) ? v : Number(v);
     paint();
   });
+  on(root, 'click', '[data-wd]', (e, t) => {
+    readInputs();
+    const i = Number(t.dataset.wd), cur = wdays(), next = (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]).sort();
+    const opts = [...root.querySelectorAll('[data-seg="days"] button')].map((b) => Number(b.dataset.v));
+    if (!opts.includes(next.length)) { toast(`אפשר לבחור בין ${Math.min(...opts)} ל-${Math.max(...opts)} ימים`); return; }
+    d.schedDays = next; d.days = next.length; d.daysTouched = true;
+    paint();
+  });
   on(root, 'click', '[data-inj]', (e, t) => { toggle(d.injuries, t.dataset.inj); paint(); });
   on(root, 'click', '[data-dis]', (e, t) => { toggle(d.dislikes, t.dataset.dis); paint(); });
   on(root, 'click', '[data-nut]', (e, t) => { d.nutrition = t.dataset.nut === '1'; paint(); });
@@ -165,6 +182,7 @@ export function renderOnboarding(root, done) {
       set((s) => {
         s.profile = profile;
         s.plan = createPlan(profile);
+        s.reminders = { enabled: false, id: null, ...(s.reminders || {}), settings: { ...defaultReminderSettings(profile), ...(s.reminders?.settings || {}), workout: { on: true, days: [...wdays()], time: d.schedTime || '18:00' } } };
         s.planSeen = false; // המסך הבא: הצגת התוכנית (views/plan-intro.js)
         s.weights = [{ date: today(), kg: d.weightKg }];
         s.events = [{ type: 'coach', text: `התוכנית מוכנה! רמה ${level} — ${LEVEL_NAMES[level]}. ${GOALS[d.goal].name}.`, date: new Date().toISOString() }];

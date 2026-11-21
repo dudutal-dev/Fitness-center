@@ -1,5 +1,6 @@
 // מסך התוכנית: מחזוריות בלוקים, אימוני השבוע עם משקלים מומלצים, ספריית תרגילים.
 import { html, esc, on, sheet, toast, emi, icon } from '../ui/dom.js';
+import { calendarCardHtml, bindCalendar } from './calendar-ui.js';
 import { get, set, regenerateWeek } from '../store.js';
 import { EX, EXERCISES, GROUPS } from '../data/exercises.js';
 import { demoPoster } from '../data/coaches.js';
@@ -34,6 +35,8 @@ export function renderPlan(root) {
       <div class="sub t-foot">${esc(plan.week.phase.desc)} ${plan.weekInBlock === 3 ? 'השבוע: פריקה — פחות נפח, גוף מתאושש וחוזר חזק יותר. + מבדק 3 ק״מ.' : `מאמץ יעד: RPE ${plan.week.week.rpe}.`}</div>
     </div>
 
+    ${calendarCardHtml()}
+
     <div class="h2">השבוע<span class="more" data-act="regen">בנה מחדש</span></div>
     ${plan.week.sessions.map((x) => html`<details class="card day ${doneDays.has(x.day) ? 'done' : ''}">
       <summary><div class="dn">${doneDays.has(x.day) ? icon('check') : x.day}</div><div><b>${esc(x.name)}</b><div class="sub" style="font-size:13px">${esc(x.focus)} · ~${estMinutes(x)} דק׳ ${x.run ? `· ${emi(x.run.icon)} ${esc(x.run.name)}` : ''}</div></div></summary>
@@ -67,6 +70,7 @@ export function renderPlan(root) {
   on(root, 'click', '[data-act="lib-all"]', () => { libAll = !libAll; renderPlan(root); });
   on(root, 'click', '[data-start]', (e, t) => { const ses = plan.week.sessions.find((x) => x.day === Number(t.dataset.start)); checkIn((r) => startWorkout(ses, { readiness: r })); });
   on(root, 'click', '[data-run]', (e, t) => { const ses = plan.week.sessions.find((x) => x.day === Number(t.dataset.run)); startRun(ses.run, { day: ses.day }); });
+  bindCalendar(root, () => renderPlan(root));
   on(root, 'click', '[data-act="regen"]', () => { set((s2) => regenerateWeek(s2)); toast('השבוע נבנה מחדש'); renderPlan(root); });
   on(root, 'click', '[data-lvl]', (e, t) => {
     set((s2) => { s2.profile.level = Math.min(5, Math.max(1, s2.profile.level + Number(t.dataset.lvl))); return regenerateWeek(s2); });

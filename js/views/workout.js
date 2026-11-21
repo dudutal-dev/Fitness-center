@@ -1,6 +1,6 @@
 // מצב אימון חי: הדגמת וידאו של המאמן, ספירת חזרות בטמפו עם קול, מדידת מנוחות, רישום ביצועים
 // והתאמת משקל בזמן אמת (אוטו־רגולציה בין סטים).
-import { keepAlive, releaseKeepAlive } from '../coach/keepalive.js';
+import { keepAlive, releaseKeepAlive, setKeepAliveState } from '../coach/keepalive.js';
 import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el, ib } from '../ui/dom.js';
 import { ring, setRing } from '../ui/charts.js';
 import { get, set, addXP, XP, pushEvent, regenerateWeek, today } from '../store.js';
@@ -59,7 +59,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
   items.forEach((it, ii) => { if (it.role === 'cooldown') steps.push({ ii, si: 0 }); });
   const mobilityIdx = (role) => items.map((it, ii) => (it.role === role ? ii : -1)).filter((x) => x >= 0);
 
-  const t0 = Date.now();
+  // השהיה: שעון האימון (vnow) עוצר, וכל הטיימרים — תרגיל לפי זמן, מנוחה, ספירת חזרות וזמן האימון הכולל — נשענים עליו.
+  // כך ההשהיה עובדת בכל תחום ובכל שלב, והזמן שעמדנו לא נספר.
+  let pausedAt = 0, pauseShift = 0;
+  const vnow = () => (pausedAt || Date.now()) - pauseShift;
+  const t0 = vnow();
   let k = 0;            // צעד נוכחי
   let mode = 'ready';   // ready | active | log | rest | summary
   let timer = null;
@@ -69,7 +73,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   let intraMsg = '';
 
   try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
-  keepAlive({ title: workout.name || 'אימון', artist: COACHES[coach]?.name || '', artwork: COACHES[coach]?.face });   // ממשיך גם כשהמסך נעול
+  keepAlive({ title: workout.name || 'אימון', artist: COACHES[coach]?.name || '', artwork: COACHES[coach]?.face, togglePause: (v) => setPaused(v) });   // ממשיך גם כשהמסך נעול
   const hrRec = recorder(profile);
   const hrMax = maxHrFor(profile);
   // טעינה מראש של כל מה שהמאמן עשוי להגיד באימון הזה (ספירה 1–20, טמפו, סטים, מוטיבציה, שמות התרגילים)
@@ -90,7 +94,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
   let firstShown = false, firstWait = false, shareData = null;
   const root = el(`<div class="live" role="dialog" aria-label="אימון חי">
     <div class="stage"><img class="stage-bg" alt="" aria-hidden="true"><img class="poster" alt=""><video muted playsinline loop autoplay preload="auto"></video>
+      <div class="paused-badge">מושהה</div>
       <div class="hud-top"><button class="icon-btn" data-act="exit" aria-label="יציאה">${icon('close', 'width="20" height="20"')}</button>
+        <button class="icon-btn" data-act="pause" id="pauseHud" aria-label="השהיה והמשך" aria-pressed="false">${icon('pause', 'width="20" height="20"')}</button>
         <div class="progress"></div><span class="clock num">0:00</span>
         <button class="icon-btn" data-act="tv" aria-label="מצב טלוויזיה">${icon('tv', 'width="20" height="20"')}</button>
         <button class="icon-btn ${musicOn() ? '' : 'off'}" data-act="music" aria-label="מוזיקת רקע" aria-pressed="${musicOn()}">${icon('music', 'width="20" height="20"')}</button>
@@ -113,7 +119,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (v && text) { $('.say').textContent = text; $('.say').classList.add('show'); }
     if (!v) sayT = setTimeout(() => $('.say')?.classList.remove('show'), 1200);
   });
-  const clock = setInterval(() => { $('.clock').textContent = fmtTime((Date.now() - t0) / 1000); }, 1000);
+  const clock = setInterval(() => { $('.clock').textContent = fmtTime((vnow() - t0) / 1000); }, 1000);
 
   const cur = () => steps[k];
   const item = () => items[cur().ii];
@@ -201,7 +207,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
       p.innerHTML = html`<div class="counter cnt-set">${ring(0, { size: 190, stroke: 14, big: timed ? sl.reps : '0', lbl: timed ? 'שניות' : `מתוך ${sl.reps}` })}
         <div class="phase-lbl" id="ph">היכון…</div>
         ${!timed && it.role !== 'hiit' ? `<div class="set-ctx">${sl.w ? `<b class="num">${sl.w}</b> ק״ג · ` : ''}סט <b class="num">${cur().si + 1}</b> מתוך <b class="num">${log[cur().ii].sets.length}</b></div>` : ''}</div>
-        <button class="btn block xl" data-act="finish-set">${timed ? 'עצור' : 'סיימתי את הסט'}</button>`;
+        ${timed && AUTO.has(it.role) ? `<button class="btn block xl" data-act="pause" data-pause-main>${icon('pause', 'width="22" height="22"')} השהה</button>
+        <button class="btn sm ghost block" style="margin-top:8px" data-act="finish-set">${icon('skip', 'width="16" height="16"')} דלג לתרגיל הבא</button>`
+    : `<button class="btn block xl" data-act="finish-set">${timed ? 'עצור' : 'סיימתי את הסט'}</button>`}`;
     } else if (mode === 'log') {
       p.innerHTML = html`<div class="h2" style="margin:6px 0 10px">איך היה?</div>
         <div class="target">
@@ -268,7 +276,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     // לפני ההתחלה: הווידאו עומד בתנוחת המוצא
     if (segs.length) { video.loop = false; video.pause(); vSync = null; try { video.currentTime = segs[0][0]; } catch { /* */ } }
     // החזרה הראשונה מתחילה בדיוק כשהמאמן מסיים "...יאללה!"
-    const startAt = Date.now() + Math.max(1500, goDur * 1000);
+    const startAt = vnow() + Math.max(1500, goDur * 1000);
     let lastPhase = '';
     // בונה רצף קריטי שנכנס בחלון הזמן (שניות) — מה שלא נכנס לא נאמר, כדי שהקול לא "יגרר" אחרי התנועה
     const fit = (keys, window) => {
@@ -283,7 +291,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
       return out;
     };
     timer = setInterval(() => {
-      const t = Date.now() - startAt;
+      const t = vnow() - startAt;
       if (t < 0) return;
       const r = Math.floor(t / rep);
       const within = t - r * rep;
@@ -326,18 +334,18 @@ export function startWorkout(workout, { readiness = null } = {}) {
     const mobility = role === 'warmup' || role === 'cooldown';
     // חימום/מתיחות: השעון לא מתחיל עד שהמאמן סיים להציג את התנועה (עד 15 שנ׳ המתנה), ורק אז "מתחילים!".
     // תרגילי זמן רגילים: "מתחילים להחזיק… עכשיו!"
-    let startAt = mobility ? null : Date.now() + 1200;
+    let startAt = mobility ? null : vnow() + 1200;
     // תרגיל זמן סטטי (פלאנק, נשיאה): "מתחילים להחזיק… עכשיו!"; דינמי (סקוואט, ברכיים גבוהות, חבלים): "מתחילים!"
     if (!mobility) say(e?.pattern === 'core' || e?.id === 'farmer_carry' ? 'hold_start' : 'warm_go', { priority: true });
-    const waitUntil = Date.now() + (firstWait ? 32000 : 15000);
+    const waitUntil = vnow() + (firstWait ? 32000 : 15000);
     let lastSec = -1, half = false, cheered = false, tipped = false;
     timer = setInterval(() => {
       if (startAt == null) {
-        if (isSpeaking() && Date.now() < waitUntil) { $('#ph').textContent = 'מתכוננים…'; return; }
+        if (isSpeaking() && vnow() < waitUntil) { $('#ph').textContent = 'מתכוננים…'; return; }
         say('warm_go');
-        startAt = Date.now() + (get().settings.voice ? keyDur('warm_go') * 1000 + 150 : 600);
+        startAt = vnow() + (get().settings.voice ? keyDur('warm_go') * 1000 + 150 : 600);
       }
-      const t = (Date.now() - startAt) / 1000;
+      const t = (vnow() - startAt) / 1000;
       if (t < 0) return;
       const left = Math.max(0, secs - t);
       const node = $('.counter .ring');
@@ -356,6 +364,15 @@ export function startWorkout(workout, { readiness = null } = {}) {
       }
       if (left <= 0) { countedReps = secs; sayNow(['hold_done']); endSet(); }
     }, 100);
+  }
+
+  function setPaused(v) {
+    if (!!pausedAt === v) return;
+    if (v) { pausedAt = Date.now(); stop(); video.pause(); stopMusic(); }
+    else { pauseShift += Date.now() - pausedAt; pausedAt = 0; video.play().catch(() => {}); if (musicOn()) startMusic(musicMood()); }
+    root.classList.toggle('is-paused', v); setKeepAliveState(v);
+    $('#pauseHud').innerHTML = icon(v ? 'play' : 'pause', 'width="20" height="20"'); $('#pauseHud').setAttribute('aria-pressed', v);
+    const main = $('[data-pause-main]'); if (main) main.innerHTML = v ? `${icon('play', 'width="22" height="22"')} המשך` : `${icon('pause', 'width="22" height="22"')} השהה`;
   }
 
   function endSet(manual = false) {
@@ -411,22 +428,22 @@ export function startWorkout(workout, { readiness = null } = {}) {
         <button class="btn sm" data-act="rest-plus">+30</button></div>
       <div class="next-up"><img src="${demoPoster(coach, nIt.exId)}" alt=""><div><div class="sub" style="font-size:12px">${newEx ? 'תרגיל הבא' : 'הסט הבא'}</div>
         <b>${esc(nEx.name)}</b> · <span class="num">${log[nxt.ii].sets[nxt.si].w ? `${log[nxt.ii].sets[nxt.si].w} ק״ג × ` : ''}${log[nxt.ii].sets[nxt.si].reps}</span></div></div>`;
-    let end = Date.now() + secs * 1000;
+    let end = vnow() + secs * 1000;
     let lastSec = -1;
     let total = secs;
-    const restStart = Date.now();
+    const restStart = vnow();
     let hrReady = false, hrExtended = false;
     root._restAdj = (d) => { end += d * 1000; };
-    root._restSkip = () => { end = Date.now(); };
+    root._restSkip = () => { end = vnow(); };
     timer = setInterval(() => {
-      const left = Math.max(0, (end - Date.now()) / 1000);
+      const left = Math.max(0, (end - vnow()) / 1000);
       const node = $('.counter .ring');
       if (node) { setRing(node, left / total); node.querySelector('.big').textContent = fmtTime(left); }
       // מנוחה חכמה לפי דופק
       const hr = hrNow().hr;
       if (hr) {
         const z = zoneOf(hr, hrMax);
-        if (!hrReady && z.z <= 2 && Date.now() - restStart > 40000 && left > 8) {
+        if (!hrReady && z.z <= 2 && vnow() - restStart > 40000 && left > 8) {
           hrReady = true; say('hr_ready');
           const n = root.querySelector('.counter .lbl'); if (n) n.textContent = '❤ התאוששת';
         }
@@ -457,7 +474,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     clearInterval(timer); timer = null;
     mode = 'summary';
     const st = get();
-    const dur = Math.round((Date.now() - t0) / 1000);
+    const dur = Math.round((vnow() - t0) / 1000);
     const exercises = [];
     const prs = [];
     let volume = 0, setsDone = 0;
@@ -542,7 +559,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
     }
     if (a === 'skip-cool') finish();
     if (a === 'manual') { countedReps = setLog().reps; mode = 'log'; paint(); }
-    if (a === 'finish-set') endSet(true);
+    if (a === 'pause') return setPaused(!pausedAt);
+    if (a === 'finish-set') { if (pausedAt) setPaused(false); endSet(true); }
     if (a === 'rest-skip') root._restSkip?.();
     if (a === 'rest-plus') root._restAdj?.(30);
     if (a === 'rest-minus') root._restAdj?.(-15);

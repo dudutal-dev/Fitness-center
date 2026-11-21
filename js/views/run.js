@@ -9,7 +9,8 @@ import { say, sayNow, stop, onSpeaking, unlock, preload } from '../coach/voice.j
 import { musicOn, startMusic, stopMusic, setMusicMood } from '../coach/music.js';
 // המוזיקה בריצה: חימום ושחרור רגועים יותר, ובשאר הקטעים — מוזיקת ריצה
 const runMood = (kind) => (kind === 'warm' ? 'warm' : kind === 'cool' ? 'calm' : 'run');
-import { gpsTracker } from '../devices/gps.js';
+import { gpsTracker, simplifyPath } from '../devices/gps.js';
+import { routeMap } from '../ui/map.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor, hasRSC } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 import { pingWorkout } from '../reminders.js';
@@ -38,6 +39,9 @@ export function startRun(run, { day = null } = {}) {
 
   const gps = gpsTracker();
   const gpsOn = gps.start();
+  // המפה: מוצגת במקום הסרטון ברגע שיש מיקום; הכפתור שבראש המסך מחליף בין מפה לסרטון, ולחיצה על המפה — בין מעקב לכל המסלול
+  let map = null, mapOn = false, mapDrawn = 0, segPace = null;
+  const splits = [];   // זמן האימון (שניות) בסוף כל קילומטר
   const hrRec = recorder(profile);
   let rscBase = null;
   const distM = () => {
@@ -49,7 +53,9 @@ export function startRun(run, { day = null } = {}) {
   const root = el(`<div class="live" role="dialog" aria-label="ריצה">
     <div class="stage" style="flex:0 0 34%"><img class="poster" src="${demoPoster(coach, 'treadmill_run')}" alt="">
       <video muted playsinline loop autoplay src="${demoVideo(coach, 'treadmill_run')}"></video>
+      <div class="run-map" id="rmap" data-act="mapmode" hidden></div>
       <div class="hud-top"><button class="icon-btn" data-act="exit">${icon('close', 'width="20" height="20"')}</button><span class="spacer"></span>
+        <button class="icon-btn off" data-act="map" id="mapBtn" aria-label="מפה" aria-pressed="false" hidden>${icon('compass', 'width="20" height="20"')}</button>
         <button class="icon-btn ${musicOn() ? '' : 'off'}" data-act="music" aria-label="מוזיקת רקע" aria-pressed="${musicOn()}">${icon('music', 'width="20" height="20"')}</button>
         <span class="clock num" id="tot">0:00</span></div>
       <div class="coach-pip"><img src="${COACHES[coach].face}" alt=""></div><div class="say"></div>
@@ -84,6 +90,13 @@ export function startRun(run, { day = null } = {}) {
     if (!v) sayT = setTimeout(() => $('.say')?.classList.remove('show'), 1200);
   });
 
+  function showMap(v) {
+    mapOn = v; $('#rmap').hidden = !v;
+    $('video').style.visibility = $('.poster').style.visibility = v ? 'hidden' : '';
+    $('#mapBtn').classList.toggle('off', !v); $('#mapBtn').setAttribute('aria-pressed', v);
+    if (v) { map ||= routeMap($('#rmap')); map.draw(gps.path, gps.here); }
+  }
+
   function enterSeg() {
     const sg = segs[i];
     segStart = elapsed;
@@ -96,6 +109,7 @@ export function startRun(run, { day = null } = {}) {
     const p = run.pace;
     const pace = sg.kind === 'fast' ? p.fast : sg.kind === 'tempo' ? p.tempo : sg.kind === 'test' ? p.test : ['steady', 'easy'].includes(sg.kind) ? p.easy : null;
     $('#pace').textContent = pace ? `${fmtPace(pace)} לק״מ` : 'הליכה / קל';
+    segPace = pace ? { max: pace } : null;
     const isLastFast = sg.kind === 'fast' && !segs.slice(i + 1).some((x) => x.kind === 'fast');
     say(isLastFast ? 'run_last' : SEG_VOICE[sg.kind], { priority: true });
     if (sg.kind === 'test') { testStart = elapsed; testStartDist = distM(); $('#testDone').style.display = ''; $('[data-act="skip"]').style.display = 'none'; }
@@ -117,6 +131,13 @@ export function startRun(run, { day = null } = {}) {
     const c = hrNow();
     const pc = hasRSC() && c.speed > 0.5 ? Math.round(1000 / c.speed) : gps.paceSec;
     $('#cpace').textContent = pc && pc < 1200 ? fmtPace(pc) : '—';
+    // הקצב הנוכחי מול יעד המקטע: ירוק כשעומדים בו, כתום כשלא
+    const off = !!(pc && segPace && (segPace.max ? pc > segPace.max * 1.05 : pc < segPace.min * 0.95));
+    $('#cpace').className = `num${pc && segPace ? (off ? ' pace-off' : ' pace-ok') : ''}`;
+    // מפה: נפתחת לבד כשמתקבל מיקום ראשון (אלא אם כובתה), ומתעדכנת פעם בשנייה
+    if (gps.here && $('#mapBtn').hidden && !$('[data-rpe]')) { $('#mapBtn').hidden = false; if (get().settings.runMap !== false) showMap(true); }
+    if (mapOn && now - mapDrawn > 1000) { mapDrawn = now; map.draw(gps.path, gps.here); }
+    if (Math.floor(d / 1000) > splits.length) splits.push(Math.round(elapsed / 1000));
     if (gpsOn && !hasRSC()) { const st = gps.status; $('#gpsst').textContent = st.error ? 'אין גישה למיקום — המרחק לא יימדד. אפשר לאשר מיקום בהגדרות הדפדפן.' : st.ok ? `GPS · דיוק ${st.accuracy} מ׳` : 'מחפש GPS…'; }
     if (c.hr) {
       const z = zoneOf(c.hr, hrMax);
@@ -170,12 +191,16 @@ export function startRun(run, { day = null } = {}) {
     confetti(90);
     const dur = Math.round(elapsed / 1000);
     const measured = distM();
+    const route = measured >= 200 ? simplifyPath(gps.path) : [];
+    $('#mapBtn').hidden = true;
+    if (route.length > 1) { showMap(true); map.setMode('fit'); }
+    const splitsHtml = measured >= 200 ? `<div class="sub run-splits">קצב ממוצע <b class="num">${fmtPace(dur / (measured / 1000))}</b> לק״מ${splits.map((t, k) => ` · ק״מ ${k + 1}: <b class="num">${fmtTime(t - (splits[k - 1] || 0))}</b>`).join('')}</div>` : '';
     const distGuess = testSec ? 3 : measured >= 200 ? Math.round(measured / 10) / 100 : '';
     $('.panel').innerHTML = html`<div class="h1" style="text-align:center;margin-top:8px">ריצה הושלמה</div>
       <div class="kpis" style="margin:14px 0"><div class="kpi"><b>${fmtTime(dur)}</b><span>זמן כולל</span></div>
         ${testSec ? `<div class="kpi up"><b>${fmtTime(testSec)}</b><span>3 ק״מ</span></div>` : `<div class="kpi"><b>${distGuess || '—'}</b><span>ק״מ</span></div>`}
         <div class="kpi"><b>+${XP.run}</b><span>XP</span></div></div>
-      ${hrSummaryHtml(hr)}
+      ${splitsHtml}${hrSummaryHtml(hr)}
       <label class="field" style="margin-top:12px"><span>מרחק (ק״מ) ${measured >= 200 ? '— נמדד ב-GPS, אפשר לתקן' : '— לא חובה'}</span><input class="input num" id="dist" type="number" step="0.01" inputmode="decimal" value="${distGuess}" placeholder="למשל 5.2"></label>
       <div class="sub" style="margin-bottom:6px">כמה קשה היה?</div>
       <div class="rpe">${[[icon('effort1'), 'קל', 6], [icon('effort2'), 'טוב', 7.5], [icon('effort3'), 'קשה', 9], [icon('effort4'), 'מקסימום', 10]].map(([e, t, v]) => `<button data-rpe="${v}"><span>${e}</span>${t}</button>`).join('')}</div>
@@ -187,13 +212,13 @@ export function startRun(run, { day = null } = {}) {
     });
     on($('.panel'), 'click', '[data-rpe]', (e, b) => {
       const dist = Number($('#dist').value) || null;
-      saveRun({ type: run.type, name: run.name, durationSec: dur, distanceKm: dist, timeSec: testSec, rpe: Number(b.dataset.rpe), day, hr, gps: measured >= 200 });
+      saveRun({ type: run.type, name: run.name, durationSec: dur, distanceKm: dist, timeSec: testSec, rpe: Number(b.dataset.rpe), day, hr, gps: measured >= 200, ...(route.length > 1 ? { route, splits } : {}) });
       close();
     });
   }
 
   function close() {
-    clearInterval(timer); offSpeak(); stop(); stopMusic(); gps.stop(); hrRec.stop(); pill._destroy?.();
+    clearInterval(timer); offSpeak(); map?.destroy(); stop(); stopMusic(); gps.stop(); hrRec.stop(); pill._destroy?.();
     try { wakeLock?.release(); } catch { /* */ }
     root.remove();
     document.body.style.overflow = '';
@@ -209,6 +234,8 @@ export function startRun(run, { day = null } = {}) {
       toast(musicOn() ? 'מוזיקת רקע פועלת' : 'מוזיקת הרקע כובתה', 1400);
       return;
     }
+    if (a === 'map') { showMap(!mapOn); set((s2) => { s2.settings.runMap = mapOn; return s2; }); return; }
+    if (a === 'mapmode') { if (!e.target.closest('a') && map) map.setMode(map.mode === 'fit' ? 'follow' : 'fit'); return; }
     if (a === 'pause') {
       paused = !paused;
       gps.pause(paused);
@@ -238,6 +265,7 @@ export function saveRun(r) {
   const isPR = r.timeSec && (!prev.length || r.timeSec < Math.min(...prev));
   set((s2) => {
     s2.runs.push({ date: r.date || new Date().toISOString(), ...r });
+    s2.runs.filter((x) => x.route).slice(0, -40).forEach((x) => { delete x.route; });   // המסלול נשמר ל-40 האימונים האחרונים
     if (r.timeSec) { s2.profile.run3k = r.timeSec; s2.profile.runLevel = runLevelFrom3k(r.timeSec); }
     return s2;
   });

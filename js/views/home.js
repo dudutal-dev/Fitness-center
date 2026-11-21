@@ -12,7 +12,7 @@ import { buildFieldWorkout } from '../engine/program.js';
 import { say, onSpeaking, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, lineFor } from '../data/voice-lines.js';
 import { startWorkout } from './workout.js';
-import { startRun } from './run.js';
+import { startRun, freeRun } from './run.js';
 import { reminderPromptHtml, bindReminderPrompt } from './reminders-ui.js';
 import { backupDue, backupNow, snoozeBackup } from '../backup.js';
 
@@ -118,6 +118,8 @@ export function renderHome(root) {
         <div class="hero-sub">${ns?.run ? `<button class="btn sm" data-act="run">${icon('run', 'width="18" height="18"')} רק ריצה</button>` : ''}
       <button class="btn sm" data-act="field" ${ns?.run ? '' : 'style="grid-column:1/-1"'}>${icon('pack', 'width="18" height="18"')} אימון בלי ציוד</button></div></div></div>`}
 
+    <div class="free-row"><button class="btn sm" data-act="free-run">${icon('run', 'width="18" height="18"')} ריצה חופשית</button></div>
+
     <div class="card coach-hero">
       <div class="holo"><img src="${coach.face}" alt="${coach.name}"></div>
       <div class="bubble">${line.text}</div>
@@ -153,6 +155,7 @@ export function renderHome(root) {
     if (a === 'speak') say(el.dataset.key, { priority: true });
     if (a === 'start') checkIn((r) => startWorkout(ns, { readiness: r }));
     if (a === 'run') startRun(ns.run, { day: ns.day });
+    if (a === 'free-run') startRun(freeRun());   // ריצה חופשית, בלי תוכנית
     if (a === 'field') checkIn((r) => startWorkout({ ...buildFieldWorkout(p), day: null, field: true }, { readiness: r }));
     if (a === 'water') { setDaily({ water: dd.water + 250 }); if (dd.water + 250 >= t.waterL * 1000 && dd.water < t.waterL * 1000) { addXP(XP.water * 4); toast('יעד השתייה הושלם!'); } renderHome(root); }
     if (a === 'food') location.hash = '#/nutrition';

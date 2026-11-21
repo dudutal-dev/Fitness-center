@@ -11,13 +11,17 @@ import { musicOn, startMusic, stopMusic, setMusicMood } from '../coach/music.js'
 const runMood = (kind) => (kind === 'warm' ? 'warm' : kind === 'cool' ? 'calm' : 'run');
 import { gpsTracker, simplifyPath } from '../devices/gps.js';
 import { routeMap } from '../ui/map.js';
+import { keepAlive, releaseKeepAlive, setKeepAliveState } from '../coach/keepalive.js';
 import { recorder, current as hrNow, zoneOf, maxHrFor, hasRSC } from '../devices/hr.js';
 import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 import { pingWorkout } from '../reminders.js';
 
-const SEG_VOICE = { warm: 'run_warm', fast: 'run_fast', easy: 'run_easy', walk: 'run_walk', tempo: 'run_tempo', steady: 'run_steady', cool: 'run_cool', test: 'go' };
+const SEG_VOICE = { free: 'run_steady', warm: 'run_warm', fast: 'run_fast', easy: 'run_easy', walk: 'run_walk', tempo: 'run_tempo', steady: 'run_steady', cool: 'run_cool', test: 'go' };
 // אזור דופק יעד לכל סוג מקטע [מינ׳, מקס׳]
 const TARGET_Z = { fast: [4, 5], tempo: [4, 4], steady: [2, 3], easy: [2, 3], test: [4, 5] };
+
+// ריצה חופשית — בלי תוכנית ובלי מקטעים: יוצאים, והמאמן מלווה, עם מפה ומסלול. מסיימים בכפתור
+export const freeRun = () => ({ type: 'free', name: 'ריצה חופשית', icon: 'run', segs: [{ kind: 'free', sec: 0, label: 'בקצב שלך — מסיימים מתי שרוצים' }], totalSec: 0, pace: {} });
 
 export function startRun(run, { day = null } = {}) {
   unlock();
@@ -33,9 +37,14 @@ export function startRun(run, { day = null } = {}) {
   let paused = false, timer = null, wakeLock = null;
   let testStart = null, testStartDist = 0, saidHalf = false;
   let kmAnnounced = 0;
-  let zoneOutSince = 0, zoneCooldown = 0;
+  let zoneOutSince = 0, zoneCooldown = 0, freeTips = 0;
+  const FREE_TIP = () => null;
   const totalPlanned = segs.reduce((t, x) => t + x.sec, 0);
-  try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
+  const lockScreen = () => { try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ } };
+  lockScreen();
+  // חוזרים מהרקע: נעילת המסך משתחררת כשהדף מוסתר, אז מבקשים אותה שוב
+  const onShow = () => { if (!document.hidden) lockScreen(); };
+  document.addEventListener('visibilitychange', onShow);
 
   const gps = gpsTracker();
   const gpsOn = gps.start();
@@ -60,7 +69,7 @@ export function startRun(run, { day = null } = {}) {
         <button class="icon-btn ${musicOn() ? '' : 'off'}" data-act="music" aria-label="מוזיקת רקע" aria-pressed="${musicOn()}">${icon('music', 'width="20" height="20"')}</button>
         <span class="clock num" id="tot">0:00</span></div>
       <div class="coach-pip"><img src="${COACHES[coach].face}" alt=""></div><div class="say"></div>
-      <div class="title"><div class="eyebrow">${emi(run.icon)} ${esc(run.name)}</div><div class="name" style="font-size:22px">קצב יעד: <span class="num" id="pace"></span></div></div></div>
+      <div class="title"><div class="eyebrow">${emi(run.icon)} ${esc(run.name)}</div><div class="name" style="font-size:22px">${run.type === 'free' ? `ריצה עם ${esc(COACHES[coach].name)}` : 'קצב יעד: <span class="num" id="pace"></span>'}</div></div></div>
     <div class="panel" style="flex:1;display:flex;flex-direction:column">
       <div class="segs">${segs.map((x, j) => `<i class="${x.kind}" style="flex-grow:${Math.max(30, x.sec || 600)}" data-i="${j}"></i>`).join('')}</div>
       <div class="run-kind" id="kind"></div><div class="run-big" id="big">0:00</div><div class="sub" style="text-align:center" id="lbl"></div>
@@ -75,6 +84,7 @@ export function startRun(run, { day = null } = {}) {
         <button class="btn xl" style="flex:1" data-act="pause" id="pauseBtn">${icon('pause', 'width="22" height="22"')} השהה</button>
         <button class="btn xl" style="flex:1" data-act="skip">${icon('skip', 'width="22" height="22"')} דלג</button></div>
       <button class="btn primary block xl" style="margin-top:10px;display:none" data-act="test-done" id="testDone">סיימתי 3 ק״מ</button>
+      <button class="btn primary block xl" style="margin-top:10px;display:none" data-act="free-done" id="freeDone">סיום ושמירה</button>
     </div></div>`);
   document.body.append(root);
   if (musicOn()) startMusic(runMood(segs[0]?.kind));
@@ -108,6 +118,13 @@ export function startRun(run, { day = null } = {}) {
     map.layout({ anchor: (top + bot) / 2 / h, inset: h - (bot - top) });
   }
 
+  function setPaused(v) {
+    if (paused === v) return;
+    paused = v; gps.pause(paused); setKeepAliveState(paused);
+    $('#pauseBtn').innerHTML = paused ? `${icon('play', 'width="22" height="22"')} המשך` : `${icon('pause', 'width="22" height="22"')} השהה`;
+    paused ? $('video').pause() : $('video').play().catch(() => {});
+  }
+
   function enterSeg() {
     const sg = segs[i];
     segStart = elapsed;
@@ -119,12 +136,13 @@ export function startRun(run, { day = null } = {}) {
     $('#lbl').textContent = sg.label + (TARGET_Z[sg.kind] ? ` · יעד דופק Z${TARGET_Z[sg.kind].join('–Z')}` : '');
     const p = run.pace;
     const pace = sg.kind === 'fast' ? p.fast : sg.kind === 'tempo' ? p.tempo : sg.kind === 'test' ? p.test : ['steady', 'easy'].includes(sg.kind) ? p.easy : null;
-    $('#pace').textContent = pace ? `${fmtPace(pace)} לק״מ` : 'הליכה / קל';
+    if ($('#pace')) $('#pace').textContent = pace ? `${fmtPace(pace)} לק״מ` : 'הליכה / קל';
     segPace = pace ? { max: pace } : null;
     const isLastFast = sg.kind === 'fast' && !segs.slice(i + 1).some((x) => x.kind === 'fast');
     say(isLastFast ? 'run_last' : SEG_VOICE[sg.kind], { priority: true });
     if (sg.kind === 'test') { testStart = elapsed; testStartDist = distM(); $('#testDone').style.display = ''; $('[data-act="skip"]').style.display = 'none'; }
-    else { $('#testDone').style.display = 'none'; $('[data-act="skip"]').style.display = ''; }
+    else { $('#testDone').style.display = 'none'; $('[data-act="skip"]').style.display = sg.kind === 'free' ? 'none' : ''; }
+    $('#freeDone').style.display = sg.kind === 'free' ? '' : 'none';
     vibrate([60, 40, 60]);
   }
 
@@ -166,6 +184,12 @@ export function startRun(run, { day = null } = {}) {
     // קילומטרים
     if (sg.kind !== 'test' && Math.floor(d / 1000) > kmAnnounced) { kmAnnounced = Math.floor(d / 1000); say('run_km'); }
 
+    if (sg.kind === 'free') {   // אימון חופשי: הטיימר סופר קדימה, ומסיימים בכפתור
+      $('#big').textContent = fmtTime(inSeg);
+      const n = Math.floor(inSeg / 360);
+      if (n > freeTips && !paused) { freeTips = n; const k = FREE_TIP(n); if (k) say(k); }
+      return;
+    }
     if (sg.kind === 'test') {
       $('#big').textContent = fmtTime(inSeg);
       if (d - testStartDist >= 3000) { say('run_3k', { priority: true }); testDone(); }
@@ -180,7 +204,8 @@ export function startRun(run, { day = null } = {}) {
       if (secLeft <= 3 && secLeft >= 1) sayNow([`n${secLeft}`]);
       if (!saidHalf && totalPlanned > 600 && elapsed / 1000 >= totalPlanned / 2) { saidHalf = true; say('run_half'); }
     }
-    if (left <= 0) nextSeg();
+    // סוף המקטע. אם הדף היה מושהה (מסך נעול) והזמן עבר את סוף המקטע — העודף נזקף למקטע הבא, כדי שהאימון יישאר מסונכרן לשעון
+    if (left <= 0) { nextSeg(); if (left < -1 && segs[i] !== sg) segStart = elapsed + left * 1000; }
   }
 
   function nextSeg() {
@@ -233,6 +258,7 @@ export function startRun(run, { day = null } = {}) {
   function close() {
     clearInterval(timer); offSpeak(); map?.destroy(); stop(); stopMusic(); gps.stop(); hrRec.stop(); pill._destroy?.();
     try { wakeLock?.release(); } catch { /* */ }
+    document.removeEventListener('visibilitychange', onShow); releaseKeepAlive();
     root.remove();
     document.body.style.overflow = '';
     dispatchEvent(new HashChangeEvent('hashchange'));
@@ -250,14 +276,10 @@ export function startRun(run, { day = null } = {}) {
     if (a === 'map') { showMap(!mapOn); set((s2) => { s2.settings.runMap = mapOn; return s2; }); return; }
     if (a === 'zin' || a === 'zout') { map?.zoomBy(a === 'zin' ? 1 : -1); return; }
     if (a === 'mapmode') { if (!e.target.closest('a') && map) map.setMode(map.mode === 'fit' ? 'follow' : 'fit'); return; }
-    if (a === 'pause') {
-      paused = !paused;
-      gps.pause(paused);
-      t.innerHTML = paused ? `${icon('play', 'width="22" height="22"')} המשך` : `${icon('pause', 'width="22" height="22"')} השהה`;
-      paused ? $('video').pause() : $('video').play().catch(() => {});
-    }
+    if (a === 'pause') setPaused(!paused);
     if (a === 'skip') nextSeg();
     if (a === 'test-done') testDone();
+    if (a === 'free-done') finish();
     if (a === 'exit') {
       sheet(html`<div class="h1" style="font-size:22px">לסיים את הריצה?</div>
         <button class="btn primary block" data-x="save">סיים ושמור</button>
@@ -268,6 +290,7 @@ export function startRun(run, { day = null } = {}) {
     }
   });
 
+  keepAlive({ title: run.name, artist: COACHES[coach].name, artwork: COACHES[coach].face, togglePause: setPaused });   // ממשיך גם כשהמסך נעול
   enterSeg();
   timer = setInterval(tick, 250);
 }

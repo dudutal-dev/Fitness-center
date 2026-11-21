@@ -1,6 +1,7 @@
 // מצב אימון חי: הדגמת וידאו של המאמן, ספירת חזרות בטמפו עם קול, מדידת מנוחות, רישום ביצועים
 // והתאמת משקל בזמן אמת (אוטו־רגולציה בין סטים).
 import { keepAlive, releaseKeepAlive, setKeepAliveState } from '../coach/keepalive.js';
+import { weekClosed } from '../engine/schedule.js';
 import { html, esc, on, sheet, toast, confetti, vibrate, icon, fmtTime, el, ib } from '../ui/dom.js';
 import { ring, setRing } from '../ui/charts.js';
 import { get, set, addXP, XP, pushEvent, regenerateWeek, today } from '../store.js';
@@ -664,7 +665,8 @@ export function infoSheet(exId, coach) {
 // ───── התקדמות שבוע / בלוק / רמה ─────
 export function maybeAdvanceWeek() {
   const s = get();
-  if (s.plan.completedDays.length < s.plan.week.sessions.length) return '';
+  if (!weekClosed(s.plan)) return '';
+  const full = s.plan.completedDays.length >= s.plan.week.sessions.length;   // false: חלק מהאימונים בוטלו השבוע
   let msg = 'שבוע הושלם! השבוע הבא נבנה לפי הביצועים שלך.';
   set((s2) => {
     s2.plan.weekInBlock += 1;
@@ -683,7 +685,7 @@ export function maybeAdvanceWeek() {
     regenerateWeek(s2);
     return s2;
   });
-  addXP(XP.perfectWeek, 'week');
+  if (full) addXP(XP.perfectWeek, 'week');
   return msg;
 }
 

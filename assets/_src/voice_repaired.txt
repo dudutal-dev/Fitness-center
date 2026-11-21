@@ -59,3 +59,6 @@ ori/names/sarit/last_set.mp3
 ori/names/sarit/run_done.mp3
 ori/names/sarit/proud.mp3
 noa/names/sarit/pr.mp3
+ori/names/shira/half.mp3
+noa/names/shira/half.mp3
+noa/names/aviv_f/half.mp3

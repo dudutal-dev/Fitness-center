@@ -51,7 +51,7 @@ export function startRun(run, { day = null } = {}) {
   };
 
   const root = el(`<div class="live" role="dialog" aria-label="ריצה">
-    <div class="stage" style="flex:0 0 34%"><img class="poster" src="${demoPoster(coach, 'treadmill_run')}" alt="">
+    <div class="stage run-stage" style="flex:0 0 38%"><img class="poster" src="${demoPoster(coach, 'treadmill_run')}" alt="">
       <video muted playsinline loop autoplay src="${demoVideo(coach, 'treadmill_run')}"></video>
       <div class="run-map" id="rmap" data-act="mapmode" hidden></div>
       <div class="hud-top"><button class="icon-btn" data-act="exit">${icon('close', 'width="20" height="20"')}</button><span class="spacer"></span>

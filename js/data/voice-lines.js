@@ -133,6 +133,8 @@ export const NAME_LINES = {
   pr: { m: '[excited] שיא אישי חדש! {name}, אתה מכונה!', f: '[excited] שיא אישי חדש! {name}, את מכונה!' },
   workout_done: { m: '[excited] אימון הושלם, {name}! עבודה מטורפת. תזכור לאכול חלבון.', f: '[excited] אימון הושלם, {name}! עבודה מטורפת. תזכרי לאכול חלבון.' },
   run_done: { m: '[excited] ריצה הושלמה! {name}, איזה לוחם!', f: '[excited] ריצה הושלמה! {name}, איזו לוחמת!' },
+  // מילה טובה בשם באמצע תרגיל לפי זמן (מוחלף לפעמים במקום "חצי, ממשיכים") — כך השם נשמע גם בשיעורים שאין בהם סטים
+  half: { m: 'יפה מאוד, {name}. ממשיכים.', f: 'יפה מאוד, {name}. ממשיכים.' },
   proud: { m: '{name}, כל הכבוד. ברצינות.', f: '{name}, כל הכבוד. ברצינות.' },
   push_on: { m: 'קדימה {name}! אתה חזק יותר ממה שאתה חושב!', f: 'קדימה {name}! את חזקה יותר ממה שאת חושבת!' },
   hr_ready: { m: '{name}, הדופק התאושש. אתה מוכן לסט הבא.', f: '{name}, הדופק התאושש. את מוכנה לסט הבא.' },
@@ -141,7 +143,7 @@ export const NAME_LINES = {
 export const NAME_SWAP = {
   hello_ori: ['hello', 1], hello_noa: ['hello', 1], workout_done: ['workout_done', 1], run_done: ['run_done', 1], pr: ['pr', 1],
   last_set: ['last_set', 0.6], two_more: ['two_more', 0.4], hr_ready: ['hr_ready', 0.5],
-  m1: ['push_on', 0.5], m6: ['proud', 0.5], m10: ['proud', 0.7], workout_start: ['welcome', 0.5],
+  m1: ['push_on', 0.5], m6: ['proud', 0.5], m10: ['proud', 0.7], workout_start: ['welcome', 0.5], hold_half: ['half', 0.3],
 };
 
 // הגייה: גרסאות מנוקדות למילים קצרות/דו־משמעיות — משמשות רק ליצירת הקול (הטקסט המוצג נשאר ללא ניקוד).

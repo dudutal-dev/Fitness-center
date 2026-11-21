@@ -133,6 +133,8 @@ export function startRun(run, { day = null } = {}) {
   function setPaused(v) {
     if (paused === v) return;
     paused = v; gps.pause(paused); setKeepAliveState(paused);
+    // בהשהיה גם המאמן והמוזיקה שותקים; בהמשך המוזיקה חוזרת
+    if (paused) { stop(); stopMusic(); } else if (musicOn()) startMusic(runMood(segs[i]?.kind));
     $('#pauseBtn').innerHTML = paused ? `${icon('play', 'width="22" height="22"')} המשך` : `${icon('pause', 'width="22" height="22"')} השהה`;
     paused ? $('video').pause() : $('video').play().catch(() => {});
   }

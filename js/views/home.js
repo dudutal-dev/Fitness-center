@@ -13,7 +13,7 @@ import { say, onSpeaking, unlock } from '../coach/voice.js';
 import { MOTIVATION_KEYS, lineFor } from '../data/voice-lines.js';
 import { startWorkout } from './workout.js';
 import { startRun, freeRun } from './run.js';
-import { reminderPromptHtml, bindReminderPrompt } from './reminders-ui.js';
+import { reminderPromptHtml, bindReminderPrompt, scheduleRowHtml, bindSchedule } from './reminders-ui.js';
 import { backupDue, backupNow, snoozeBackup } from '../backup.js';
 
 export function nextSession(s) {
@@ -120,6 +120,8 @@ export function renderHome(root) {
 
     <div class="free-row"><button class="btn sm" data-act="free-run">${icon('run', 'width="18" height="18"')} ריצה חופשית</button></div>
 
+    ${scheduleRowHtml()}
+
     <div class="card coach-hero">
       <div class="holo"><img src="${coach.face}" alt="${coach.name}"></div>
       <div class="bubble">${line.text}</div>
@@ -165,6 +167,7 @@ export function renderHome(root) {
     if (a === 'backup-later') { snoozeBackup(7); renderHome(root); }
     if (a === 'checkin') checkIn(() => renderHome(root), true);
   };
+  bindSchedule(root, () => renderHome(root));
   on(root, 'click', '[data-act]', (e, el) => act(el.dataset.act, el));
 }
 

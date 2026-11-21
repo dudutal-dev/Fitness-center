@@ -130,7 +130,7 @@ export function renderHome(root) {
 
     ${wantsNutrition(p) ? nutCard() : ''}
     <div class="today">
-      ${tile('water', ib('drop', 'acc'), (dd.water / 1000).toFixed(1), `/ ${t.waterL} ל׳`, 'מים', pct(dd.water, t.waterL * 1000))}
+      ${/* מעקב השתייה עבר למסך התזונה (החלטת בעל המוצר, 21.11.2026); כאן יבוא מונה צעדים כשתהיה אפליקציה מהחנות */''}
       ${tile('weight', ib('scale'), lastW ? lastW.kg : '—', 'ק״ג', 'משקל', null)}
       ${tile('checkin', ib('pulse', 'ok'), dd.checkin != null ? Math.round(dd.checkin * 100) : '—', dd.checkin != null ? '%' : '', 'מוכנות', dd.checkin != null ? Math.round(dd.checkin * 100) : null)}
       ${tile('fitness', ib('trophy', 'pri'), cri.score ?? '—', '', 'כושר', cri.score ?? null)}
@@ -159,7 +159,6 @@ export function renderHome(root) {
     if (a === 'run') startRun(ns.run, { day: ns.day });
     if (a === 'free-run') startRun(freeRun());   // ריצה חופשית, בלי תוכנית
     if (a === 'field') checkIn((r) => startWorkout({ ...buildFieldWorkout(p), day: null, field: true }, { readiness: r }));
-    if (a === 'water') { setDaily({ water: dd.water + 250 }); if (dd.water + 250 >= t.waterL * 1000 && dd.water < t.waterL * 1000) { addXP(XP.water * 4); toast('יעד השתייה הושלם!'); } renderHome(root); }
     if (a === 'food') location.hash = '#/nutrition';
     if (a === 'nut') { openNutritionTab('menu'); location.hash = '#/nutrition'; }
     if (a === 'weight') weightSheet(() => renderHome(root));

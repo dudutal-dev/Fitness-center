@@ -54,3 +54,8 @@ noa/names/ziv/workout_done.mp3
 noa/names/ziv_f/hello.mp3
 noa/names/ziv_f/pr.mp3
 noa/names/ziv_f/hr_ready.mp3
+ori/names/sarit/go.mp3
+ori/names/sarit/last_set.mp3
+ori/names/sarit/run_done.mp3
+ori/names/sarit/proud.mp3
+noa/names/sarit/pr.mp3

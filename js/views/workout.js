@@ -11,7 +11,7 @@ import { shareCard } from '../share-card.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
 import { applyReadiness, blockedSet, LEVEL_NAMES, warmupFor, cooldownFor } from '../engine/program.js';
 import { say, sayNow, resolve, clipDur, keyDur, stop, onSpeaking, preload, unlock, isSpeaking, coachId } from '../coach/voice.js';
-import { weightClip, weightChange } from '../data/weights.js';
+import { weightClip, weightChange, isRecordWeight } from '../data/weights.js';
 import { musicOn, startMusic, stopMusic, setMusicMood } from '../coach/music.js';
 import { MOTIVATION_KEYS, ORDINAL_SET, MOBILITY_TIPS } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
@@ -76,8 +76,15 @@ export function startWorkout(workout, { readiness = null } = {}) {
   // המשקל בקול (מאמני חדר הכושר, js/data/weights.js): בכניסה לתרגיל — המשקל של הסט; בין סטים של אותו תרגיל — רק כשהמשקל השתנה
   // ("מעלים משקל. ארבעים ושניים וחצי קילו"), ובשינוי ידני לפני הסט — המשקל החדש, אחרי שמפסיקים ללחוץ.
   let kgTimer = null;
-  const sayKg = (w, prev = 0) => { const clip = weightClip(w, coachId()); if (!clip) return; const ch = weightChange(w, prev); if (ch) say(ch); say({ clip, text: `${w} ק״ג` }); };
-  const sayStepKg = (st) => { const e = st && EX[items[st.ii].exId]; if (e && (e.type === 'weight' || e.load)) sayKg(log[st.ii].sets[st.si].w); };
+  // משקל שיא (בקשת בעל המוצר, 23.11.2026): סט במשקל גבוה מכל מה שבוצע בתרגיל — המאמן אומר זאת אחרי המשקל, ומברך כשהסט בוצע. פעם אחת לתרגיל באימון
+  const recAhead = new Set(), recDone = new Set();
+  const recordAt = (ii, w) => { const it = items[ii]; return !!it && it.role !== 'finisher' && EX[it.exId]?.type === 'weight' && isRecordWeight(w, get().history[it.exId]); };
+  const sayKg = (w, prev = 0, ii = null) => {
+    const clip = weightClip(w, coachId());
+    if (clip) { const ch = weightChange(w, prev); if (ch) say(ch); say({ clip, text: `${w} ק״ג` }); }
+    if (ii != null && recordAt(ii, w) && !recAhead.has(ii)) { recAhead.add(ii); say('w_record'); toast(`משקל שיא בתרגיל הזה: ${w} ק״ג`, 3500); }
+  };
+  const sayStepKg = (st) => { const e = st && EX[items[st.ii].exId]; if (e && (e.type === 'weight' || e.load)) sayKg(log[st.ii].sets[st.si].w, 0, st.ii); };
 
   try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
   keepAlive({ title: workout.name || 'אימון', artist: COACHES[coach]?.name || '', artwork: COACHES[coach]?.face, togglePause: (v) => setPaused(v) });   // ממשיך גם כשהמסך נעול
@@ -85,7 +92,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   const hrMax = maxHrFor(profile);
   // טעינה מראש של כל מה שהמאמן עשוי להגיד באימון הזה (ספירה 1–20, טמפו, סטים, מוטיבציה, שמות התרגילים)
   preload(['go', 'down', 'up', 'hold', 'pull', 'press', 'release', 'rest', 'rest_10', 'rest_30', 'set_done', 'two_more', 'last_rep', 'last_set',
-    'next_ex', 'rate_set', 'warm_intro', 'warm_go', 'switch_side', 'warm_done', 'cool_intro', 'cool_done', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'hr_ready', 'hr_high', `hello_${coach}`,
+    'next_ex', 'rate_set', 'warm_intro', 'warm_go', 'switch_side', 'warm_done', 'cool_intro', 'cool_done', 'hold_start', 'hold_half', 'hold_done', 'workout_done', 'pr', 'w_record', 'w_record_done', 'hr_ready', 'hr_high', `hello_${coach}`,
     ...Array.from({ length: 20 }, (_, i) => `n${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `set${i + 1}`),
     ...MOTIVATION_KEYS, ...items.map((it) => `ex_${it.exId}`), ...items.filter((it) => MOBILITY_TIPS[it.exId]).map((it) => `tip_${it.exId}`)]);
 
@@ -426,9 +433,14 @@ export function startWorkout(workout, { readiness = null } = {}) {
     else if (nIt.role === 'cooldown' && prevRole !== 'cooldown') say('cool_intro');
     // חימום/מתיחות: מציגים ומכריזים על התנועה הבאה כבר בתחילת ההפסקה — לא אחרי שהשעון שלה התחיל
     if (autoNext) { showExercise(); paintTop(); if (prevRole === nIt.role) say('next_ex'); say(`ex_${nIt.exId}`); }
-    else if (!autoNext && prevRole !== 'warmup') say('set_done');
+    else if (!autoNext && prevRole !== 'warmup') {
+      // הסט שהסתיים היה במשקל שיא: ברכה במקום "סט נגמר"
+      const pi = steps[k - 1].ii, ps = log[pi].sets[steps[k - 1].si];
+      if (ps.done && ps.reps > 0 && recordAt(pi, ps.w) && !recDone.has(pi)) { recDone.add(pi); recAhead.add(pi); toast(`שיא משקל חדש: ${ps.w} ק״ג`, 3500); say('w_record_done'); }
+      else say('set_done');
+    }
     // הסט הבא באותו תרגיל במשקל אחר (התאמה אוטומטית אחרי הדירוג, או שינוי ידני): אומרים כבר בתחילת המנוחה, כדי שיהיה זמן להחליף
-    if (!autoNext && !newEx && nxt.si > 0) { const w = log[nxt.ii].sets[nxt.si].w, prev = log[nxt.ii].sets[nxt.si - 1].w; if (weightChange(w, prev)) sayKg(w, prev); }
+    if (!autoNext && !newEx && nxt.si > 0) { const w = log[nxt.ii].sets[nxt.si].w, prev = log[nxt.ii].sets[nxt.si - 1].w; if (weightChange(w, prev)) sayKg(w, prev, nxt.ii); }
     if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
     p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: autoNext ? 'מתכוננים' : 'מנוחה', color: 'var(--acc)' })}</div>
@@ -611,7 +623,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     log[cur().ii].sets.forEach((x, i) => { if (i > cur().si && !x.done) x.w = sl.w; });
     root.querySelectorAll('[data-wshow]').forEach((n) => { n.textContent = sl.w; });
     // המאמן אומר את המשקל החדש אחרי שמפסיקים ללחוץ (לא בסיכום הסט — שם מתקנים מה שכבר בוצע)
-    clearTimeout(kgTimer); if (mode !== 'log') kgTimer = setTimeout(() => { if (mode !== 'log' && mode !== 'summary') sayKg(setLog().w); }, 1200);
+    clearTimeout(kgTimer); if (mode !== 'log') kgTimer = setTimeout(() => { if (mode !== 'log' && mode !== 'summary') sayKg(setLog().w, 0, cur().ii); }, 1200);
   };
   on(root, 'click', '[data-w]', (e, t) => {
     const ex1 = ex(), step = ex1.inc >= 5 ? 2.5 : ex1.inc >= 2 ? 1 : 0.5;

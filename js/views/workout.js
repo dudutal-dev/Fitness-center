@@ -10,7 +10,8 @@ import { COACHES, demoVideo, demoPoster } from '../data/coaches.js';
 import { shareCard } from '../share-card.js';
 import { suggest, isPR, roundLoad, bestSet, evaluateLevel } from '../engine/progression.js';
 import { applyReadiness, blockedSet, LEVEL_NAMES, warmupFor, cooldownFor } from '../engine/program.js';
-import { say, sayNow, resolve, clipDur, keyDur, stop, onSpeaking, preload, unlock, isSpeaking } from '../coach/voice.js';
+import { say, sayNow, resolve, clipDur, keyDur, stop, onSpeaking, preload, unlock, isSpeaking, coachId } from '../coach/voice.js';
+import { weightClip, weightChange } from '../data/weights.js';
 import { musicOn, startMusic, stopMusic, setMusicMood } from '../coach/music.js';
 import { MOTIVATION_KEYS, ORDINAL_SET, MOBILITY_TIPS } from '../data/voice-lines.js';
 import { DEMO_TIMING } from '../data/demo-timing.js';
@@ -72,6 +73,11 @@ export function startWorkout(workout, { readiness = null } = {}) {
   let countedReps = 0;
   let lastExShown = -1;
   let intraMsg = '';
+  // המשקל בקול (מאמני חדר הכושר, js/data/weights.js): בכניסה לתרגיל — המשקל של הסט; בין סטים של אותו תרגיל — רק כשהמשקל השתנה
+  // ("מעלים משקל. ארבעים ושניים וחצי קילו"), ובשינוי ידני לפני הסט — המשקל החדש, אחרי שמפסיקים ללחוץ.
+  let kgTimer = null;
+  const sayKg = (w, prev = 0) => { const clip = weightClip(w, coachId()); if (!clip) return; const ch = weightChange(w, prev); if (ch) say(ch); say({ clip, text: `${w} ק״ג` }); };
+  const sayStepKg = (st) => { const e = st && EX[items[st.ii].exId]; if (e && (e.type === 'weight' || e.load)) sayKg(log[st.ii].sets[st.si].w); };
 
   try { navigator.wakeLock?.request('screen').then((l) => (wakeLock = l)).catch(() => {}); } catch { /* */ }
   keepAlive({ title: workout.name || 'אימון', artist: COACHES[coach]?.name || '', artwork: COACHES[coach]?.face, togglePause: (v) => setPaused(v) });   // ממשיך גם כשהמסך נעול
@@ -254,7 +260,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     mode = 'active'; paint();
     // לחצו "התחל" בזמן הברכה: הצגת התרגיל הראשון לא נזרקת מהתור, והשעון מחכה לה
     firstWait = deferFirst && !firstShown && k === 0;
-    if (firstWait) say(`ex_${item().exId}`, { keep: true });
+    if (firstWait) { say(`ex_${item().exId}`, { keep: true }); sayStepKg(steps[k]); }
     firstShown = true;
     countedReps = 0;
     const it = item(), e = ex(), sl = setLog();
@@ -421,6 +427,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
     // חימום/מתיחות: מציגים ומכריזים על התנועה הבאה כבר בתחילת ההפסקה — לא אחרי שהשעון שלה התחיל
     if (autoNext) { showExercise(); paintTop(); if (prevRole === nIt.role) say('next_ex'); say(`ex_${nIt.exId}`); }
     else if (!autoNext && prevRole !== 'warmup') say('set_done');
+    // הסט הבא באותו תרגיל במשקל אחר (התאמה אוטומטית אחרי הדירוג, או שינוי ידני): אומרים כבר בתחילת המנוחה, כדי שיהיה זמן להחליף
+    if (!autoNext && !newEx && nxt.si > 0) { const w = log[nxt.ii].sets[nxt.si].w, prev = log[nxt.ii].sets[nxt.si - 1].w; if (weightChange(w, prev)) sayKg(w, prev); }
     if (secs >= 40 && !autoNext) say(Math.random() < 0.45 ? MOTIVATION_KEYS[Math.floor(Math.random() * MOTIVATION_KEYS.length)] : 'rest');
     const p = $('.panel');
     p.innerHTML = html`<div class="counter">${ring(1, { size: 190, stroke: 14, big: fmtTime(secs), lbl: autoNext ? 'מתכוננים' : 'מנוחה', color: 'var(--acc)' })}</div>
@@ -461,7 +469,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
         clearInterval(timer); timer = null;
         mode = 'ready';
         if (autoNext) { paint(); startSet(); return; }
-        if (newEx) { say('next_ex'); say(`ex_${nIt.exId}`); } else {
+        if (newEx) { say('next_ex'); say(`ex_${nIt.exId}`); sayStepKg(nxt); } else {
           const last = nxt.si === nIt.sets - 1;
           say(last ? 'last_set' : `set${Math.min(6, nxt.si + 1)}`);
         }
@@ -556,7 +564,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (a === 'go') startSet();
     if (a === 'skip-warm') {
       const first = steps.findIndex((x) => items[x.ii].role !== 'warmup');
-      if (first > k) { k = first; stop(); say('next_ex'); say(`ex_${item().exId}`); mode = 'ready'; paint(); }
+      if (first > k) { k = first; stop(); say('next_ex'); say(`ex_${item().exId}`); sayStepKg(steps[k]); mode = 'ready'; paint(); }
     }
     if (a === 'skip-cool') finish();
     if (a === 'manual') { countedReps = setLog().reps; mode = 'log'; paint(); }
@@ -602,6 +610,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
     // עדכון גם לסטים הבאים של אותו תרגיל
     log[cur().ii].sets.forEach((x, i) => { if (i > cur().si && !x.done) x.w = sl.w; });
     t.parentElement.querySelector('.val span').textContent = sl.w;
+    clearTimeout(kgTimer); if (mode === 'ready') kgTimer = setTimeout(() => { if (mode === 'ready') sayKg(setLog().w); }, 1200);
   });
   on(root, 'click', '[data-r]', (e, t) => {
     const sl = setLog();
@@ -633,7 +642,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
           L.sg = sg;
           L.sets.forEach((x) => { if (!x.done) { x.w = sg.w || 0; x.reps = sg.reps; } });
           lastExShown = -1;
-          closeSheet(); say(`ex_${id}`, { priority: true }); paint();
+          closeSheet(); say(`ex_${id}`, { priority: true }); sayStepKg(steps[k]); paint();
         });
       },
     });
@@ -646,7 +655,7 @@ export function startWorkout(workout, { readiness = null } = {}) {
   say(`hello_${coach}`, { priority: true });
   if (items[0].role === 'warmup') say('warm_intro');
   // התרגיל הראשון: כשהוא תנועת חימום / מתיחה לפי זמן, המאמן מציג אותו רק כשלוחצים "התחל" — לא לפני, ולא פעמיים
-  if (!deferFirst) say(`ex_${items[0].exId}`);
+  if (!deferFirst) { say(`ex_${items[0].exId}`); sayStepKg(steps[0]); }
   if (w.note) toast(w.note, 4200);
   paint();
 }

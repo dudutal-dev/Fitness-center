@@ -247,7 +247,8 @@ export function startRun(run, { day = null } = {}) {
     if (route.length > 1) { showMap(true); map.setMode('fit'); }
     else if (mapOn) layoutMap();
     // תמונת המסלול: נוצרת ברקע; כשהיא מוכנה מופיע הכפתור, ובשמירה היא נשמרת בטלפון לפי תאריך האימון
-    if (route.length > 1) renderRouteImage(route, { title: run.name, caption: `${(measured / 1000).toFixed(2)} ק״מ · ${fmtTime(dur)} · ${fmtPace(dur / (measured / 1000))} לק״מ` })
+    if (route.length > 1) renderRouteImage(route, { title: run.name, date: new Date().toLocaleDateString(document.documentElement.lang === 'en' ? 'en-GB' : 'he-IL', { day: 'numeric', month: 'numeric', year: 'numeric' }),
+      stats: [{ v: (measured / 1000).toFixed(2), l: 'ק״מ' }, { v: fmtTime(dur), l: 'זמן' }, { v: fmtPace(dur / (measured / 1000)), l: 'קצב לק״מ' }] })
       .then((b) => { routeBlob = b; const btn = $('#routeImgBtn'); if (btn) btn.hidden = false; if (stamp.saved) saveRouteImage(stamp(), b); }).catch(() => {});
     const splitsHtml = measured >= 200 ? `<div class="sub run-splits">קצב ממוצע <b class="num">${fmtPace(dur / (measured / 1000))}</b> לק״מ${splits.map((t, k) => ` · ק״מ ${k + 1}: <b class="num">${fmtTime(t - (splits[k - 1] || 0))}</b>`).join('')}</div>` : '';
     const distGuess = testSec ? 3 : measured >= 200 ? Math.round(measured / 10) / 100 : '';
@@ -324,7 +325,7 @@ export function saveRun(r) {
   const isPR = r.timeSec && (!prev.length || r.timeSec < Math.min(...prev));
   set((s2) => {
     s2.runs.push({ date: r.date || new Date().toISOString(), ...r });
-    s2.runs.filter((x) => x.route).slice(0, -40).forEach((x) => { delete x.route; });   // המסלול נשמר ל-40 האימונים האחרונים
+    s2.runs.filter((x) => x.route).slice(0, -40).forEach((x) => { delete x.route; delete x.marks; });   // המסלול נשמר ל-40 האימונים האחרונים
     if (r.timeSec) { s2.profile.run3k = r.timeSec; s2.profile.runLevel = runLevelFrom3k(r.timeSec); }
     return s2;
   });

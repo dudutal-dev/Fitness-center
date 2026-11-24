@@ -1174,3 +1174,7 @@ button.mi .tag { margin-inline-end: 4px; }
 .part-row .num { min-width: 28px; text-align: center; }
 .part-res { max-height: 30vh; margin-top: 8px; }
 .input.auto { background: var(--panel2); opacity: .85; }
+
+/* נקודות ממוספרות על מפת המסלול */
+.rmap-line .marks circle { fill: #f3c97a; stroke: #fff; stroke-width: 2.5; }
+.rmap-line .marks text { fill: #2a1b52; font: 800 13px Heebo, system-ui, sans-serif; text-anchor: middle; }

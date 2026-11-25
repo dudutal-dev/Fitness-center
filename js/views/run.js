@@ -34,7 +34,8 @@ export function startRun(run, { day = null } = {}) {
   const segs = run.segs;
   const hrMax = maxHrFor(profile);
   let i = 0;
-  let segStart = 0, elapsed = 0, lastTick = Date.now();
+  let segStart = 0, elapsed = 0, lastTick = Date.now(), wokeAt = 0;
+  const SLEEP_GAP = 5 * 60000;
   let paused = false, timer = null, wakeLock = null;
   let testStart = null, testStartDist = 0, saidHalf = false;
   let kmAnnounced = 0;
@@ -162,7 +163,12 @@ export function startRun(run, { day = null } = {}) {
 
   function tick() {
     const now = Date.now();
-    if (!paused) elapsed += now - lastTick;
+    // הדף היה רדום (טלפון נעול, האפליקציה נסגרה ברקע) יותר מחמש דקות (25.11.2026): הזמן הזה לא נספר, והאימון ממשיך מהמקום שבו נעצר.
+    // קודם כל הפער נוסף לשעון: הליכה של חצי שעה "הסתיימה" מיד עם זמן של ארבע שעות, כל המקטעים רצו בשנייה וחצי, והיום סומן כבוצע.
+    // פער קצר יותר (מסך שננעל לכמה דקות תוך כדי הליכה) נספר כמו קודם, והאימון נשאר מסונכרן לשעון.
+    const gap = now - lastTick;
+    if (!paused && gap > SLEEP_GAP) { gps.pause(true); gps.pause(false); wokeAt = now; toast('האימון נעצר כשהמסך היה סגור. ממשיכים מאותה נקודה.', 4000); }
+    else if (!paused) elapsed += gap;
     lastTick = now;
     $('#tot').textContent = fmtTime(elapsed / 1000);
     const sg = segs[i];
@@ -181,7 +187,7 @@ export function startRun(run, { day = null } = {}) {
     if (gps.here && $('#mapBtn').hidden && !$('[data-rpe]')) { $('#mapBtn').hidden = false; if (get().settings.runMap !== false) showMap(true); }
     if (mapOn && now - mapDrawn > 1000) { mapDrawn = now; layoutMap(); map.draw(gps.path, gps.here); }   // המיקום העדכני — המפה זזה עם ההליכה
     if (Math.floor(d / 1000) > splits.length) splits.push(Math.round(elapsed / 1000));
-    if (gpsOn && !hasRSC()) { const st = gps.status; $('#gpsst').textContent = st.error ? 'אין גישה למיקום — המרחק לא יימדד. אפשר לאשר מיקום בהגדרות הדפדפן.' : st.ok ? `GPS · דיוק ${st.accuracy} מ׳${st.accuracy > 40 ? ' · קליטה חלשה, המרחק מקורב' : ''}` : st.fixes ? 'אין קליטת GPS כרגע…' : 'מחפש GPS…'; }
+    if (gpsOn && !hasRSC()) { const st = gps.status; $('#gpsst').textContent = st.error ? 'אין גישה למיקום — המרחק לא יימדד. אפשר לאשר מיקום בהגדרות הדפדפן.' : st.ok ? `GPS · דיוק ${st.accuracy} מ׳${st.accuracy > 120 ? ' · קליטה חלשה מדי, המרחק לא נמדד כרגע' : st.accuracy > 40 ? ' · קליטה חלשה, המרחק מקורב' : ''}` : st.fixes ? 'אין קליטת GPS כרגע…' : 'מחפש GPS…'; }
     if (c.hr) {
       const z = zoneOf(c.hr, hrMax);
       $('#hr').textContent = c.hr; $('#hrz').textContent = `Z${z.z} · ${z.name}`; $('#hr').style.color = z.color;
@@ -216,7 +222,7 @@ export function startRun(run, { day = null } = {}) {
       tick.last = secLeft;
       if (secLeft === 60 && sg.sec >= 180) say('run_min');
       if (secLeft <= 3 && secLeft >= 1) sayNow([`n${secLeft}`]);
-      if (!saidHalf && totalPlanned > 600 && elapsed / 1000 >= totalPlanned / 2) { saidHalf = true; say('run_half'); }
+      if (!saidHalf && totalPlanned > 600 && elapsed / 1000 >= totalPlanned / 2 && left > 4)   /* לא ברגע החלפת מקטע: משפט המקטע הבא היה מבטל אותו */ { saidHalf = true; say('run_half'); }
     }
     // סוף המקטע. אם הדף היה מושהה (מסך נעול) והזמן עבר את סוף המקטע — העודף נזקף למקטע הבא, כדי שהאימון יישאר מסונכרן לשעון
     if (left <= 0) { nextSeg(); if (left < -1 && segs[i] !== sg) segStart = elapsed + left * 1000; }
@@ -264,7 +270,7 @@ export function startRun(run, { day = null } = {}) {
       <button class="btn sm block" style="margin-top:8px" data-act="route-img" id="routeImgBtn" hidden>תמונת המסלול</button>`;
     // תמונת הסיכום לשיתוף: זמן, מרחק וקצב (לפי המרחק שבשדה)
     on($('.panel'), 'click', '[data-act="share-run"]', () => {
-      const km = Number($('#dist').value) || 0, pace = km ? dur / km : 0, mmss = (x) => `${Math.floor(x / 60)}:${String(Math.round(x % 60)).padStart(2, '0')}`;
+      const km = Number($('#dist').value) || 0, pace = km ? dur / km : 0, mmss = fmtPace;
       shareCard({ title: run.name, eyebrow: 'ריצה הושלמה', coachImg: COACHES[coach]?.img, kpis: [[fmtTime(dur), 'זמן'], ...(km ? [[km, 'ק״מ'], [mmss(pace), 'דקות לק״מ']] : [])], lines: testSec ? [`מבדק 3 ק״מ: ${fmtTime(testSec)}`] : [] });
     });
     on($('.panel'), 'click', '[data-rpe]', (e, b) => {

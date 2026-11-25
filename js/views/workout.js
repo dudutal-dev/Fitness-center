@@ -23,6 +23,13 @@ import { hrPill, hrSummaryHtml } from '../devices/ui.js';
 const WARM_CHEER = ['m2', 'm5', 'm6', 'm9', 'm10'];
 const RPE = [{ v: 6.5, e: icon('effort1'), t: 'קל' }, { v: 8, e: icon('effort2'), t: 'טוב' }, { v: 9, e: icon('effort3'), t: 'קשה' }, { v: 10, e: icon('effort4'), t: 'עד הקצה' }];
 
+// נקודות לאימון (25.11.2026): אימון שהושלם — XP.workout. שמירה חלקית ("סיים ושמור" באמצע) — לפי חלק הסטים שבוצעו מתוך המתוכננים
+// (בלי חימום ומתיחות, שלא נספרים גם ב-setsDone), ולפחות עשירית — כדי שעבודה אמיתית לא תהיה אפס. קודם שני סטים מתוך עשרים נתנו 120.
+export const workoutXP = (partial, done, planned) => (partial ? Math.max(Math.round(XP.workout * 0.1), Math.round(XP.workout * Math.min(1, done / Math.max(planned, done, 1)))) : XP.workout);
+// דף שנרדם באמצע סט (25.11.2026): פער של יותר מעשר שניות בין שתי פעימות של שעון הסט (טלפון נעול, האפליקציה ברקע) — כמה זמן להחזיר לשעון; פער קצר נספר כרגיל
+export const SLEEP_GAP = 10000;
+export const sleptFor = (last, now) => (last && now - last > SLEEP_GAP ? now - last : 0);
+
 export function startWorkout(workout, { readiness = null } = {}) {
   unlock();
   const s = get();
@@ -65,6 +72,16 @@ export function startWorkout(workout, { readiness = null } = {}) {
   // כך ההשהיה עובדת בכל תחום ובכל שלב, והזמן שעמדנו לא נספר.
   let pausedAt = 0, pauseShift = 0;
   const vnow = () => (pausedAt || Date.now()) - pauseShift;
+  // דף שנרדם באמצע סט (25.11.2026): הזמן שהדף לא רץ לא נספר — לא לחזרות, לא להחזקה ולא לשעון האימון — והסט נעצר בהשהיה, במקום שבו היה.
+  // קודם הפער נוסף לשעון: סט נספר שנרדם בחזרה 0 נרשם עם כל חזרות היעד, והחזקה בזמן הסתיימה כאילו בוצעה. במנוחה הפער נספר כרגיל (לנוח יותר זה בסדר).
+  let lastTick = 0;
+  const woke = () => {
+    const now = Date.now(), gap = pausedAt ? 0 : sleptFor(lastTick, now);
+    lastTick = now;
+    if (!gap) return;
+    pauseShift += gap; setPaused(true);
+    toast('הסט נעצר כשהמסך היה סגור. "המשך" — וממשיכים מאותה נקודה.', 5000);
+  };
   const t0 = vnow();
   let k = 0;            // צעד נוכחי
   let mode = 'ready';   // ready | active | log | rest | summary
@@ -304,7 +321,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
       }
       return out;
     };
+    lastTick = 0;
     timer = setInterval(() => {
+      woke();
       const t = vnow() - startAt;
       if (t < 0) return;
       const r = Math.floor(t / rep);
@@ -353,7 +372,9 @@ export function startWorkout(workout, { readiness = null } = {}) {
     if (!mobility) say(e?.pattern === 'core' || e?.id === 'farmer_carry' ? 'hold_start' : 'warm_go', { priority: true });
     const waitUntil = vnow() + (firstWait ? 32000 : 15000);
     let lastSec = -1, half = false, cheered = false, tipped = false;
+    lastTick = 0;
     timer = setInterval(() => {
+      woke();
       if (startAt == null) {
         if (isSpeaking() && vnow() < waitUntil) { $('#ph').textContent = 'מתכוננים…'; return; }
         say('warm_go');
@@ -520,7 +541,8 @@ export function startWorkout(workout, { readiness = null } = {}) {
       if (it.role !== 'finisher' && EX[it.exId].type === 'weight' && isPR(it.exId, done, st.history[it.exId])) prs.push(it.exId);
     });
     if (!exercises.length) { close(); return; }
-    let gained = XP.workout + prs.length * XP.pr;
+    const planned = log.reduce((n, l, ii) => n + (items[ii].role === 'warmup' || items[ii].role === 'cooldown' ? 0 : l.sets.length), 0);
+    let gained = workoutXP(partial, setsDone, planned) + prs.length * XP.pr;
     const hr = hrRec.stop();
     const nowIso = new Date().toISOString(), sid = `s_${Date.now()}`;
     set((s2) => {

@@ -5,7 +5,7 @@ import { get, set } from '../store.js';
 import { COACHES } from '../data/coaches.js';
 import { FOOD } from '../data/foods.js';
 import { GOALS, LEVEL_NAMES } from '../engine/program.js';
-import { mealPlan, wantsNutrition } from '../engine/nutrition.js';
+import { mealPlan, menuToday, wantsNutrition } from '../engine/nutrition.js';
 import { estMinutes } from './home.js';
 
 const CTX = 'base'; // התפריט לדוגמה: מה שיש בחדר האוכל בבסיס
@@ -15,7 +15,7 @@ export function openPlanIntro(onDone) {
   const s = get(), p = s.profile, week = s.plan.week;
   const coaches = [COACHES[p.coach]];
   const fem = p.sex === 'f';
-  const plan = mealPlan(p, { ctx: CTX, seed: new Date().getDate() });
+  const plan = mealPlan(p, menuToday(s, CTX));   // אותן מנות כמו בתפריט של היום במסך הבית ובמסך התזונה (25.11.2026); הכמויות כאן לפי היעד היומי הרגיל
   const t = plan.targets;
   const kcalOf = (g, per) => Math.round(g * per);
   const pct = (g, per) => Math.round((kcalOf(g, per) / Math.max(1, t.kcal)) * 100);

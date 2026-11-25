@@ -37,7 +37,7 @@ export function startRun(run, { day = null } = {}) {
   let segStart = 0, elapsed = 0, lastTick = Date.now(), wokeAt = 0;
   const SLEEP_GAP = 5 * 60000;
   let paused = false, timer = null, wakeLock = null;
-  let testStart = null, testStartDist = 0, saidHalf = false;
+  let testStart = null, testStartDist = 0, saidHalf = false, testT = null;   // testT: זמן ה-3 ק״מ שנמדד במבדק (שניות)
   let kmAnnounced = 0;
   let zoneOutSince = 0, zoneCooldown = 0, freeTips = 0;
   const FREE_TIP = () => null;
@@ -154,7 +154,7 @@ export function startRun(run, { day = null } = {}) {
     if ($('#pace')) $('#pace').textContent = pace ? `${fmtPace(pace)} לק״מ` : 'הליכה / קל';
     segPace = pace ? { max: pace } : null;
     const isLastFast = sg.kind === 'fast' && !segs.slice(i + 1).some((x) => x.kind === 'fast');
-    say(isLastFast ? 'run_last' : SEG_VOICE[sg.kind], { priority: true });
+    say(isLastFast ? 'run_last' : SEG_VOICE[sg.kind], { priority: !(testT && sg.kind === 'cool') });   // אחרי המבדק: השחרור לא קוטע את "המבדק הושלם"
     if (sg.kind === 'test') { testStart = elapsed; testStartDist = distM(); $('#testDone').style.display = ''; $('[data-act="skip"]').style.display = 'none'; }
     else { $('#testDone').style.display = 'none'; $('[data-act="skip"]').style.display = sg.kind === 'free' ? 'none' : ''; }
     $('#freeDone').style.display = sg.kind === 'free' ? '' : 'none';
@@ -233,19 +233,25 @@ export function startRun(run, { day = null } = {}) {
     i++; enterSeg();
   }
 
+  // סוף המבדק (25.11.2026): הזמן נרשם, והאימון ממשיך לשחרור ומסתיים כרגיל. קודם האימון נסגר כאן: השחרור לא רץ אף פעם,
+  // וברשומה נשמרו "3 ק״מ" לצד זמן כולל שכלל גם את החימום
   function testDone() {
-    const sec = Math.round((elapsed - testStart) / 1000);
-    clearInterval(timer);
-    finish(sec);
+    if (testT || segs[i].kind !== 'test') return;
+    testT = Math.max(1, Math.round((elapsed - testStart) / 1000));
+    kmAnnounced = Math.floor(distM() / 1000);   // הקילומטרים של המבדק לא מוכרזים בשחרור
+    toast(`3 ק״מ: ${fmtTime(testT)}`, 3500);
+    nextSeg();
   }
 
-  function finish(testSec = null) {
+  function finish() {
+    if (ended) return;
     clearInterval(timer);
+    const testSec = testT, inTest = segs[i]?.kind === 'test';
+    const dur = Math.round(elapsed / 1000);
     gps.stop();
     const hr = hrRec.stop();
-    if (!testSec) { stop(); say('run_done', { priority: true }); } else say('run_done');
+    if (!(testSec && inTest)) { stop(); say('run_done', { priority: true }); } else say('run_done');
     confetti(90);
-    const dur = Math.round(elapsed / 1000);
     const measured = distM();
     const route = measured >= 200 ? simplifyPath(gps.path) : [];
     $('#mapBtn').hidden = true;
@@ -257,7 +263,7 @@ export function startRun(run, { day = null } = {}) {
       stats: [{ v: (measured / 1000).toFixed(2), l: 'ק״מ' }, { v: fmtTime(dur), l: 'זמן' }, { v: fmtPace(dur / (measured / 1000)), l: 'קצב לק״מ' }] })
       .then((b) => { routeBlob = b; const btn = $('#routeImgBtn'); if (btn) btn.hidden = false; if (stamp.saved) saveRouteImage(stamp(), b); }).catch(() => {});
     const splitsHtml = measured >= 200 ? `<div class="sub run-splits">קצב ממוצע <b class="num">${fmtPace(dur / (measured / 1000))}</b> לק״מ${splits.map((t, k) => ` · ק״מ ${k + 1}: <b class="num">${fmtTime(t - (splits[k - 1] || 0))}</b>`).join('')}</div>` : '';
-    const distGuess = testSec ? 3 : measured >= 200 ? Math.round(measured / 10) / 100 : '';
+    const distGuess = measured >= 200 ? Math.round(measured / 10) / 100 : testSec ? 3 : '';   // מבדק: המרחק של כל האימון כשנמדד (25.11.2026); בלי GPS — 3 ק״מ, כמו קודם
     $('.panel').innerHTML = html`<div class="h1" style="text-align:center;margin-top:8px">ריצה הושלמה</div>
       <div class="kpis" style="margin:14px 0"><div class="kpi"><b>${fmtTime(dur)}</b><span>זמן כולל</span></div>
         ${testSec ? `<div class="kpi up"><b>${fmtTime(testSec)}</b><span>3 ק״מ</span></div>` : `<div class="kpi"><b>${distGuess || '—'}</b><span>ק״מ</span></div>`}
@@ -329,13 +335,14 @@ export function saveRun(r) {
   const st = get();
   const prev = st.runs.filter((x) => x.type === 'test' && x.timeSec).map((x) => x.timeSec);
   const isPR = r.timeSec && (!prev.length || r.timeSec < Math.min(...prev));
+  const xp = XP.run + (isPR ? XP.pr : 0);   // נשמר על הרשומה (25.11.2026), כדי שמחיקה תוריד בדיוק את מה שניתן
   set((s2) => {
-    s2.runs.push({ date: r.date || new Date().toISOString(), ...r });
+    s2.runs.push({ date: r.date || new Date().toISOString(), ...r, xp });
     s2.runs.filter((x) => x.route).slice(0, -40).forEach((x) => { delete x.route; delete x.marks; });   // המסלול נשמר ל-40 האימונים האחרונים
     if (r.timeSec) { s2.profile.run3k = r.timeSec; s2.profile.runLevel = runLevelFrom3k(r.timeSec); }
     return s2;
   });
-  addXP(XP.run + (isPR ? XP.pr : 0), 'run');
+  addXP(xp, 'run');
   pingWorkout();
   if (r.timeSec) pushEvent({ type: isPR ? 'pr' : 'coach', text: `${isPR ? 'שיא חדש ב-3 ק״מ' : 'מבדק 3 ק״מ'}: ${fmtTime(r.timeSec)}. היעד הבא: ${fmtTime(next3kTarget(r.timeSec))}` });
   if (isPR) say('pr');

@@ -1,7 +1,7 @@
 // מסך המאמן והפרופיל: החלפת מאמן, הגדרות קול, עריכת פרופיל ויעדים, גיבוי ושחזור.
 import { planMedia, mediaStatus, downloadMedia } from '../media-warm.js';
 import { html, esc, on, sheet, toast, icon } from '../ui/dom.js';
-import { get, set, regenerateWeek, exportData, importData, resetAll } from '../store.js';
+import { get, set, regenerateWeek, exportData, importData, readBackup, resetAll } from '../store.js';
 import { COACHES } from '../data/coaches.js';
 import { GOALS, INJURIES, LEVEL_NAMES } from '../engine/program.js';
 import { runLevelFrom3k } from '../engine/running.js';
@@ -166,7 +166,15 @@ export function renderCoach(root) {
   root.querySelector('[data-import]').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    try { importData(await f.text()); toast('הנתונים שוחזרו'); location.hash = '#/home'; } catch (err) { toast(`שגיאה: ${err.message}`); }
+    e.target.value = '';   // כדי שאפשר יהיה לבחור שוב את אותו קובץ
+    // קודם בודקים את הקובץ, ואז שואלים (25.11.2026): שחזור מחליף את כל מה שבטלפון, ועד עכשיו זה קרה מיד עם בחירת הקובץ
+    let json, d;
+    try { json = await f.text(); d = readBackup(json); } catch (err) { return toast(`שגיאה: ${err.message}`, 4500); }
+    const n = (d.sessions?.length || 0) + (d.runs?.length || 0);
+    sheet(html`<div class="h1" style="font-size:22px">לשחזר מהגיבוי?</div><p class="sub">בקובץ: הגיבוי של ${esc(d.profile.name)}, ${n} אימונים. כל מה שנמצא עכשיו בטלפון יוחלף במה שבקובץ.</p>
+      <button class="btn primary block" data-yes>כן, לשחזר</button><button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {
+      onMount(sh, c) { sh.querySelector('[data-yes]').addEventListener('click', () => { c(); try { importData(json); toast('הנתונים שוחזרו'); location.hash = '#/home'; } catch (err) { toast(`שגיאה: ${err.message}`, 4500); } }); },
+    });
   });
   on(root, 'click', '[data-reset]', () => sheet(html`<div class="h1" style="font-size:22px">למחוק הכל?</div><p class="sub">כל האימונים, המדדים וההתקדמות יימחקו לצמיתות.</p>
     <button class="btn danger block" data-yes>כן, מחק הכל</button><button class="btn ghost block" style="margin-top:8px" data-close>ביטול</button>`, {
